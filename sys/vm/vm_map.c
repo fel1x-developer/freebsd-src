@@ -127,7 +127,7 @@ static uma_zone_t vmspace_zone;
 static int vmspace_zinit(void *mem, int size, int flags);
 static void _vm_map_init(vm_map_t map, pmap_t pmap, vm_offset_t min,
     vm_offset_t max);
-static void vm_map_entry_deallocate(vm_map_entry_t entry, boolean_t system_map);
+static void vm_map_entry_deallocate(vm_map_entry_t entry, bool system_map);
 static void vm_map_entry_dispose(vm_map_t map, vm_map_entry_t entry);
 static void vm_map_entry_unwire(vm_map_t map, vm_map_entry_t entry);
 static int vm_map_growstack(vm_map_t map, vm_offset_t addr,
@@ -606,7 +606,7 @@ vm_map_process_deferred(void)
 			    entry->end);
 		}
 		vm_map_entry_set_vnode_text(entry, false);
-		vm_map_entry_deallocate(entry, FALSE);
+		vm_map_entry_deallocate(entry, false);
 		entry = next;
 	}
 }
@@ -889,7 +889,7 @@ _vm_map_init(vm_map_t map, pmap_t pmap, vm_offset_t min, vm_offset_t max)
 {
 
 	map->header.eflags = MAP_ENTRY_HEADER;
-	map->needs_wakeup = FALSE;
+	map->needs_wakeup = false;
 	map->system_map = 0;
 	map->pmap = pmap;
 	map->header.end = min;
@@ -1529,14 +1529,14 @@ vm_map_entry_resize(vm_map_t map, vm_map_entry_t entry, vm_size_t grow_amount)
  *	result indicates whether the address is
  *	actually contained in the map.
  */
-boolean_t
+bool
 vm_map_lookup_entry(
 	vm_map_t map,
 	vm_offset_t address,
 	vm_map_entry_t *entry)	/* OUT */
 {
 	vm_map_entry_t cur, header, lbound, ubound;
-	boolean_t locked;
+	bool locked;
 
 	/*
 	 * If the map is empty, then the map entry immediately preceding
@@ -1546,11 +1546,11 @@ vm_map_lookup_entry(
 	cur = map->root;
 	if (cur == NULL) {
 		*entry = header;
-		return (FALSE);
+		return (false);
 	}
 	if (address >= cur->start && cur->end > address) {
 		*entry = cur;
-		return (TRUE);
+		return (true);
 	}
 	if ((locked = vm_map_locked(map)) ||
 	    sx_try_upgrade(&map->lock)) {
@@ -1573,7 +1573,7 @@ vm_map_lookup_entry(
 		 */
 		if (address < cur->start) {
 			*entry = header;
-			return (FALSE);
+			return (false);
 		}
 		*entry = cur;
 		return (address < cur->end);
@@ -1596,11 +1596,11 @@ vm_map_lookup_entry(
 				break;
 		} else {
 			*entry = cur;
-			return (TRUE);
+			return (true);
 		}
 	}
 	*entry = lbound;
-	return (FALSE);
+	return (false);
 }
 
 /*
@@ -3740,8 +3740,8 @@ done:
  * vm_map_sync
  *
  * Push any dirty cached pages in the address range to their pager.
- * If syncio is TRUE, dirty pages are written synchronously.
- * If invalidate is TRUE, any cached pages are freed as well.
+ * If syncio is true, dirty pages are written synchronously.
+ * If invalidate is true, any cached pages are freed as well.
  *
  * If the size of the region from start to end is zero, we are
  * supposed to flush all modified pages within the region containing
@@ -3757,8 +3757,8 @@ vm_map_sync(
 	vm_map_t map,
 	vm_offset_t start,
 	vm_offset_t end,
-	boolean_t syncio,
-	boolean_t invalidate)
+	bool syncio,
+	bool invalidate)
 {
 	vm_map_entry_t entry, first_entry, next_entry;
 	vm_size_t size;
@@ -3766,7 +3766,7 @@ vm_map_sync(
 	vm_ooffset_t offset;
 	unsigned int last_timestamp;
 	int bdry_idx;
-	boolean_t failed;
+	bool failed;
 
 	vm_map_lock_read(map);
 	VM_MAP_RANGE_CHECK(map, start, end);
@@ -3806,7 +3806,7 @@ vm_map_sync(
 
 	if (invalidate)
 		pmap_remove(map->pmap, start, end);
-	failed = FALSE;
+	failed = false;
 
 	/*
 	 * Make a second pass, cleaning/uncaching pages from the indicated
@@ -3836,7 +3836,7 @@ vm_map_sync(
 		last_timestamp = map->timestamp;
 		vm_map_unlock_read(map);
 		if (!vm_object_sync(object, offset, size, syncio, invalidate))
-			failed = TRUE;
+			failed = true;
 		start += size;
 		vm_object_deallocate(object);
 		vm_map_lock_read(map);
@@ -3876,7 +3876,7 @@ vm_map_entry_unwire(vm_map_t map, vm_map_entry_t entry)
 }
 
 static void
-vm_map_entry_deallocate(vm_map_entry_t entry, boolean_t system_map)
+vm_map_entry_deallocate(vm_map_entry_t entry, bool system_map)
 {
 
 	if ((entry->eflags & MAP_ENTRY_IS_SUB_MAP) == 0)
@@ -3955,7 +3955,7 @@ vm_map_entry_delete(vm_map_t map, vm_map_entry_t entry)
 		VM_OBJECT_WUNLOCK(object);
 	}
 	if (map->system_map)
-		vm_map_entry_deallocate(entry, TRUE);
+		vm_map_entry_deallocate(entry, true);
 	else {
 		entry->defer_next = curthread->td_map_def_user;
 		curthread->td_map_def_user = entry;
@@ -4087,7 +4087,7 @@ vm_map_remove(vm_map_t map, vm_offset_t start, vm_offset_t end)
  *
  *	The map must be locked.  A read lock is sufficient.
  */
-boolean_t
+bool
 vm_map_check_protection(vm_map_t map, vm_offset_t start, vm_offset_t end,
 			vm_prot_t protection)
 {
@@ -4095,7 +4095,7 @@ vm_map_check_protection(vm_map_t map, vm_offset_t start, vm_offset_t end,
 	vm_map_entry_t tmp_entry;
 
 	if (!vm_map_lookup_entry(map, start, &tmp_entry))
-		return (FALSE);
+		return (false);
 	entry = tmp_entry;
 
 	while (start < end) {
@@ -4103,17 +4103,17 @@ vm_map_check_protection(vm_map_t map, vm_offset_t start, vm_offset_t end,
 		 * No holes allowed!
 		 */
 		if (start < entry->start)
-			return (FALSE);
+			return (false);
 		/*
 		 * Check protection associated with entry.
 		 */
 		if ((entry->protection & protection) != protection)
-			return (FALSE);
+			return (false);
 		/* go to next entry */
 		start = entry->end;
 		entry = vm_map_entry_succ(entry);
 	}
-	return (TRUE);
+	return (true);
 }
 
 /*
@@ -5009,7 +5009,7 @@ vm_map_lookup(vm_map_t *var_map,		/* IN/OUT */
 	      vm_object_t *object,		/* OUT */
 	      vm_pindex_t *pindex,		/* OUT */
 	      vm_prot_t *out_prot,		/* OUT */
-	      boolean_t *wired)			/* OUT */
+	      bool *wired)			/* OUT */
 {
 	vm_map_entry_t entry;
 	vm_map_t map = *var_map;
@@ -5180,7 +5180,7 @@ vm_map_lookup_locked(vm_map_t *var_map,		/* IN/OUT */
 		     vm_object_t *object,	/* OUT */
 		     vm_pindex_t *pindex,	/* OUT */
 		     vm_prot_t *out_prot,	/* OUT */
-		     boolean_t *wired)		/* OUT */
+		     bool *wired)		/* OUT */
 {
 	vm_map_entry_t entry;
 	vm_map_t map = *var_map;

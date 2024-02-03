@@ -33,7 +33,7 @@
 .In sys/param.h
 .In vm/vm.h
 .In vm/vm_map.h
-.Ft boolean_t
+.Ft bool
 .Fo vm_map_check_protection
 .Fa "vm_map_t map" "vm_offset_t start" "vm_offset_t end" "vm_prot_t protection"
 .Fc
@@ -57,8 +57,8 @@ is significantly larger in size.
 .Sh RETURN VALUES
 The
 .Fn vm_map_check_protection
-function returns TRUE if the privilege is allowed; if it is not allowed,
-or if any other error occurred, the value FALSE is returned.
+function returns true if the privilege is allowed; if it is not allowed,
+or if any other error occurred, the value false is returned.
 .Sh SEE ALSO
 .Xr munmap 2 ,
 .Xr vm_map 9 ,

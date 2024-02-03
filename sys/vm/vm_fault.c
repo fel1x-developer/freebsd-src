@@ -122,7 +122,7 @@ struct faultstate {
 	vm_prot_t	fault_type;
 	vm_prot_t	prot;
 	int		fault_flags;
-	boolean_t	wired;
+	bool	wired;
 
 	/* Control state. */
 	struct timeval	oom_start_time;
@@ -1629,7 +1629,7 @@ RetryFault:
 		}
 	}
 
-	while (TRUE) {
+	while (true) {
 		KASSERT(fs.m == NULL,
 		    ("page still set %p at loop start", fs.m));
 
@@ -1970,7 +1970,7 @@ vm_fault_quick_hold_pages(vm_map_t map, vm_offset_t addr, vm_size_t len,
 	vm_offset_t end, va;
 	vm_page_t *mp;
 	int count;
-	boolean_t pmap_failed;
+	bool pmap_failed;
 
 	if (len == 0)
 		return (0);
@@ -1988,11 +1988,11 @@ vm_fault_quick_hold_pages(vm_map_t map, vm_offset_t addr, vm_size_t len,
 	 * Most likely, the physical pages are resident in the pmap, so it is
 	 * faster to try pmap_extract_and_hold() first.
 	 */
-	pmap_failed = FALSE;
+	pmap_failed = false;
 	for (mp = ma, va = addr; va < end; mp++, va += PAGE_SIZE) {
 		*mp = pmap_extract_and_hold(map->pmap, va, prot);
 		if (*mp == NULL)
-			pmap_failed = TRUE;
+			pmap_failed = true;
 		else if ((prot & VM_PROT_WRITE) != 0 &&
 		    (*mp)->dirty != VM_PAGE_BITS_ALL) {
 			/*

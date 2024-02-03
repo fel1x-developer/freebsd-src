@@ -284,7 +284,7 @@ tmpfs_page_removed(vm_object_t obj, vm_page_t m)
 	}
 }
 
-static boolean_t
+static bool
 tmpfs_can_alloc_page(vm_object_t obj, vm_pindex_t pindex)
 {
 	struct tmpfs_mount *tm;

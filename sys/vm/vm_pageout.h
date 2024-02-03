@@ -100,7 +100,7 @@ void vm_wait_domain(int domain);
 void vm_wait_min(void);
 void vm_wait_severe(void);
 
-int vm_pageout_flush(vm_page_t *, int, int, int, int *, boolean_t *);
+int vm_pageout_flush(vm_page_t *, int, int, int, int *, bool *);
 void vm_pageout_oom(int shortage);
 
 void vm_swapout_run(void);

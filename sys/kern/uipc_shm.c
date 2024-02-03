@@ -299,7 +299,7 @@ shm_largepage_phys_populate(vm_object_t object, vm_pindex_t pidx,
 	return (VM_PAGER_OK);
 }
 
-static boolean_t
+static bool
 shm_largepage_phys_haspage(vm_object_t object, vm_pindex_t pindex,
     int *before, int *after)
 {
@@ -307,7 +307,7 @@ shm_largepage_phys_haspage(vm_object_t object, vm_pindex_t pindex,
 
 	psind = object->un_pager.phys.data_val;
 	if (psind == 0 || pindex >= object->size)
-		return (FALSE);
+		return (false);
 	if (before != NULL) {
 		*before = pindex - rounddown2(pindex, pagesizes[psind] /
 		    PAGE_SIZE);
@@ -316,7 +316,7 @@ shm_largepage_phys_haspage(vm_object_t object, vm_pindex_t pindex,
 		*after = roundup2(pindex, pagesizes[psind] / PAGE_SIZE) -
 		    pindex;
 	}
-	return (TRUE);
+	return (true);
 }
 
 static void
@@ -1859,7 +1859,7 @@ shm_unmap(struct file *fp, void *mem, size_t size)
 	vm_object_t obj;
 	vm_pindex_t pindex;
 	vm_prot_t prot;
-	boolean_t wired;
+	bool wired;
 	vm_map_t map;
 	int rv;
 

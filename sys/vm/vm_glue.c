@@ -116,7 +116,7 @@
 int
 kernacc(void *addr, int len, int rw)
 {
-	boolean_t rv;
+	bool rv;
 	vm_offset_t saddr, eaddr;
 	vm_prot_t prot;
 
@@ -125,7 +125,7 @@ kernacc(void *addr, int len, int rw)
 
 	if ((vm_offset_t)addr + len > vm_map_max(kernel_map) ||
 	    (vm_offset_t)addr + len < (vm_offset_t)addr)
-		return (FALSE);
+		return (false);
 
 	prot = rw;
 	saddr = trunc_page((vm_offset_t)addr);
@@ -133,7 +133,7 @@ kernacc(void *addr, int len, int rw)
 	vm_map_lock_read(kernel_map);
 	rv = vm_map_check_protection(kernel_map, saddr, eaddr, prot);
 	vm_map_unlock_read(kernel_map);
-	return (rv == TRUE);
+	return (rv == true);
 }
 
 /*
@@ -148,7 +148,7 @@ kernacc(void *addr, int len, int rw)
 int
 useracc(void *addr, int len, int rw)
 {
-	boolean_t rv;
+	bool rv;
 	vm_prot_t prot;
 	vm_map_t map;
 
@@ -158,13 +158,13 @@ useracc(void *addr, int len, int rw)
 	map = &curproc->p_vmspace->vm_map;
 	if ((vm_offset_t)addr + len > vm_map_max(map) ||
 	    (vm_offset_t)addr + len < (vm_offset_t)addr) {
-		return (FALSE);
+		return (false);
 	}
 	vm_map_lock_read(map);
 	rv = vm_map_check_protection(map, trunc_page((vm_offset_t)addr),
 	    round_page((vm_offset_t)addr + len), prot);
 	vm_map_unlock_read(map);
-	return (rv == TRUE);
+	return (rv == true);
 }
 
 int

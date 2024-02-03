@@ -230,7 +230,7 @@ setup_virtual_area(struct thread *td, unsigned long addr, unsigned long num)
 	vm_object_t mem;
 	vm_pindex_t pindex;
 	vm_prot_t prot;
-	boolean_t wired;
+	bool wired;
 	struct privcmd_map *umap;
 	int error;
 

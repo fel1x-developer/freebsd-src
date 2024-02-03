@@ -857,7 +857,7 @@ umtx_key_get(const void *addr, int type, int share, struct umtx_key *key)
 	vm_map_entry_t entry;
 	vm_pindex_t pindex;
 	vm_prot_t prot;
-	boolean_t wired;
+	bool wired;
 
 	key->type = type;
 	if (share == THREAD_SHARE) {
@@ -4508,7 +4508,7 @@ umtx_shm_alive(struct thread *td, void *addr)
 	vm_pindex_t pindex;
 	vm_prot_t prot;
 	int res, ret;
-	boolean_t wired;
+	bool wired;
 
 	map = &td->td_proc->p_vmspace->vm_map;
 	res = vm_map_lookup(&map, (uintptr_t)addr, VM_PROT_READ, &entry,

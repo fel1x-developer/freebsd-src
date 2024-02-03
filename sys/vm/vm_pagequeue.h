@@ -252,7 +252,7 @@ struct vm_domain {
 
 	/* Paging control variables, used within single threaded page daemon. */
 	struct pidctrl vmd_pid;		/* Pageout controller. */
-	boolean_t vmd_oom;
+	bool vmd_oom;
 	u_int vmd_inactive_threads;
 	u_int vmd_inactive_shortage;		/* Per-thread shortage. */
 	blockcount_t vmd_inactive_running;	/* Number of inactive threads. */
@@ -404,7 +404,7 @@ vm_paging_target(struct vm_domain *vmd)
 }
 
 /*
- * Returns TRUE if the pagedaemon needs to be woken up.
+ * Returns true if the pagedaemon needs to be woken up.
  */
 static inline int
 vm_paging_needed(struct vm_domain *vmd, u_int free_count)
@@ -414,7 +414,7 @@ vm_paging_needed(struct vm_domain *vmd, u_int free_count)
 }
 
 /*
- * Returns TRUE if the domain is below the min paging target.
+ * Returns true if the domain is below the min paging target.
  */
 static inline int
 vm_paging_min(struct vm_domain *vmd)
@@ -424,7 +424,7 @@ vm_paging_min(struct vm_domain *vmd)
 }
 
 /*
- * Returns TRUE if the domain is below the severe paging target.
+ * Returns true if the domain is below the severe paging target.
  */
 static inline int
 vm_paging_severe(struct vm_domain *vmd)

@@ -95,7 +95,7 @@ static int dead_pager_getpages(vm_object_t, vm_page_t *, int, int *, int *);
 static vm_object_t dead_pager_alloc(void *, vm_ooffset_t, vm_prot_t,
     vm_ooffset_t, struct ucred *);
 static void dead_pager_putpages(vm_object_t, vm_page_t *, int, int, int *);
-static boolean_t dead_pager_haspage(vm_object_t, vm_pindex_t, int *, int *);
+static bool dead_pager_haspage(vm_object_t, vm_pindex_t, int *, int *);
 static void dead_pager_dealloc(vm_object_t);
 static void dead_pager_getvp(vm_object_t, struct vnode **, bool *);
 
@@ -125,7 +125,7 @@ dead_pager_putpages(vm_object_t object, vm_page_t *m, int count,
 		rtvals[i] = VM_PAGER_AGAIN;
 }
 
-static boolean_t
+static bool
 dead_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *prev, int *next)
 {
 
@@ -133,7 +133,7 @@ dead_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *prev, int *next)
 		*prev = 0;
 	if (next != NULL)
 		*next = 0;
-	return (FALSE);
+	return (false);
 }
 
 static void
@@ -347,7 +347,7 @@ vm_pager_get_pages(vm_object_t object, vm_page_t *m, int count, int *rbehind,
 		 * Zero out partially filled data.
 		 */
 		if (m[i]->valid != VM_PAGE_BITS_ALL)
-			vm_page_zero_invalid(m[i], TRUE);
+			vm_page_zero_invalid(m[i], true);
 	}
 	return (VM_PAGER_OK);
 }

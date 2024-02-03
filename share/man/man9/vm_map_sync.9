@@ -35,8 +35,8 @@
 .In vm/vm_map.h
 .Ft int
 .Fo vm_map_sync
-.Fa "vm_map_t map" "vm_offset_t start" "vm_offset_t end" "boolean_t syncio"
-.Fa "boolean_t invalidate"
+.Fa "vm_map_t map" "vm_offset_t start" "vm_offset_t end" "bool syncio"
+.Fa "bool invalidate"
 .Fc
 .Sh DESCRIPTION
 The
@@ -51,11 +51,11 @@ to be pushed to their underlying pager.
 .Pp
 If
 .Fa syncio
-is TRUE, dirty pages are written synchronously.
+is true, dirty pages are written synchronously.
 .Pp
 If
 .Fa invalidate
-is TRUE, any cached pages are also freed.
+is true, any cached pages are also freed.
 .Pp
 The range provided must be contiguous, it MUST NOT contain holes.
 The range provided MUST NOT contain any sub-map entries.

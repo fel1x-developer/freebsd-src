@@ -457,7 +457,7 @@ vm_page_domain_init(int domain)
 	vmd->vmd_page_count = 0;
 	vmd->vmd_free_count = 0;
 	vmd->vmd_segs = 0;
-	vmd->vmd_oom = FALSE;
+	vmd->vmd_oom = false;
 	for (i = 0; i < PQ_COUNT; i++) {
 		pq = &vmd->vmd_pagequeues[i];
 		TAILQ_INIT(&pq->pq_pl);
@@ -4829,7 +4829,7 @@ retrylookup:
 			vm_page_readahead_finish(ma[i]);
 		MPASS(vm_page_all_valid(m));
 	} else {
-		vm_page_zero_invalid(m, TRUE);
+		vm_page_zero_invalid(m, true);
 	}
 out:
 	if ((allocflags & VM_ALLOC_WIRED) != 0)
@@ -5438,7 +5438,7 @@ vm_page_invalid(vm_page_t m)
  *	into memory and the file's size is not page aligned.
  */
 void
-vm_page_zero_invalid(vm_page_t m, boolean_t setvalid)
+vm_page_zero_invalid(vm_page_t m, bool setvalid)
 {
 	int b;
 	int i;
@@ -5461,7 +5461,7 @@ vm_page_zero_invalid(vm_page_t m, boolean_t setvalid)
 	}
 
 	/*
-	 * setvalid is TRUE when we can safely set the zero'd areas
+	 * setvalid is true when we can safely set the zero'd areas
 	 * as being valid.  We can do this if there are no cache consistency
 	 * issues.  e.g. it is ok to do with UFS, but not ok to do with NFS.
 	 */
@@ -5473,8 +5473,8 @@ vm_page_zero_invalid(vm_page_t m, boolean_t setvalid)
  *	vm_page_is_valid:
  *
  *	Is (partial) page valid?  Note that the case where size == 0
- *	will return FALSE in the degenerate case where the page is
- *	entirely invalid, and TRUE otherwise.
+ *	will return false in the degenerate case where the page is
+ *	entirely invalid, and true otherwise.
  *
  *	Some callers envoke this routine without the busy lock held and
  *	handle races via higher level locks.  Typical callers should
@@ -5668,7 +5668,7 @@ DB_SHOW_COMMAND_FLAGS(pageq, vm_page_print_pageq_info, DB_CMD_MEMSAFE)
 DB_SHOW_COMMAND(pginfo, vm_page_print_pginfo)
 {
 	vm_page_t m;
-	boolean_t phys, virt;
+	bool phys, virt;
 
 	if (!have_addr) {
 		db_printf("show pginfo addr\n");

@@ -53,7 +53,7 @@ static int default_phys_pager_getpages(vm_object_t object, vm_page_t *m,
     int count, int *rbehind, int *rahead);
 static int default_phys_pager_populate(vm_object_t object, vm_pindex_t pidx,
     int fault_type, vm_prot_t max_prot, vm_pindex_t *first, vm_pindex_t *last);
-static boolean_t default_phys_pager_haspage(vm_object_t object,
+static bool default_phys_pager_haspage(vm_object_t object,
     vm_pindex_t pindex, int *before, int *after);
 const struct phys_pager_ops default_phys_pg_ops = {
 	.phys_pg_getpages = default_phys_pager_getpages,
@@ -250,7 +250,7 @@ default_phys_pager_populate(vm_object_t object, vm_pindex_t pidx,
 		m = vm_page_grab(object, i,
 		    VM_ALLOC_NORMAL | VM_ALLOC_COUNT(ahead));
 		if (!vm_page_all_valid(m))
-			vm_page_zero_invalid(m, TRUE);
+			vm_page_zero_invalid(m, true);
 		KASSERT(m->dirty == 0,
 		    ("phys_pager_populate: dirty page %p", m));
 	}
@@ -273,7 +273,7 @@ phys_pager_putpages(vm_object_t object, vm_page_t *m, int count, int flags,
 	panic("phys_pager_putpage called");
 }
 
-static boolean_t
+static bool
 default_phys_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
     int *after)
 {
@@ -285,10 +285,10 @@ default_phys_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
 		*before = pindex - base;
 	if (after != NULL)
 		*after = end - pindex;
-	return (TRUE);
+	return (true);
 }
 
-static boolean_t
+static bool
 phys_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
     int *after)
 {

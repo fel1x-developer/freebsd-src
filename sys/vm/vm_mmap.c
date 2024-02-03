@@ -332,7 +332,7 @@ kern_mmap(struct thread *td, const struct mmap_req *mrp)
 		error = 0;
 	} else if ((flags & MAP_GUARD) != 0) {
 		error = vm_mmap_object(&vms->vm_map, &addr, size, VM_PROT_NONE,
-		    VM_PROT_NONE, flags, NULL, pos, FALSE, td);
+		    VM_PROT_NONE, flags, NULL, pos, false, td);
 	} else if ((flags & MAP_ANON) != 0) {
 		/*
 		 * Mapping blank space is trivial.
@@ -340,7 +340,7 @@ kern_mmap(struct thread *td, const struct mmap_req *mrp)
 		 * This relies on VM_PROT_* matching PROT_*.
 		 */
 		error = vm_mmap_object(&vms->vm_map, &addr, size, prot,
-		    max_prot, flags, NULL, pos, FALSE, td);
+		    max_prot, flags, NULL, pos, false, td);
 	} else {
 		/*
 		 * Mapping file, get fp for validation and don't let the
@@ -579,7 +579,7 @@ kern_munmap(struct thread *td, uintptr_t addr0, size_t size)
 			for (; entry->start < end;
 			    entry = vm_map_entry_succ(entry)) {
 				if (vm_map_check_protection(map, entry->start,
-					entry->end, VM_PROT_EXECUTE) == TRUE) {
+					entry->end, VM_PROT_EXECUTE) == true) {
 					pkm.pm_address = (uintptr_t) addr;
 					pkm.pm_size = (size_t) size;
 					break;
@@ -1249,7 +1249,7 @@ int
 vm_mmap_vnode(struct thread *td, vm_size_t objsize,
     vm_prot_t prot, vm_prot_t *maxprotp, int *flagsp,
     struct vnode *vp, vm_ooffset_t *foffp, vm_object_t *objp,
-    boolean_t *writecounted)
+    bool *writecounted)
 {
 	struct vattr va;
 	vm_object_t obj;
@@ -1287,7 +1287,7 @@ vm_mmap_vnode(struct thread *td, vm_size_t objsize,
 				return (error);
 		}
 		if (writex) {
-			*writecounted = TRUE;
+			*writecounted = true;
 			vm_pager_update_writecount(obj, 0, objsize);
 		}
 	} else {
@@ -1344,7 +1344,7 @@ vm_mmap_vnode(struct thread *td, vm_size_t objsize,
 
 done:
 	if (error != 0 && *writecounted) {
-		*writecounted = FALSE;
+		*writecounted = false;
 		vm_pager_update_writecount(obj, objsize, 0);
 	}
 	vput(vp);
@@ -1421,14 +1421,14 @@ vm_mmap(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
 	vm_object_t object;
 	struct thread *td = curthread;
 	int error;
-	boolean_t writecounted;
+	bool writecounted;
 
 	if (size == 0)
 		return (EINVAL);
 
 	size = round_page(size);
 	object = NULL;
-	writecounted = FALSE;
+	writecounted = false;
 
 	switch (handle_type) {
 	case OBJT_DEVICE: {
@@ -1510,7 +1510,7 @@ kern_mmap_racct_check(struct thread *td, vm_map_t map, vm_size_t size)
 int
 vm_mmap_object(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
     vm_prot_t maxprot, int flags, vm_object_t object, vm_ooffset_t foff,
-    boolean_t writecounted, struct thread *td)
+    bool writecounted, struct thread *td)
 {
 	vm_offset_t default_addr, max_addr;
 	int docow, error, findspace, rv;

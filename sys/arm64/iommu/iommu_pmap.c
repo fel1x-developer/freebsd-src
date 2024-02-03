@@ -310,7 +310,7 @@ smmu_pmap_resident_count_dec(struct smmu_pmap *pmap, int count)
  */
 static __inline void
 smmu_pmap_add_delayed_free_list(vm_page_t m, struct spglist *free,
-    boolean_t set_PG_ZERO)
+    bool set_PG_ZERO)
 {
 
 	if (set_PG_ZERO)
@@ -327,10 +327,10 @@ smmu_pmap_add_delayed_free_list(vm_page_t m, struct spglist *free,
 /*
  * Decrements a page table page's reference count, which is used to record the
  * number of valid page table entries within the page.  If the reference count
- * drops to zero, then the page table page is unmapped.  Returns TRUE if the
- * page table page was unmapped and FALSE otherwise.
+ * drops to zero, then the page table page is unmapped.  Returns true if the
+ * page table page was unmapped and false otherwise.
  */
-static inline boolean_t
+static inline bool
 smmu_pmap_unwire_l3(struct smmu_pmap *pmap, vm_offset_t va, vm_page_t m,
     struct spglist *free)
 {
@@ -338,9 +338,9 @@ smmu_pmap_unwire_l3(struct smmu_pmap *pmap, vm_offset_t va, vm_page_t m,
 	--m->ref_count;
 	if (m->ref_count == 0) {
 		_smmu_pmap_unwire_l3(pmap, va, m, free);
-		return (TRUE);
+		return (true);
 	} else
-		return (FALSE);
+		return (false);
 }
 
 static void
@@ -396,7 +396,7 @@ _smmu_pmap_unwire_l3(struct smmu_pmap *pmap, vm_offset_t va, vm_page_t m,
 	 * Put page on a list so that it is released after
 	 * *ALL* TLB shootdown is done
 	 */
-	smmu_pmap_add_delayed_free_list(m, free, TRUE);
+	smmu_pmap_add_delayed_free_list(m, free, true);
 }
 
 int

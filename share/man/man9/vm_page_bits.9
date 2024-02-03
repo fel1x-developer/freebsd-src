@@ -51,7 +51,7 @@
 .Ft void
 .Fn vm_page_set_invalid "vm_page_t m" "int base" "int size"
 .Ft void
-.Fn vm_page_zero_invalid "vm_page_t m" "boolean_t setvalid"
+.Fn vm_page_zero_invalid "vm_page_t m" "bool setvalid"
 .Ft int
 .Fn vm_page_is_valid "vm_page_t m" "int base" "int size"
 .Ft void
@@ -123,7 +123,7 @@ flagged as invalid.
 If
 .Fa setvalid
 is
-.Dv TRUE ,
+.Dv true ,
 all of the valid bits within the page are set.
 .Pp
 In some cases, such as NFS, the valid bits cannot be set
@@ -142,9 +142,9 @@ If
 is zero and the page is entirely invalid
 .Fn vm_page_is_valid
 will return
-.Dv TRUE ,
+.Dv true ,
 in all other cases a size of zero will return
-.Dv FALSE .
+.Dv false .
 .Pp
 .Fn vm_page_test_dirty
 checks if a page has been modified via any of its physical maps,

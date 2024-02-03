@@ -81,15 +81,15 @@ The
 .Fn vm_map_trylock
 macro attempts to obtain an exclusive lock on
 .Fa map .
-It returns FALSE if the lock cannot be immediately acquired;
-otherwise return TRUE with the lock acquired.
+It returns false if the lock cannot be immediately acquired;
+otherwise return true with the lock acquired.
 .Pp
 The
 .Fn vm_map_trylock_read
 macro attempts to obtain a read-lock on
 .Fa map .
-It returns FALSE if the lock cannot be immediately acquired;
-otherwise return TRUE with the lock acquired.
+It returns false if the lock cannot be immediately acquired;
+otherwise return true with the lock acquired.
 .Pp
 The
 .Fn vm_map_lock_upgrade

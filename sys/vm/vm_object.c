@@ -108,10 +108,10 @@ SYSCTL_INT(_vm, OID_AUTO, old_msync, CTLFLAG_RW, &old_msync, 0,
     "Use old (insecure) msync behavior");
 
 static int	vm_object_page_collect_flush(vm_object_t object, vm_page_t p,
-		    int pagerflags, int flags, boolean_t *allclean,
-		    boolean_t *eio);
-static boolean_t vm_object_page_remove_write(vm_page_t p, int flags,
-		    boolean_t *allclean);
+		    int pagerflags, int flags, bool *allclean,
+		    bool *eio);
+static bool vm_object_page_remove_write(vm_page_t p, int flags,
+		    bool *allclean);
 static void	vm_object_backing_remove(vm_object_t object);
 
 /*
@@ -975,11 +975,11 @@ vm_object_terminate(vm_object_t object)
 /*
  * Make the page read-only so that we can clear the object flags.  However, if
  * this is a nosync mmap then the object is likely to stay dirty so do not
- * mess with the page and do not clear the object flags.  Returns TRUE if the
- * page should be flushed, and FALSE otherwise.
+ * mess with the page and do not clear the object flags.  Returns true if the
+ * page should be flushed, and false otherwise.
  */
-static boolean_t
-vm_object_page_remove_write(vm_page_t p, int flags, boolean_t *allclean)
+static bool
+vm_object_page_remove_write(vm_page_t p, int flags, bool *allclean)
 {
 
 	vm_page_assert_busied(p);
@@ -990,8 +990,8 @@ vm_object_page_remove_write(vm_page_t p, int flags, boolean_t *allclean)
 	 * cleared in this case so we do not have to set them.
 	 */
 	if ((flags & OBJPC_NOSYNC) != 0 && (p->a.flags & PGA_NOSYNC) != 0) {
-		*allclean = FALSE;
-		return (FALSE);
+		*allclean = false;
+		return (false);
 	} else {
 		pmap_remove_write(p);
 		return (p->dirty != 0);
@@ -1017,22 +1017,22 @@ vm_object_page_remove_write(vm_page_t p, int flags, boolean_t *allclean)
  *
  *	The object must be locked.
  *
- *	Returns FALSE if some page from the range was not written, as
- *	reported by the pager, and TRUE otherwise.
+ *	Returns false if some page from the range was not written, as
+ *	reported by the pager, and true otherwise.
  */
-boolean_t
+bool
 vm_object_page_clean(vm_object_t object, vm_ooffset_t start, vm_ooffset_t end,
     int flags)
 {
 	vm_page_t np, p;
 	vm_pindex_t pi, tend, tstart;
 	int curgeneration, n, pagerflags;
-	boolean_t eio, res, allclean;
+	bool eio, res, allclean;
 
 	VM_OBJECT_ASSERT_WLOCKED(object);
 
 	if (!vm_object_mightbedirty(object) || object->resident_page_count == 0)
-		return (TRUE);
+		return (true);
 
 	pagerflags = (flags & (OBJPC_SYNC | OBJPC_INVAL)) != 0 ?
 	    VM_PAGER_PUT_SYNC : VM_PAGER_CLUSTER_OK;
@@ -1041,7 +1041,7 @@ vm_object_page_clean(vm_object_t object, vm_ooffset_t start, vm_ooffset_t end,
 	tstart = OFF_TO_IDX(start);
 	tend = (end == 0) ? object->size : OFF_TO_IDX(end + PAGE_MASK);
 	allclean = tstart == 0 && tend >= object->size;
-	res = TRUE;
+	res = true;
 
 rescan:
 	curgeneration = object->generation;
@@ -1068,8 +1068,8 @@ rescan:
 			n = vm_object_page_collect_flush(object, p, pagerflags,
 			    flags, &allclean, &eio);
 			if (eio) {
-				res = FALSE;
-				allclean = FALSE;
+				res = false;
+				allclean = false;
 			}
 			if (object->generation != curgeneration &&
 			    (flags & OBJPC_SYNC) != 0)
@@ -1089,7 +1089,7 @@ rescan:
 			 */
 			if (n == 0) {
 				n = 1;
-				allclean = FALSE;
+				allclean = false;
 			}
 		} else {
 			n = 1;
@@ -1113,7 +1113,7 @@ rescan:
 
 static int
 vm_object_page_collect_flush(vm_object_t object, vm_page_t p, int pagerflags,
-    int flags, boolean_t *allclean, boolean_t *eio)
+    int flags, bool *allclean, bool *eio)
 {
 	vm_page_t ma[vm_pageout_page_count], p_first, tp;
 	int count, i, mreq, runlen;
@@ -1168,19 +1168,19 @@ vm_object_page_collect_flush(vm_object_t object, vm_page_t p, int pagerflags,
  * Note: certain anonymous maps, such as MAP_NOSYNC maps,
  * may start out with a NULL object.
  */
-boolean_t
+bool
 vm_object_sync(vm_object_t object, vm_ooffset_t offset, vm_size_t size,
-    boolean_t syncio, boolean_t invalidate)
+    bool syncio, bool invalidate)
 {
 	vm_object_t backing_object;
 	struct vnode *vp;
 	struct mount *mp;
 	int error, flags, fsync_after;
-	boolean_t res;
+	bool res;
 
 	if (object == NULL)
-		return (TRUE);
-	res = TRUE;
+		return (true);
+	res = true;
 	error = 0;
 	VM_OBJECT_WLOCK(object);
 	while ((backing_object = object->backing_object) != NULL) {
@@ -1218,11 +1218,11 @@ vm_object_sync(vm_object_t object, vm_ooffset_t offset, vm_size_t size,
 			 * and then wait for i/o to complete.
 			 */
 			flags = 0;
-			fsync_after = TRUE;
+			fsync_after = true;
 		} else {
 			flags = (syncio || invalidate) ? OBJPC_SYNC : 0;
 			flags |= invalidate ? (OBJPC_SYNC | OBJPC_INVAL) : 0;
-			fsync_after = FALSE;
+			fsync_after = false;
 		}
 		VM_OBJECT_WLOCK(object);
 		res = vm_object_page_clean(object, offset, offset + size,
@@ -1248,7 +1248,7 @@ vm_object_sync(vm_object_t object, vm_ooffset_t offset, vm_size_t size,
 		VOP_UNLOCK(vp);
 		vn_finished_write(mp);
 		if (error != 0)
-			res = FALSE;
+			res = false;
 		VM_OBJECT_WLOCK(object);
 	}
 	if ((object->type == OBJT_VNODE ||
@@ -1908,7 +1908,7 @@ vm_object_collapse(vm_object_t object)
 
 	VM_OBJECT_ASSERT_WLOCKED(object);
 
-	while (TRUE) {
+	while (true) {
 		KASSERT((object->flags & (OBJ_DEAD | OBJ_ANON)) == OBJ_ANON,
 		    ("collapsing invalid object"));
 
@@ -1969,7 +1969,7 @@ vm_object_collapse(vm_object_t object)
 			 * reacquired.
 			 */
 			swap_pager_copy(backing_object, object,
-			    OFF_TO_IDX(object->backing_object_offset), TRUE);
+			    OFF_TO_IDX(object->backing_object_offset), true);
 
 			/*
 			 * Object now shadows whatever backing_object did.
@@ -2199,7 +2199,7 @@ vm_object_page_noreuse(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
 
 /*
  *	Populate the specified range of the object with valid pages.  Returns
- *	TRUE if the range is successfully populated and FALSE otherwise.
+ *	true if the range is successfully populated and false otherwise.
  *
  *	Note: This function should be optimized to pass a larger array of
  *	pages to vm_pager_get_pages() before it is applied to a non-
@@ -2207,7 +2207,7 @@ vm_object_page_noreuse(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
  *
  *	The object must be locked.
  */
-boolean_t
+bool
 vm_object_populate(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
 {
 	vm_page_t m;
@@ -2240,7 +2240,7 @@ vm_object_populate(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
  *	Function:	Coalesces two objects backing up adjoining
  *			regions of memory into a single object.
  *
- *	returns TRUE if objects were combined.
+ *	returns true if objects were combined.
  *
  *	NOTE:	Only works at the moment if the second object is NULL -
  *		if it's not, which object do we lock first?
@@ -2256,16 +2256,16 @@ vm_object_populate(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
  *	Conditions:
  *	The object must *not* be locked.
  */
-boolean_t
+bool
 vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
-    vm_size_t prev_size, vm_size_t next_size, boolean_t reserved)
+    vm_size_t prev_size, vm_size_t next_size, bool reserved)
 {
 	vm_pindex_t next_pindex;
 
 	if (prev_object == NULL)
-		return (TRUE);
+		return (true);
 	if ((prev_object->flags & OBJ_ANON) == 0)
-		return (FALSE);
+		return (false);
 
 	VM_OBJECT_WLOCK(prev_object);
 	/*
@@ -2280,7 +2280,7 @@ vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
 	 */
 	if (prev_object->backing_object != NULL) {
 		VM_OBJECT_WUNLOCK(prev_object);
-		return (FALSE);
+		return (false);
 	}
 
 	prev_size >>= PAGE_SHIFT;
@@ -2291,7 +2291,7 @@ vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
 	    prev_object->size != next_pindex &&
 	    (prev_object->flags & OBJ_ONEMAPPING) == 0) {
 		VM_OBJECT_WUNLOCK(prev_object);
-		return (FALSE);
+		return (false);
 	}
 
 	/*
@@ -2311,7 +2311,7 @@ vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
 		if (!reserved && !swap_reserve_by_cred(ptoa(next_size),
 		    prev_object->cred)) {
 			VM_OBJECT_WUNLOCK(prev_object);
-			return (FALSE);
+			return (false);
 		}
 		prev_object->charge += ptoa(next_size);
 	}
@@ -2342,7 +2342,7 @@ vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
 		prev_object->size = next_pindex + next_size;
 
 	VM_OBJECT_WUNLOCK(prev_object);
-	return (TRUE);
+	return (true);
 }
 
 void
@@ -2754,7 +2754,7 @@ DB_SHOW_COMMAND(object, vm_object_print_static)
 {
 	/* XXX convert args. */
 	vm_object_t object = (vm_object_t)addr;
-	boolean_t full = have_addr;
+	bool full = have_addr;
 
 	vm_page_t p;
 
@@ -2810,7 +2810,7 @@ DB_SHOW_COMMAND(object, vm_object_print_static)
 void
 vm_object_print(
         /* db_expr_t */ long addr,
-	boolean_t have_addr,
+	bool have_addr,
 	/* db_expr_t */ long count,
 	char *modif)
 {

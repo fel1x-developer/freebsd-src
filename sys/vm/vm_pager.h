@@ -55,7 +55,7 @@ typedef void pgo_getpages_iodone_t(void *, vm_page_t *, int, int);
 typedef int pgo_getpages_async_t(vm_object_t, vm_page_t *, int, int *, int *,
     pgo_getpages_iodone_t, void *);
 typedef void pgo_putpages_t(vm_object_t, vm_page_t *, int, int, int *);
-typedef boolean_t pgo_haspage_t(vm_object_t, vm_pindex_t, int *, int *);
+typedef bool pgo_haspage_t(vm_object_t, vm_pindex_t, int *, int *);
 typedef int pgo_populate_t(vm_object_t, vm_pindex_t, int, vm_prot_t,
     vm_pindex_t *, vm_pindex_t *);
 typedef void pgo_pageunswapped_t(vm_page_t);
@@ -68,7 +68,7 @@ typedef void pgo_freespace_t(vm_object_t object, vm_pindex_t start,
     vm_size_t size);
 typedef void pgo_page_inserted_t(vm_object_t object, vm_page_t m);
 typedef void pgo_page_removed_t(vm_object_t object, vm_page_t m);
-typedef boolean_t pgo_can_alloc_page_t(vm_object_t object, vm_pindex_t pindex);
+typedef bool pgo_can_alloc_page_t(vm_object_t object, vm_pindex_t pindex);
 
 struct pagerops {
 	int			pgo_kvme_type;
@@ -162,11 +162,11 @@ vm_pager_put_pages(vm_object_t object, vm_page_t *m, int count, int flags,
  *
  *	The object must be locked.
  */
-static __inline boolean_t
+static __inline bool
 vm_pager_has_page(vm_object_t object, vm_pindex_t offset, int *before,
     int *after)
 {
-	boolean_t ret;
+	bool ret;
 
 	VM_OBJECT_ASSERT_LOCKED(object);
 	ret = (*pagertab[object->type]->pgo_haspage)
@@ -307,7 +307,7 @@ struct phys_pager_ops {
 	int (*phys_pg_populate)(vm_object_t vm_obj, vm_pindex_t pidx,
 	    int fault_type, vm_prot_t max_prot, vm_pindex_t *first,
 	    vm_pindex_t *last);
-	boolean_t (*phys_pg_haspage)(vm_object_t obj,  vm_pindex_t pindex,
+	bool (*phys_pg_haspage)(vm_object_t obj,  vm_pindex_t pindex,
 	    int *before, int *after);
 	void (*phys_pg_ctor)(vm_object_t vm_obj, vm_prot_t prot,
 	    vm_ooffset_t foff, struct ucred *cred);

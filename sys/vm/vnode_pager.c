@@ -93,7 +93,7 @@ static int vnode_pager_getpages(vm_object_t, vm_page_t *, int, int *, int *);
 static int vnode_pager_getpages_async(vm_object_t, vm_page_t *, int, int *,
     int *, vop_getpages_iodone_t, void *);
 static void vnode_pager_putpages(vm_object_t, vm_page_t *, int, int, int *);
-static boolean_t vnode_pager_haspage(vm_object_t, vm_pindex_t, int *, int *);
+static bool vnode_pager_haspage(vm_object_t, vm_pindex_t, int *, int *);
 static vm_object_t vnode_pager_alloc(void *, vm_ooffset_t, vm_prot_t,
     vm_ooffset_t, struct ucred *cred);
 static int vnode_pager_generic_getpages_done(struct buf *);
@@ -153,7 +153,7 @@ vnode_create_vobject(struct vnode *vp, off_t isize, struct thread *td)
 	vm_ooffset_t size = isize;
 	bool last;
 
-	if (!vn_isdisk(vp) && vn_canvmio(vp) == FALSE)
+	if (!vn_isdisk(vp) && vn_canvmio(vp) == false)
 		return (0);
 
 	object = vp->v_object;
@@ -343,7 +343,7 @@ vnode_pager_dealloc(vm_object_t object)
 	VM_OBJECT_WLOCK(object);
 }
 
-static boolean_t
+static bool
 vnode_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
     int *after)
 {
@@ -362,13 +362,13 @@ vnode_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
 	 * have the page.
 	 */
 	if (vp == NULL || VN_IS_DOOMED(vp))
-		return FALSE;
+		return false;
 	/*
 	 * If the offset is beyond end of file we do
 	 * not have the page.
 	 */
 	if (IDX_TO_OFF(pindex) >= object->un_pager.vnp.vnp_size)
-		return FALSE;
+		return false;
 
 	bsize = vp->v_mount->mnt_stat.f_iosize;
 	pagesperblock = bsize / PAGE_SIZE;
@@ -383,9 +383,9 @@ vnode_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
 	err = VOP_BMAP(vp, reqblock, NULL, &bn, after, before);
 	VM_OBJECT_PICKUP(object, lockstate);
 	if (err)
-		return TRUE;
+		return true;
 	if (bn == -1)
-		return FALSE;
+		return false;
 	if (pagesperblock > 0) {
 		poff = pindex - (reqblock * pagesperblock);
 		if (before) {
@@ -418,7 +418,7 @@ vnode_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
 			*after /= blocksperpage;
 		}
 	}
-	return TRUE;
+	return true;
 }
 
 /*

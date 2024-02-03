@@ -140,7 +140,7 @@ struct vm_reserv {
 	vm_page_t	pages;			/* (c) first page  */
 	uint16_t	popcnt;			/* (r) # of pages in use */
 	uint8_t		domain;			/* (c) NUMA domain. */
-	char		inpartpopq;		/* (d, r) */
+	bool		inpartpopq;		/* (d, r) */
 	int		lasttick;		/* (r) last pop update tick. */
 	bitstr_t	bit_decl(popmap, VM_LEVEL_0_NPAGES_MAX);
 						/* (r) bit vector, used pages */
@@ -255,7 +255,7 @@ struct mtx_padalign vm_reserv_object_mtx[VM_RESERV_OBJ_LOCK_COUNT];
 static void		vm_reserv_break(vm_reserv_t rv);
 static void		vm_reserv_depopulate(vm_reserv_t rv, int index);
 static vm_reserv_t	vm_reserv_from_page(vm_page_t m);
-static boolean_t	vm_reserv_has_pindex(vm_reserv_t rv,
+static bool	vm_reserv_has_pindex(vm_reserv_t rv,
 			    vm_pindex_t pindex);
 static void		vm_reserv_populate(vm_reserv_t rv, int index);
 static void		vm_reserv_reclaim(vm_reserv_t rv);
@@ -345,7 +345,7 @@ vm_reserv_remove(vm_reserv_t rv)
 	KASSERT(rv->object != NULL,
 	    ("vm_reserv_remove: reserv %p is free", rv));
 	KASSERT(!rv->inpartpopq,
-	    ("vm_reserv_remove: reserv %p's inpartpopq is TRUE", rv));
+	    ("vm_reserv_remove: reserv %p's inpartpopq is true", rv));
 	object = rv->object;
 	vm_reserv_object_lock(object);
 	LIST_REMOVE(rv, objq);
@@ -370,7 +370,7 @@ vm_reserv_insert(vm_reserv_t rv, vm_object_t object, vm_pindex_t pindex)
 	KASSERT(rv->popcnt == 0,
 	    ("vm_reserv_insert: reserv %p's popcnt is corrupted", rv));
 	KASSERT(!rv->inpartpopq,
-	    ("vm_reserv_insert: reserv %p's inpartpopq is TRUE", rv));
+	    ("vm_reserv_insert: reserv %p's inpartpopq is true", rv));
 	KASSERT(bit_ntest(rv->popmap, 0, VM_LEVEL_0_NPAGES - 1, 0),
 	    ("vm_reserv_insert: reserv %p's popmap is corrupted", rv));
 	vm_reserv_object_lock(object);
@@ -418,10 +418,10 @@ vm_reserv_depopulate(vm_reserv_t rv, int index)
 		vm_reserv_domain_lock(rv->domain);
 		if (rv->inpartpopq) {
 			TAILQ_REMOVE(&vm_rvd[rv->domain].partpop, rv, partpopq);
-			rv->inpartpopq = FALSE;
+			rv->inpartpopq = false;
 		}
 		if (rv->popcnt != 0) {
-			rv->inpartpopq = TRUE;
+			rv->inpartpopq = true;
 			TAILQ_INSERT_TAIL(&vm_rvd[rv->domain].partpop, rv,
 			    partpopq);
 		}
@@ -494,10 +494,10 @@ found:
 }
 
 /*
- * Returns TRUE if the given reservation contains the given page index and
- * FALSE otherwise.
+ * Returns true if the given reservation contains the given page index and
+ * false otherwise.
  */
-static __inline boolean_t
+static __inline bool
 vm_reserv_has_pindex(vm_reserv_t rv, vm_pindex_t pindex)
 {
 
@@ -536,10 +536,10 @@ vm_reserv_populate(vm_reserv_t rv, int index)
 	vm_reserv_domain_lock(rv->domain);
 	if (rv->inpartpopq) {
 		TAILQ_REMOVE(&vm_rvd[rv->domain].partpop, rv, partpopq);
-		rv->inpartpopq = FALSE;
+		rv->inpartpopq = false;
 	}
 	if (rv->popcnt < VM_LEVEL_0_NPAGES) {
-		rv->inpartpopq = TRUE;
+		rv->inpartpopq = true;
 		TAILQ_INSERT_TAIL(&vm_rvd[rv->domain].partpop, rv, partpopq);
 	} else {
 		KASSERT(rv->pages->psind == 0,
@@ -944,7 +944,7 @@ vm_reserv_break_all(vm_object_t object)
 		vm_reserv_domain_lock(rv->domain);
 		if (rv->inpartpopq) {
 			TAILQ_REMOVE(&vm_rvd[rv->domain].partpop, rv, partpopq);
-			rv->inpartpopq = FALSE;
+			rv->inpartpopq = false;
 		}
 		vm_reserv_domain_unlock(rv->domain);
 		vm_reserv_break(rv);
@@ -953,25 +953,25 @@ vm_reserv_break_all(vm_object_t object)
 }
 
 /*
- * Frees the given page if it belongs to a reservation.  Returns TRUE if the
- * page is freed and FALSE otherwise.
+ * Frees the given page if it belongs to a reservation.  Returns true if the
+ * page is freed and false otherwise.
  */
-boolean_t
+bool
 vm_reserv_free_page(vm_page_t m)
 {
 	vm_reserv_t rv;
-	boolean_t ret;
+	bool ret;
 
 	rv = vm_reserv_from_page(m);
 	if (rv->object == NULL)
-		return (FALSE);
+		return (false);
 	vm_reserv_lock(rv);
 	/* Re-validate after lock. */
 	if (rv->object != NULL) {
 		vm_reserv_depopulate(rv, m - rv->pages);
-		ret = TRUE;
+		ret = true;
 	} else
-		ret = FALSE;
+		ret = false;
 	vm_reserv_unlock(rv);
 
 	return (ret);
@@ -1096,10 +1096,10 @@ vm_reserv_dequeue(vm_reserv_t rv)
 	CTR5(KTR_VM, "%s: rv %p object %p popcnt %d inpartpop %d",
 	    __FUNCTION__, rv, rv->object, rv->popcnt, rv->inpartpopq);
 	KASSERT(rv->inpartpopq,
-	    ("vm_reserv_reclaim: reserv %p's inpartpopq is FALSE", rv));
+	    ("vm_reserv_reclaim: reserv %p's inpartpopq is false", rv));
 
 	TAILQ_REMOVE(&vm_rvd[rv->domain].partpop, rv, partpopq);
-	rv->inpartpopq = FALSE;
+	rv->inpartpopq = false;
 }
 
 /*
@@ -1125,7 +1125,7 @@ vm_reserv_reclaim(vm_reserv_t rv)
 /*
  * Breaks a reservation near the head of the partially populated reservation
  * queue, releasing its free pages to the physical memory allocator.  Returns
- * TRUE if a reservation is broken and FALSE otherwise.
+ * true if a reservation is broken and false otherwise.
  */
 bool
 vm_reserv_reclaim_inactive(int domain)

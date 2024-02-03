@@ -460,12 +460,12 @@ more:
  *
  *	Returned runlen is the count of pages between mreq and first
  *	page after mreq with status VM_PAGER_AGAIN.
- *	*eio is set to TRUE if pager returned VM_PAGER_ERROR or VM_PAGER_FAIL
+ *	*eio is set to true if pager returned VM_PAGER_ERROR or VM_PAGER_FAIL
  *	for any page in runlen set.
  */
 int
 vm_pageout_flush(vm_page_t *mc, int count, int flags, int mreq, int *prunlen,
-    boolean_t *eio)
+    bool *eio)
 {
 	vm_object_t object = mc[0]->object;
 	int pageout_status[count];
@@ -498,7 +498,7 @@ vm_pageout_flush(vm_page_t *mc, int count, int flags, int mreq, int *prunlen,
 
 	runlen = count - mreq;
 	if (eio != NULL)
-		*eio = FALSE;
+		*eio = false;
 	for (i = 0; i < count; i++) {
 		vm_page_t mt = mc[i];
 
@@ -549,7 +549,7 @@ vm_pageout_flush(vm_page_t *mc, int count, int flags, int mreq, int *prunlen,
 			} else
 				vm_page_activate(mt);
 			if (eio != NULL && i >= mreq && i - mreq < runlen)
-				*eio = TRUE;
+				*eio = true;
 			break;
 		case VM_PAGER_AGAIN:
 			if (i >= mreq && i - mreq < runlen)
@@ -1796,7 +1796,7 @@ vm_pageout_mightbe_oom(struct vm_domain *vmd, int page_shortage,
 		vmd->vmd_oom_seq++;
 	if (vmd->vmd_oom_seq < vm_pageout_oom_seq) {
 		if (vmd->vmd_oom) {
-			vmd->vmd_oom = FALSE;
+			vmd->vmd_oom = false;
 			atomic_subtract_int(&vm_pageout_oom_vote, 1);
 		}
 		return;
@@ -1811,7 +1811,7 @@ vm_pageout_mightbe_oom(struct vm_domain *vmd, int page_shortage,
 	if (vmd->vmd_oom)
 		return;
 
-	vmd->vmd_oom = TRUE;
+	vmd->vmd_oom = true;
 	old_vote = atomic_fetchadd_int(&vm_pageout_oom_vote, 1);
 	if (old_vote != vm_ndomains - 1)
 		return;
@@ -1829,7 +1829,7 @@ vm_pageout_mightbe_oom(struct vm_domain *vmd, int page_shortage,
 	 * memory condition is still there, due to vmd_oom being
 	 * false.
 	 */
-	vmd->vmd_oom = FALSE;
+	vmd->vmd_oom = false;
 	atomic_subtract_int(&vm_pageout_oom_vote, 1);
 }
 
@@ -2109,7 +2109,7 @@ vm_pageout_worker(void *arg)
 	/*
 	 * The pageout daemon worker is never done, so loop forever.
 	 */
-	while (TRUE) {
+	while (true) {
 		vm_domain_pageout_lock(vmd);
 
 		/*

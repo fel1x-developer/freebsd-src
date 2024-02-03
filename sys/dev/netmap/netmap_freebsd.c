@@ -690,7 +690,7 @@ nm_os_extmem_create(unsigned long p, struct nmreq_pools_info *pi, int *perror)
 	vm_object_t obj;
 	vm_prot_t prot;
 	vm_pindex_t index;
-	boolean_t wired;
+	bool wired;
 	struct nm_os_extmem *e = NULL;
 	int rv, error = 0;
 

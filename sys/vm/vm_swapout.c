@@ -263,7 +263,7 @@ vm_swapout_map_deactivate_pages(vm_map_t map, long desired)
 		return;
 
 	bigobj = NULL;
-	nothingwired = TRUE;
+	nothingwired = true;
 
 	/*
 	 * first, search out the biggest object, and try to free pages from
@@ -285,7 +285,7 @@ vm_swapout_map_deactivate_pages(vm_map_t map, long desired)
 			}
 		}
 		if (tmpe->wired_count > 0)
-			nothingwired = FALSE;
+			nothingwired = false;
 	}
 
 	if (bigobj != NULL) {
@@ -380,7 +380,7 @@ vm_daemon(void)
 		vm_daemon_timeout = hz;
 #endif
 
-	while (TRUE) {
+	while (true) {
 		mtx_lock(&vm_daemon_mtx);
 		msleep(&vm_daemon_needed, &vm_daemon_mtx, PPAUSE, "psleep",
 		    vm_daemon_timeout);
