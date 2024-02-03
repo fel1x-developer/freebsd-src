@@ -93,7 +93,7 @@ struct tarfs_node *
 tarfs_lookup_node(struct tarfs_node *tnp, struct tarfs_node *f,
     struct componentname *cnp)
 {
-	boolean_t found;
+	bool found;
 	struct tarfs_node *entry;
 
 	TARFS_DPF(LOOKUP, "%s: name: %.*s\n", __func__, (int)cnp->cn_namelen,

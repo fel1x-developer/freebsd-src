@@ -44,7 +44,7 @@ static const efx_tunnel_ops_t	__efx_tunnel_dummy_ops = {
 #endif /* EFSYS_OPT_SIENA || EFSYS_OPT_HUNTINGTON */
 
 #if EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_udp_encap_supported(
 	__in		efx_nic_t *enp);
 
@@ -62,8 +62,8 @@ static	__checkReturn		efx_rc_t
 efx_mcdi_set_tunnel_encap_udp_ports(
 	__in			efx_nic_t *enp,
 	__in			efx_tunnel_cfg_t *etcp,
-	__in			boolean_t unloading,
-	__out			boolean_t *resetting)
+	__in			bool unloading,
+	__out			bool *resetting)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload,
@@ -224,7 +224,7 @@ fail1:
 efx_tunnel_fini(
 	__in		efx_nic_t *enp)
 {
-	boolean_t resetting;
+	bool resetting;
 
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
 	EFSYS_ASSERT3U(enp->en_mod_flags, &, EFX_MOD_PROBE);
@@ -427,7 +427,7 @@ fail1:
 }
 
 #if EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
-static	__checkReturn		boolean_t
+static	__checkReturn		bool
 ef10_udp_encap_supported(
 	__in		efx_nic_t *enp)
 {
@@ -447,7 +447,7 @@ ef10_tunnel_reconfigure(
 {
 	efx_tunnel_cfg_t *etcp = &enp->en_tunnel_cfg;
 	efx_rc_t rc;
-	boolean_t resetting;
+	bool resetting;
 	efsys_lock_state_t state;
 	efx_tunnel_cfg_t etc;
 

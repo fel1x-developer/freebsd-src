@@ -184,7 +184,7 @@ extern int sfxge_rx_init(struct sfxge_softc *sc);
 extern void sfxge_rx_fini(struct sfxge_softc *sc);
 extern int sfxge_rx_start(struct sfxge_softc *sc);
 extern void sfxge_rx_stop(struct sfxge_softc *sc);
-extern void sfxge_rx_qcomplete(struct sfxge_rxq *rxq, boolean_t eop);
+extern void sfxge_rx_qcomplete(struct sfxge_rxq *rxq, bool eop);
 extern void sfxge_rx_qrefill(struct sfxge_rxq *rxq);
 extern void sfxge_rx_qflush_done(struct sfxge_rxq *rxq);
 extern void sfxge_rx_qflush_failed(struct sfxge_rxq *rxq);

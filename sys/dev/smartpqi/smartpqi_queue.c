@@ -475,7 +475,7 @@ err_out:
  */
 int
 pqisrc_delete_op_queue(pqisrc_softstate_t *softs,
-		uint32_t q_id, boolean_t ibq)
+		uint32_t q_id, bool ibq)
 {
 	int ret = PQI_STATUS_SUCCESS;
 	/* Firmware doesn't support this now */

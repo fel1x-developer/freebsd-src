@@ -390,9 +390,9 @@ print_uptime(void)
 }
 
 int
-doadump(boolean_t textdump)
+doadump(bool textdump)
 {
-	boolean_t coredump;
+	bool coredump;
 	int error;
 
 	error = 0;

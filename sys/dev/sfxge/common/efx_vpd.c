@@ -505,7 +505,7 @@ fail1:
 efx_vpd_hunk_verify(
 	__in_bcount(size)	caddr_t data,
 	__in			size_t size,
-	__out_opt		boolean_t *cksummedp)
+	__out_opt		bool *cksummedp)
 {
 	efx_vpd_tag_t tag;
 	efx_vpd_keyword_t keyword;
@@ -515,7 +515,7 @@ efx_vpd_hunk_verify(
 	uint16_t taglen;
 	uint8_t keylen;
 	uint8_t cksum;
-	boolean_t cksummed = B_FALSE;
+	bool cksummed = B_FALSE;
 	efx_rc_t rc;
 
 	/*
@@ -606,7 +606,7 @@ static uint8_t __efx_vpd_blank_r[] = {
 efx_vpd_hunk_reinit(
 	__in_bcount(size)	caddr_t data,
 	__in			size_t size,
-	__in			boolean_t wantpid)
+	__in			bool wantpid)
 {
 	unsigned int offset = 0;
 	unsigned int pos;

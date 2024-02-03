@@ -82,7 +82,7 @@ struct mv_timer_softc {
 	bus_space_handle_t	timer_bsh;
 	struct mtx		timer_mtx;
 	struct eventtimer	et;
-	boolean_t		has_wdt;
+	bool		has_wdt;
 	struct mv_timer_config* config;
 };
 

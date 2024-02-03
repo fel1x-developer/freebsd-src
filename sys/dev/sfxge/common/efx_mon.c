@@ -330,7 +330,7 @@ efx_mon_stat_description(
 #endif	/* EFSYS_OPT_NAMES */
 
 /* START MKCONFIG GENERATED MonitorMcdiMappingBlock 173eee0a5599996a */
-	__checkReturn			boolean_t
+	__checkReturn			bool
 efx_mon_mcdi_to_efx_stat(
 	__in				int mcdi_index,
 	__out				efx_mon_stat_t *statp)
@@ -594,14 +594,14 @@ efx_mon_mcdi_to_efx_stat(
 	return (B_TRUE);
 
 fail1:
-	EFSYS_PROBE1(fail1, boolean_t, B_TRUE);
+	EFSYS_PROBE1(fail1, bool, B_TRUE);
 	return (B_FALSE);
 };
 
 /* END MKCONFIG GENERATED MonitorMcdiMappingBlock */
 
 /* START MKCONFIG GENERATED MonitorStatisticUnitsBlock 2d447c656cc2d01d */
-	__checkReturn			boolean_t
+	__checkReturn			bool
 efx_mon_get_stat_unit(
 	__in				efx_mon_stat_t stat,
 	__out				efx_mon_stat_unit_t *unitp)
@@ -710,14 +710,14 @@ efx_mon_get_stat_unit(
 	return (B_TRUE);
 
 fail1:
-	EFSYS_PROBE1(fail1, boolean_t, B_TRUE);
+	EFSYS_PROBE1(fail1, bool, B_TRUE);
 	return (B_FALSE);
 };
 
 /* END MKCONFIG GENERATED MonitorStatisticUnitsBlock */
 
 /* START MKCONFIG GENERATED MonitorStatisticPortsBlock 1719b751d842534f */
-	__checkReturn			boolean_t
+	__checkReturn			bool
 efx_mon_get_stat_portmap(
 	__in				efx_mon_stat_t stat,
 	__out				efx_mon_stat_portmask_t *maskp)
@@ -821,7 +821,7 @@ efx_mon_get_stat_portmap(
 	return (B_TRUE);
 
 fail1:
-	EFSYS_PROBE1(fail1, boolean_t, B_TRUE);
+	EFSYS_PROBE1(fail1, bool, B_TRUE);
 	return (B_FALSE);
 };
 

@@ -284,7 +284,7 @@ tmpfs_page_removed(vm_object_t obj, vm_page_t m)
 	}
 }
 
-static boolean_t
+static bool
 tmpfs_can_alloc_page(vm_object_t obj, vm_pindex_t pindex)
 {
 	struct tmpfs_mount *tm;
@@ -487,7 +487,7 @@ tmpfs_pages_check_avail(struct tmpfs_mount *tmp, size_t req_pages)
 
 static int
 tmpfs_partial_page_invalidate(vm_object_t object, vm_pindex_t idx, int base,
-    int end, boolean_t ignerr)
+    int end, bool ignerr)
 {
 	vm_page_t m;
 	int rv, error;
@@ -868,13 +868,13 @@ tmpfs_dirent_cookie(struct tmpfs_dirent *de)
 	return (de->td_cookie);
 }
 
-static __inline boolean_t
+static __inline bool
 tmpfs_dirent_dup(struct tmpfs_dirent *de)
 {
 	return ((de->td_cookie & TMPFS_DIRCOOKIE_DUP) != 0);
 }
 
-static __inline boolean_t
+static __inline bool
 tmpfs_dirent_duphead(struct tmpfs_dirent *de)
 {
 	return ((de->td_cookie & TMPFS_DIRCOOKIE_DUPHEAD) != 0);
@@ -1850,7 +1850,7 @@ tmpfs_dir_whiteout_remove(struct vnode *dvp, struct componentname *cnp)
  * Returns zero on success or an appropriate error code on failure.
  */
 int
-tmpfs_reg_resize(struct vnode *vp, off_t newsize, boolean_t ignerr)
+tmpfs_reg_resize(struct vnode *vp, off_t newsize, bool ignerr)
 {
 	struct tmpfs_node *node;
 	vm_object_t uobj;

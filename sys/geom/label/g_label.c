@@ -58,7 +58,7 @@ SYSCTL_UINT(_kern_geom_label, OID_AUTO, debug, CTLFLAG_RWTUN, &g_label_debug, 0,
 
 static int g_label_destroy_geom(struct gctl_req *req, struct g_class *mp,
     struct g_geom *gp);
-static int g_label_destroy(struct g_geom *gp, boolean_t force);
+static int g_label_destroy(struct g_geom *gp, bool force);
 static struct g_geom *g_label_taste(struct g_class *mp, struct g_provider *pp,
     int flags __unused);
 static void g_label_generic_taste(struct g_consumer *, char *, size_t);
@@ -278,7 +278,7 @@ g_label_create(struct gctl_req *req, struct g_class *mp, struct g_provider *pp,
 }
 
 static int
-g_label_destroy(struct g_geom *gp, boolean_t force)
+g_label_destroy(struct g_geom *gp, bool force)
 {
 	struct g_provider *pp;
 

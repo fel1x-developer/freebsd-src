@@ -351,8 +351,8 @@ vm_object_t vm_object_allocate (objtype_t, vm_pindex_t);
 vm_object_t vm_object_allocate_anon(vm_pindex_t, vm_object_t, struct ucred *,
    vm_size_t);
 vm_object_t vm_object_allocate_dyn(objtype_t, vm_pindex_t, u_short);
-boolean_t vm_object_coalesce(vm_object_t, vm_ooffset_t, vm_size_t, vm_size_t,
-   boolean_t);
+bool vm_object_coalesce(vm_object_t, vm_ooffset_t, vm_size_t, vm_size_t,
+   bool);
 void vm_object_collapse (vm_object_t);
 void vm_object_deallocate (vm_object_t);
 void vm_object_destroy (vm_object_t);
@@ -364,22 +364,22 @@ bool vm_object_mightbedirty_(vm_object_t object);
 void vm_object_init (void);
 int  vm_object_kvme_type(vm_object_t object, struct vnode **vpp);
 void vm_object_madvise(vm_object_t, vm_pindex_t, vm_pindex_t, int);
-boolean_t vm_object_page_clean(vm_object_t object, vm_ooffset_t start,
+bool vm_object_page_clean(vm_object_t object, vm_ooffset_t start,
     vm_ooffset_t end, int flags);
 void vm_object_page_noreuse(vm_object_t object, vm_pindex_t start,
     vm_pindex_t end);
 void vm_object_page_remove(vm_object_t object, vm_pindex_t start,
     vm_pindex_t end, int options);
-boolean_t vm_object_populate(vm_object_t, vm_pindex_t, vm_pindex_t);
-void vm_object_print(long addr, boolean_t have_addr, long count, char *modif);
+bool vm_object_populate(vm_object_t, vm_pindex_t, vm_pindex_t);
+void vm_object_print(long addr, bool have_addr, long count, char *modif);
 void vm_object_reference (vm_object_t);
 void vm_object_reference_locked(vm_object_t);
 int  vm_object_set_memattr(vm_object_t object, vm_memattr_t memattr);
 void vm_object_shadow(vm_object_t *, vm_ooffset_t *, vm_size_t, struct ucred *,
     bool);
 void vm_object_split(vm_map_entry_t);
-boolean_t vm_object_sync(vm_object_t, vm_ooffset_t, vm_size_t, boolean_t,
-    boolean_t);
+bool vm_object_sync(vm_object_t, vm_ooffset_t, vm_size_t, bool,
+    bool);
 void vm_object_unwire(vm_object_t object, vm_ooffset_t offset,
     vm_size_t length, uint8_t queue);
 struct vnode *vm_object_vnode(vm_object_t object);

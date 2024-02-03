@@ -595,10 +595,10 @@ OF_initial_setup(void *fdt_ptr, void *junk, int (*openfirm)(void *))
 	fdt = fdt_ptr;
 }
 
-boolean_t
+bool
 OF_bootstrap(void)
 {
-	boolean_t status = FALSE;
+	bool status = FALSE;
 	int err = 0;
 
 #ifdef AIM

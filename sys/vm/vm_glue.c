@@ -116,7 +116,7 @@
 int
 kernacc(void *addr, int len, int rw)
 {
-	boolean_t rv;
+	bool rv;
 	vm_offset_t saddr, eaddr;
 	vm_prot_t prot;
 
@@ -148,7 +148,7 @@ kernacc(void *addr, int len, int rw)
 int
 useracc(void *addr, int len, int rw)
 {
-	boolean_t rv;
+	bool rv;
 	vm_prot_t prot;
 	vm_map_t map;
 

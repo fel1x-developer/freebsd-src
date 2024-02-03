@@ -188,7 +188,7 @@ struct hdmi_softc {
 	regulator_t		supply_vdd;
 
 	uint64_t		pclk;
-	boolean_t 		hdmi_mode;
+	bool 		hdmi_mode;
 
 	int			audio_src_type;
 	int			audio_freq;

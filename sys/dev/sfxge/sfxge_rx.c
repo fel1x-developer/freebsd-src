@@ -200,7 +200,7 @@ sfxge_rx_post_refill(void *arg)
 }
 
 static void
-sfxge_rx_schedule_refill(struct sfxge_rxq *rxq, boolean_t retrying)
+sfxge_rx_schedule_refill(struct sfxge_rxq *rxq, bool retrying)
 {
 	/* Initially retry after 100 ms, but back off in case of
 	 * repeated failures as we probably have to wait for the
@@ -217,7 +217,7 @@ sfxge_rx_schedule_refill(struct sfxge_rxq *rxq, boolean_t retrying)
 #define	SFXGE_REFILL_BATCH  64
 
 static void
-sfxge_rx_qfill(struct sfxge_rxq *rxq, unsigned int target, boolean_t retrying)
+sfxge_rx_qfill(struct sfxge_rxq *rxq, unsigned int target, bool retrying)
 {
 	struct sfxge_softc *sc;
 	unsigned int index;
@@ -807,7 +807,7 @@ sfxge_lro_end_of_burst(struct sfxge_rxq *rxq)
 #endif	/* SFXGE_LRO */
 
 void
-sfxge_rx_qcomplete(struct sfxge_rxq *rxq, boolean_t eop)
+sfxge_rx_qcomplete(struct sfxge_rxq *rxq, bool eop)
 {
 	struct sfxge_softc *sc = rxq->sc;
 	int if_capenable = if_getcapenable(sc->ifnet);

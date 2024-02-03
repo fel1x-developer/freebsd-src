@@ -163,14 +163,14 @@ ef10_intr_trigger(
 			void
 ef10_intr_status_line(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
+	__out		bool *fatalp,
 	__out		uint32_t *qmaskp);
 
 			void
 ef10_intr_status_message(
 	__in		efx_nic_t *enp,
 	__in		unsigned int message,
-	__out		boolean_t *fatalp);
+	__out		bool *fatalp);
 
 			void
 ef10_intr_fatal(
@@ -210,7 +210,7 @@ extern	__checkReturn	efx_rc_t
 ef10_nic_init(
 	__in		efx_nic_t *enp);
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 ef10_nic_hw_unavailable(
 	__in		efx_nic_t *enp);
 
@@ -244,7 +244,7 @@ ef10_mac_poll(
 extern	__checkReturn	efx_rc_t
 ef10_mac_up(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *mac_upp);
+	__out		bool *mac_upp);
 
 extern	__checkReturn	efx_rc_t
 ef10_mac_addr_set(
@@ -271,7 +271,7 @@ extern	__checkReturn	efx_rc_t
 ef10_mac_filter_default_rxq_set(
 	__in		efx_nic_t *enp,
 	__in		efx_rxq_t *erp,
-	__in		boolean_t using_rss);
+	__in		bool using_rss);
 
 extern			void
 ef10_mac_filter_default_rxq_clear(
@@ -325,7 +325,7 @@ ef10_mcdi_send_request(
 	__in_bcount(sdu_len)	void *sdup,
 	__in			size_t sdu_len);
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 ef10_mcdi_poll_response(
 	__in		efx_nic_t *enp);
 
@@ -344,7 +344,7 @@ extern	__checkReturn	efx_rc_t
 ef10_mcdi_feature_supported(
 	__in		efx_nic_t *enp,
 	__in		efx_mcdi_feature_id_t id,
-	__out		boolean_t *supportedp);
+	__out		bool *supportedp);
 
 extern			void
 ef10_mcdi_get_timeout(
@@ -399,7 +399,7 @@ ef10_nvram_partn_write_segment_tlv(
 	__in			uint32_t tag,
 	__in_bcount(size)	caddr_t data,
 	__in			size_t size,
-	__in			boolean_t all_segments);
+	__in			bool all_segments);
 
 extern	__checkReturn		efx_rc_t
 ef10_nvram_partn_lock(
@@ -536,7 +536,7 @@ ef10_nvram_buffer_find_end(
 	__in			uint32_t offset,
 	__out			uint32_t *endp);
 
-extern	__checkReturn	__success(return != B_FALSE)	boolean_t
+extern	__checkReturn	__success(return != B_FALSE)	bool
 ef10_nvram_buffer_find_item(
 	__in_bcount(buffer_size)
 				caddr_t bufferp,
@@ -614,7 +614,7 @@ typedef struct ef10_link_state_s {
 #if EFSYS_OPT_LOOPBACK
 	efx_loopback_type_t	els_loopback;
 #endif
-	boolean_t		els_mac_up;
+	bool		els_mac_up;
 } ef10_link_state_t;
 
 extern			void
@@ -631,7 +631,7 @@ ef10_phy_get_link(
 extern	__checkReturn	efx_rc_t
 ef10_phy_power(
 	__in		efx_nic_t *enp,
-	__in		boolean_t on);
+	__in		bool on);
 
 extern	__checkReturn	efx_rc_t
 ef10_phy_reconfigure(
@@ -795,7 +795,7 @@ ef10_tx_qdesc_dma_create(
 	__in	efx_txq_t *etp,
 	__in	efsys_dma_addr_t addr,
 	__in	size_t size,
-	__in	boolean_t eop,
+	__in	bool eop,
 	__out	efx_desc_t *edp);
 
 extern	void
@@ -965,7 +965,7 @@ ef10_rx_scale_mode_set(
 	__in		uint32_t rss_context,
 	__in		efx_rx_hash_alg_t alg,
 	__in		efx_rx_hash_type_t type,
-	__in		boolean_t insert);
+	__in		bool insert);
 
 extern	__checkReturn	efx_rc_t
 ef10_rx_scale_key_set(
@@ -1084,14 +1084,14 @@ typedef struct ef10_filter_entry_s {
 typedef struct ef10_filter_table_s {
 	ef10_filter_entry_t	eft_entry[EFX_EF10_FILTER_TBL_ROWS];
 	efx_rxq_t		*eft_default_rxq;
-	boolean_t		eft_using_rss;
+	bool		eft_using_rss;
 	uint32_t		eft_unicst_filter_indexes[
 	    EFX_EF10_FILTER_UNICAST_FILTERS_MAX];
 	uint32_t		eft_unicst_filter_count;
 	uint32_t		eft_mulcst_filter_indexes[
 	    EFX_EF10_FILTER_MULTICAST_FILTERS_MAX];
 	uint32_t		eft_mulcst_filter_count;
-	boolean_t		eft_using_all_mulcst;
+	bool		eft_using_all_mulcst;
 	uint32_t		eft_encap_filter_indexes[
 	    EFX_EF10_FILTER_ENCAP_FILTERS_MAX];
 	uint32_t		eft_encap_filter_count;
@@ -1113,7 +1113,7 @@ ef10_filter_restore(
 ef10_filter_add(
 	__in		efx_nic_t *enp,
 	__inout		efx_filter_spec_t *spec,
-	__in		boolean_t may_replace);
+	__in		bool may_replace);
 
 	__checkReturn	efx_rc_t
 ef10_filter_delete(
@@ -1131,10 +1131,10 @@ extern	__checkReturn	efx_rc_t
 ef10_filter_reconfigure(
 	__in				efx_nic_t *enp,
 	__in_ecount(6)			uint8_t const *mac_addr,
-	__in				boolean_t all_unicst,
-	__in				boolean_t mulcst,
-	__in				boolean_t all_mulcst,
-	__in				boolean_t brdcst,
+	__in				bool all_unicst,
+	__in				bool mulcst,
+	__in				bool all_mulcst,
+	__in				bool brdcst,
 	__in_ecount(6*count)		uint8_t const *addrs,
 	__in				uint32_t count);
 
@@ -1142,13 +1142,13 @@ extern		void
 ef10_filter_get_default_rxq(
 	__in		efx_nic_t *enp,
 	__out		efx_rxq_t **erpp,
-	__out		boolean_t *using_rss);
+	__out		bool *using_rss);
 
 extern		void
 ef10_filter_default_rxq_set(
 	__in		efx_nic_t *enp,
 	__in		efx_rxq_t *erp,
-	__in		boolean_t using_rss);
+	__in		bool using_rss);
 
 extern		void
 ef10_filter_default_rxq_clear(

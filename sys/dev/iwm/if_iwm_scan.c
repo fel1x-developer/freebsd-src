@@ -209,7 +209,7 @@ iwm_scan_rate_n_flags(struct iwm_softc *sc, int flags, int no_cck)
 		return htole32(IWM_RATE_6M_PLCP | tx_ant);
 }
 
-static inline boolean_t
+static inline bool
 iwm_rrm_scan_needed(struct iwm_softc *sc)
 {
 	/* require rrm scan whenever the fw supports it */
@@ -563,7 +563,7 @@ iwm_config_umac_scan(struct iwm_softc *sc)
 	return ret;
 }
 
-static boolean_t
+static bool
 iwm_scan_use_ebs(struct iwm_softc *sc)
 {
 	const struct iwm_ucode_capabilities *capa = &sc->sc_fw.ucode_capa;

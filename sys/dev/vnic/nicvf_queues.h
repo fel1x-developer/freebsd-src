@@ -243,7 +243,7 @@ struct q_desc_mem {
 };
 
 struct rbdr {
-	boolean_t		enable;
+	bool		enable;
 	uint32_t		dma_size;
 	uint32_t		frag_len;
 	uint32_t		thresh;		/* Threshold level for interrupt */
@@ -264,10 +264,10 @@ struct rbdr {
 } __aligned(CACHE_LINE_SIZE);
 
 struct rcv_queue {
-	boolean_t	enable;
+	bool	enable;
 	struct	rbdr	*rbdr_start;
 	struct	rbdr	*rbdr_cont;
-	boolean_t	en_tcp_reassembly;
+	bool	en_tcp_reassembly;
 	uint8_t		cq_qs;  /* CQ's QS to which this RQ is assigned */
 	uint8_t		cq_idx; /* CQ index (0 to 7) in the QS */
 	uint8_t		cont_rbdr_qs;      /* Continue buffer ptrs - QS num */
@@ -277,12 +277,12 @@ struct rcv_queue {
 	uint8_t		caching;
 	struct		rx_tx_queue_stats stats;
 
-	boolean_t	lro_enabled;
+	bool	lro_enabled;
 	struct lro_ctrl	lro;
 } __aligned(CACHE_LINE_SIZE);
 
 struct cmp_queue {
-	boolean_t		enable;
+	bool		enable;
 	uint16_t		thresh;
 
 	struct nicvf		*nic;
@@ -308,7 +308,7 @@ struct snd_buff {
 };
 
 struct snd_queue {
-	boolean_t		enable;
+	bool		enable;
 	uint8_t			cq_qs;  /* CQ's QS to which this SQ is pointing */
 	uint8_t			cq_idx; /* CQ index (0 to 7) in the above QS */
 	uint16_t		thresh;
@@ -336,8 +336,8 @@ struct snd_queue {
 } __aligned(CACHE_LINE_SIZE);
 
 struct queue_set {
-	boolean_t	enable;
-	boolean_t	be_en;
+	bool	enable;
+	bool	be_en;
 	uint8_t		vnic_id;
 	uint8_t		rq_cnt;
 	uint8_t		cq_cnt;
@@ -379,8 +379,8 @@ struct queue_set {
 #define	NICVF_CMP_UNLOCK(cq)		mtx_unlock(&(cq)->mtx)
 
 int nicvf_set_qset_resources(struct nicvf *);
-int nicvf_config_data_transfer(struct nicvf *, boolean_t);
-void nicvf_qset_config(struct nicvf *, boolean_t);
+int nicvf_config_data_transfer(struct nicvf *, bool);
+void nicvf_qset_config(struct nicvf *, bool);
 
 void nicvf_enable_intr(struct nicvf *, int, int);
 void nicvf_disable_intr(struct nicvf *, int, int);

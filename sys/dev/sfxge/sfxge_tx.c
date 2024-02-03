@@ -1153,7 +1153,7 @@ static void tso_fill_packet_with_fragment(struct sfxge_txq *txq,
 	efx_desc_t *desc;
 	int n;
 	uint64_t dma_addr = tso->dma_addr;
-	boolean_t eop;
+	bool eop;
 
 	if (tso->in_len == 0 || tso->packet_space == 0)
 		return;

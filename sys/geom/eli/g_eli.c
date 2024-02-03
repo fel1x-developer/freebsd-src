@@ -1188,7 +1188,7 @@ failed:
 }
 
 int
-g_eli_destroy(struct g_eli_softc *sc, boolean_t force)
+g_eli_destroy(struct g_eli_softc *sc, bool force)
 {
 	struct g_geom *gp;
 	struct g_provider *pp;

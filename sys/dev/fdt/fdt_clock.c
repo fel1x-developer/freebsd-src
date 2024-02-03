@@ -46,13 +46,13 @@
  * found, and let the caller decide whether the problem is fatal.
  */
 static int
-enable_disable_all(device_t consumer, boolean_t enable)
+enable_disable_all(device_t consumer, bool enable)
 {
 	phandle_t cnode;
 	device_t clockdev;
 	int clocknum, err, i, ncells;
 	uint32_t *clks;
-	boolean_t anyerrors;
+	bool anyerrors;
 
 	cnode = ofw_bus_get_node(consumer);
 	ncells = OF_getencprop_alloc_multi(cnode, "clocks", sizeof(*clks),

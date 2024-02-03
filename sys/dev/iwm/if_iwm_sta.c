@@ -143,7 +143,7 @@ iwm_add_sta_cmd_size(struct iwm_softc *sc)
 /* send station add/update command to firmware */
 int
 iwm_sta_send_to_fw(struct iwm_softc *sc, struct iwm_node *in,
-	boolean_t update)
+	bool update)
 {
 	struct iwm_vap *ivp = IWM_VAP(in->in_ni.ni_vap);
 	struct iwm_add_sta_cmd add_sta_cmd = {
@@ -206,7 +206,7 @@ iwm_update_sta(struct iwm_softc *sc, struct iwm_node *in)
 }
 
 int
-iwm_drain_sta(struct iwm_softc *sc, struct iwm_vap *ivp, boolean_t drain)
+iwm_drain_sta(struct iwm_softc *sc, struct iwm_vap *ivp, bool drain)
 {
 	struct iwm_add_sta_cmd cmd = {};
 	int ret;
@@ -267,7 +267,7 @@ iwm_rm_sta_common(struct iwm_softc *sc)
 
 int
 iwm_rm_sta(struct iwm_softc *sc, struct ieee80211vap *vap,
-	boolean_t is_assoc)
+	bool is_assoc)
 {
 	uint32_t tfd_queue_msk = 0;
 	int ret;

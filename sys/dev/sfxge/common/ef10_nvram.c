@@ -959,7 +959,7 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 ef10_nvram_buffer_find_item(
 	__in_bcount(buffer_size)
 				caddr_t bufferp,
@@ -1767,7 +1767,7 @@ ef10_nvram_segment_write_tlv(
 	__inout			size_t *partn_offsetp,
 	__inout			size_t *src_remain_lenp,
 	__inout			size_t *dest_remain_lenp,
-	__in			boolean_t write)
+	__in			bool write)
 {
 	efx_rc_t rc;
 	efx_rc_t status;
@@ -1855,7 +1855,7 @@ ef10_nvram_partn_write_segment_tlv(
 	__in			uint32_t tag,
 	__in_bcount(size)	caddr_t data,
 	__in			size_t size,
-	__in			boolean_t all_segments)
+	__in			bool all_segments)
 {
 	size_t partn_size = 0;
 	caddr_t partn_data;
@@ -1888,7 +1888,7 @@ ef10_nvram_partn_write_segment_tlv(
 
 	/* Iterate over each (potential) segment to update it. */
 	do {
-		boolean_t write = all_segments || current_offset == 0;
+		bool write = all_segments || current_offset == 0;
 
 		rc = ef10_nvram_segment_write_tlv(enp, partn, tag, data, size,
 		    &segment_data, &current_offset, &remaining_original_length,
@@ -2173,7 +2173,7 @@ ef10_nvram_partn_unlock(
 	__in			uint32_t partn,
 	__out_opt		uint32_t *verify_resultp)
 {
-	boolean_t reboot = B_FALSE;
+	bool reboot = B_FALSE;
 	efx_rc_t rc;
 
 	if (verify_resultp != NULL)

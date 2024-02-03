@@ -108,10 +108,10 @@ SYSCTL_INT(_vm, OID_AUTO, old_msync, CTLFLAG_RW, &old_msync, 0,
     "Use old (insecure) msync behavior");
 
 static int	vm_object_page_collect_flush(vm_object_t object, vm_page_t p,
-		    int pagerflags, int flags, boolean_t *allclean,
-		    boolean_t *eio);
-static boolean_t vm_object_page_remove_write(vm_page_t p, int flags,
-		    boolean_t *allclean);
+		    int pagerflags, int flags, bool *allclean,
+		    bool *eio);
+static bool vm_object_page_remove_write(vm_page_t p, int flags,
+		    bool *allclean);
 static void	vm_object_backing_remove(vm_object_t object);
 
 /*
@@ -978,8 +978,8 @@ vm_object_terminate(vm_object_t object)
  * mess with the page and do not clear the object flags.  Returns TRUE if the
  * page should be flushed, and FALSE otherwise.
  */
-static boolean_t
-vm_object_page_remove_write(vm_page_t p, int flags, boolean_t *allclean)
+static bool
+vm_object_page_remove_write(vm_page_t p, int flags, bool *allclean)
 {
 
 	vm_page_assert_busied(p);
@@ -1020,14 +1020,14 @@ vm_object_page_remove_write(vm_page_t p, int flags, boolean_t *allclean)
  *	Returns FALSE if some page from the range was not written, as
  *	reported by the pager, and TRUE otherwise.
  */
-boolean_t
+bool
 vm_object_page_clean(vm_object_t object, vm_ooffset_t start, vm_ooffset_t end,
     int flags)
 {
 	vm_page_t np, p;
 	vm_pindex_t pi, tend, tstart;
 	int curgeneration, n, pagerflags;
-	boolean_t eio, res, allclean;
+	bool eio, res, allclean;
 
 	VM_OBJECT_ASSERT_WLOCKED(object);
 
@@ -1113,7 +1113,7 @@ rescan:
 
 static int
 vm_object_page_collect_flush(vm_object_t object, vm_page_t p, int pagerflags,
-    int flags, boolean_t *allclean, boolean_t *eio)
+    int flags, bool *allclean, bool *eio)
 {
 	vm_page_t ma[vm_pageout_page_count], p_first, tp;
 	int count, i, mreq, runlen;
@@ -1168,15 +1168,15 @@ vm_object_page_collect_flush(vm_object_t object, vm_page_t p, int pagerflags,
  * Note: certain anonymous maps, such as MAP_NOSYNC maps,
  * may start out with a NULL object.
  */
-boolean_t
+bool
 vm_object_sync(vm_object_t object, vm_ooffset_t offset, vm_size_t size,
-    boolean_t syncio, boolean_t invalidate)
+    bool syncio, bool invalidate)
 {
 	vm_object_t backing_object;
 	struct vnode *vp;
 	struct mount *mp;
 	int error, flags, fsync_after;
-	boolean_t res;
+	bool res;
 
 	if (object == NULL)
 		return (TRUE);
@@ -2207,7 +2207,7 @@ vm_object_page_noreuse(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
  *
  *	The object must be locked.
  */
-boolean_t
+bool
 vm_object_populate(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
 {
 	vm_page_t m;
@@ -2256,9 +2256,9 @@ vm_object_populate(vm_object_t object, vm_pindex_t start, vm_pindex_t end)
  *	Conditions:
  *	The object must *not* be locked.
  */
-boolean_t
+bool
 vm_object_coalesce(vm_object_t prev_object, vm_ooffset_t prev_offset,
-    vm_size_t prev_size, vm_size_t next_size, boolean_t reserved)
+    vm_size_t prev_size, vm_size_t next_size, bool reserved)
 {
 	vm_pindex_t next_pindex;
 
@@ -2754,7 +2754,7 @@ DB_SHOW_COMMAND(object, vm_object_print_static)
 {
 	/* XXX convert args. */
 	vm_object_t object = (vm_object_t)addr;
-	boolean_t full = have_addr;
+	bool full = have_addr;
 
 	vm_page_t p;
 
@@ -2810,7 +2810,7 @@ DB_SHOW_COMMAND(object, vm_object_print_static)
 void
 vm_object_print(
         /* db_expr_t */ long addr,
-	boolean_t have_addr,
+	bool have_addr,
 	/* db_expr_t */ long count,
 	char *modif)
 {

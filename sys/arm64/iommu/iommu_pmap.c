@@ -310,7 +310,7 @@ smmu_pmap_resident_count_dec(struct smmu_pmap *pmap, int count)
  */
 static __inline void
 smmu_pmap_add_delayed_free_list(vm_page_t m, struct spglist *free,
-    boolean_t set_PG_ZERO)
+    bool set_PG_ZERO)
 {
 
 	if (set_PG_ZERO)
@@ -330,7 +330,7 @@ smmu_pmap_add_delayed_free_list(vm_page_t m, struct spglist *free,
  * drops to zero, then the page table page is unmapped.  Returns TRUE if the
  * page table page was unmapped and FALSE otherwise.
  */
-static inline boolean_t
+static inline bool
 smmu_pmap_unwire_l3(struct smmu_pmap *pmap, vm_offset_t va, vm_page_t m,
     struct spglist *free)
 {

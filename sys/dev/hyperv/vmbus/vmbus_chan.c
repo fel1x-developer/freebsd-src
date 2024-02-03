@@ -1068,7 +1068,7 @@ vmbus_chan_iov_send(struct vmbus_channel *chan,
     vmbus_br_copy_callback_t cb, void *cbarg)
 {
 	int error;
-	boolean_t send_evt;
+	bool send_evt;
 
 	if (iovlen == 0)
 		return (0);
@@ -1091,7 +1091,7 @@ vmbus_chan_send(struct vmbus_channel *chan, uint16_t type, uint16_t flags,
 	int pktlen, pad_pktlen, hlen, error;
 	uint64_t pad = 0;
 	struct iovec iov[3];
-	boolean_t send_evt;
+	bool send_evt;
 
 	hlen = sizeof(pkt);
 	pktlen = hlen + dlen;
@@ -1125,7 +1125,7 @@ vmbus_chan_send_sglist(struct vmbus_channel *chan,
 	struct vmbus_chanpkt_sglist pkt;
 	int pktlen, pad_pktlen, hlen, error;
 	struct iovec iov[4];
-	boolean_t send_evt;
+	bool send_evt;
 	uint64_t pad = 0;
 
 	hlen = __offsetof(struct vmbus_chanpkt_sglist, cp_gpa[sglen]);
@@ -1165,7 +1165,7 @@ vmbus_chan_send_prplist(struct vmbus_channel *chan,
 	struct vmbus_chanpkt_prplist pkt;
 	int pktlen, pad_pktlen, hlen, error;
 	struct iovec iov[4];
-	boolean_t send_evt;
+	bool send_evt;
 	uint64_t pad = 0;
 
 	hlen = __offsetof(struct vmbus_chanpkt_prplist,
@@ -1204,7 +1204,7 @@ vmbus_chan_recv(struct vmbus_channel *chan, void *data, int *dlen0,
 {
 	struct vmbus_chanpkt_hdr pkt;
 	int error, dlen, hlen;
-	boolean_t sig_event;
+	bool sig_event;
 
 	error = vmbus_rxbr_peek(&chan->ch_rxbr, &pkt, sizeof(pkt));
 	if (error)
@@ -1249,7 +1249,7 @@ vmbus_chan_recv_pkt(struct vmbus_channel *chan,
     struct vmbus_chanpkt_hdr *pkt, int *pktlen0)
 {
 	int error, pktlen, pkt_hlen;
-	boolean_t sig_event;
+	bool sig_event;
 
 	pkt_hlen = sizeof(*pkt);
 	error = vmbus_rxbr_peek(&chan->ch_rxbr, pkt, pkt_hlen);
@@ -1309,7 +1309,7 @@ vmbus_chan_recv_peek(struct vmbus_channel *chan,
     void *data, int data_len, uint32_t advance)
 {
 	int error;
-	boolean_t sig_event;
+	bool sig_event;
 
 	if (data == NULL || data_len <= 0)
 		return (EINVAL);
@@ -1332,7 +1332,7 @@ int
 vmbus_chan_recv_idxadv(struct vmbus_channel *chan, uint32_t advance)
 {
 	int error;
-	boolean_t sig_event;
+	bool sig_event;
 
 	if (advance == 0)
 		return (EINVAL);

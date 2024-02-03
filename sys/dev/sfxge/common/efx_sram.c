@@ -207,7 +207,7 @@ efx_sram_buf_tbl_clear(
 static			void
 efx_sram_byte_increment_set(
 	__in		size_t row,
-	__in		boolean_t negate,
+	__in		bool negate,
 	__out		efx_qword_t *eqp)
 {
 	size_t offset = row * FR_AZ_SRM_DBG_REG_STEP;
@@ -222,7 +222,7 @@ efx_sram_byte_increment_set(
 static			void
 efx_sram_all_the_same_set(
 	__in		size_t row,
-	__in		boolean_t negate,
+	__in		bool negate,
 	__out		efx_qword_t *eqp)
 {
 	_NOTE(ARGUNUSED(row))
@@ -236,7 +236,7 @@ efx_sram_all_the_same_set(
 static			void
 efx_sram_bit_alternate_set(
 	__in		size_t row,
-	__in		boolean_t negate,
+	__in		bool negate,
 	__out		efx_qword_t *eqp)
 {
 	_NOTE(ARGUNUSED(row))
@@ -249,7 +249,7 @@ efx_sram_bit_alternate_set(
 static			void
 efx_sram_byte_alternate_set(
 	__in		size_t row,
-	__in		boolean_t negate,
+	__in		bool negate,
 	__out		efx_qword_t *eqp)
 {
 	_NOTE(ARGUNUSED(row))
@@ -262,7 +262,7 @@ efx_sram_byte_alternate_set(
 static			void
 efx_sram_byte_changing_set(
 	__in		size_t row,
-	__in		boolean_t negate,
+	__in		bool negate,
 	__out		efx_qword_t *eqp)
 {
 	size_t offset = row * FR_AZ_SRM_DBG_REG_STEP;
@@ -283,7 +283,7 @@ efx_sram_byte_changing_set(
 static			void
 efx_sram_bit_sweep_set(
 	__in		size_t row,
-	__in		boolean_t negate,
+	__in		bool negate,
 	__out		efx_qword_t *eqp)
 {
 	size_t offset = row * FR_AZ_SRM_DBG_REG_STEP;

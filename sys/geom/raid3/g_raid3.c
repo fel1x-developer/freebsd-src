@@ -121,7 +121,7 @@ struct g_class g_raid3_class = {
 
 static void g_raid3_destroy_provider(struct g_raid3_softc *sc);
 static int g_raid3_update_disk(struct g_raid3_disk *disk, u_int state);
-static void g_raid3_update_device(struct g_raid3_softc *sc, boolean_t force);
+static void g_raid3_update_device(struct g_raid3_softc *sc, bool force);
 static void g_raid3_dumpconf(struct sbuf *sb, const char *indent,
     struct g_geom *gp, struct g_consumer *cp, struct g_provider *pp);
 static void g_raid3_sync_stop(struct g_raid3_softc *sc, int type);
@@ -2498,7 +2498,7 @@ g_raid3_determine_state(struct g_raid3_disk *disk)
  * Update device state.
  */
 static void
-g_raid3_update_device(struct g_raid3_softc *sc, boolean_t force)
+g_raid3_update_device(struct g_raid3_softc *sc, bool force)
 {
 	struct g_raid3_disk *disk;
 	u_int state;

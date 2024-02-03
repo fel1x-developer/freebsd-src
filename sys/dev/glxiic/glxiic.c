@@ -188,7 +188,7 @@ static glxiic_state_callback_t	glxiic_state_master_stop_callback;
 
 struct glxiic_state_table_entry {
 	glxiic_state_callback_t *callback;
-	boolean_t master;
+	bool master;
 };
 typedef struct glxiic_state_table_entry glxiic_state_table_entry_t;
 

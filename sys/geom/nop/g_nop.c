@@ -49,7 +49,7 @@ static u_int g_nop_debug = 0;
 SYSCTL_UINT(_kern_geom_nop, OID_AUTO, debug, CTLFLAG_RW, &g_nop_debug, 0,
     "Debug level");
 
-static int g_nop_destroy(struct g_geom *gp, boolean_t force);
+static int g_nop_destroy(struct g_geom *gp, bool force);
 static int g_nop_destroy_geom(struct gctl_req *req, struct g_class *mp,
     struct g_geom *gp);
 static void g_nop_config(struct gctl_req *req, struct g_class *mp,
@@ -497,7 +497,7 @@ g_nop_providergone(struct g_provider *pp)
 }
 
 static int
-g_nop_destroy(struct g_geom *gp, boolean_t force)
+g_nop_destroy(struct g_geom *gp, bool force)
 {
 	struct g_nop_softc *sc;
 	struct g_provider *pp;

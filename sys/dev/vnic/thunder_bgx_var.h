@@ -34,7 +34,7 @@ struct lmac {
 	struct bgx		*bgx;
 	int			dmac;
 	uint8_t			mac[ETHER_ADDR_LEN];
-	boolean_t		link_up;
+	bool		link_up;
 	int			lmacid; /* ID within BGX */
 	int			lmacid_bd; /* ID on board */
 	device_t		phy_if_dev;
@@ -42,7 +42,7 @@ struct lmac {
 	unsigned int            last_duplex;
 	unsigned int            last_link;
 	unsigned int            last_speed;
-	boolean_t		is_sgmii;
+	bool		is_sgmii;
 	struct callout		check_link;
 	struct mtx		check_link_mtx;
 };

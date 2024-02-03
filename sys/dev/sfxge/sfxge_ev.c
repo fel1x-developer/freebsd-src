@@ -46,7 +46,7 @@
 #include "sfxge.h"
 
 static void
-sfxge_ev_qcomplete(struct sfxge_evq *evq, boolean_t eop)
+sfxge_ev_qcomplete(struct sfxge_evq *evq, bool eop)
 {
 	struct sfxge_softc *sc;
 	unsigned int index;
@@ -98,7 +98,7 @@ sfxge_get_rxq_by_label(struct sfxge_evq *evq, uint32_t label)
 	return (rxq);
 }
 
-static boolean_t
+static bool
 sfxge_ev_rx(void *arg, uint32_t label, uint32_t id, uint32_t size,
 	    uint16_t flags)
 {
@@ -163,7 +163,7 @@ done:
 	return (evq->rx_done >= SFXGE_EV_BATCH);
 }
 
-static boolean_t
+static bool
 sfxge_ev_exception(void *arg, uint32_t code, uint32_t data)
 {
 	struct sfxge_evq *evq;
@@ -198,7 +198,7 @@ sfxge_ev_exception(void *arg, uint32_t code, uint32_t data)
 	return (B_FALSE);
 }
 
-static boolean_t
+static bool
 sfxge_ev_rxq_flush_done(void *arg, uint32_t rxq_index)
 {
 	struct sfxge_evq *evq;
@@ -232,7 +232,7 @@ sfxge_ev_rxq_flush_done(void *arg, uint32_t rxq_index)
 	return (B_FALSE);
 }
 
-static boolean_t
+static bool
 sfxge_ev_rxq_flush_failed(void *arg, uint32_t rxq_index)
 {
 	struct sfxge_evq *evq;
@@ -276,7 +276,7 @@ sfxge_get_txq_by_label(struct sfxge_evq *evq, enum sfxge_txq_type label)
 	return (evq->sc->txq[index]);
 }
 
-static boolean_t
+static bool
 sfxge_ev_tx(void *arg, uint32_t label, uint32_t id)
 {
 	struct sfxge_evq *evq;
@@ -317,7 +317,7 @@ done:
 	return (evq->tx_done >= SFXGE_EV_BATCH);
 }
 
-static boolean_t
+static bool
 sfxge_ev_txq_flush_done(void *arg, uint32_t txq_index)
 {
 	struct sfxge_evq *evq;
@@ -351,7 +351,7 @@ sfxge_ev_txq_flush_done(void *arg, uint32_t txq_index)
 	return (B_FALSE);
 }
 
-static boolean_t
+static bool
 sfxge_ev_software(void *arg, uint16_t magic)
 {
 	struct sfxge_evq *evq;
@@ -393,7 +393,7 @@ sfxge_ev_software(void *arg, uint16_t magic)
 	return (B_FALSE);
 }
 
-static boolean_t
+static bool
 sfxge_ev_sram(void *arg, uint32_t code)
 {
 	(void)arg;
@@ -420,7 +420,7 @@ sfxge_ev_sram(void *arg, uint32_t code)
 	return (B_FALSE);
 }
 
-static boolean_t
+static bool
 sfxge_ev_timer(void *arg, uint32_t index)
 {
 	(void)arg;
@@ -429,7 +429,7 @@ sfxge_ev_timer(void *arg, uint32_t index)
 	return (B_FALSE);
 }
 
-static boolean_t
+static bool
 sfxge_ev_wake_up(void *arg, uint32_t index)
 {
 	(void)arg;
@@ -620,7 +620,7 @@ out:
 	return (error);
 }
 
-static boolean_t
+static bool
 sfxge_ev_initialized(void *arg)
 {
 	struct sfxge_evq *evq;
@@ -638,7 +638,7 @@ sfxge_ev_initialized(void *arg)
 	return (0);
 }
 
-static boolean_t
+static bool
 sfxge_ev_link_change(void *arg, efx_link_mode_t	link_mode)
 {
 	struct sfxge_evq *evq;

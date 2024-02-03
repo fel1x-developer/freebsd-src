@@ -70,7 +70,7 @@ struct privcmd_map {
 	struct resource *pseudo_phys_res;
 	int pseudo_phys_res_id;
 	vm_paddr_t phys_base_addr;
-	boolean_t mapped;
+	bool mapped;
 	BITSET_DEFINE_VAR() *err;
 };
 
@@ -230,7 +230,7 @@ setup_virtual_area(struct thread *td, unsigned long addr, unsigned long num)
 	vm_object_t mem;
 	vm_pindex_t pindex;
 	vm_prot_t prot;
-	boolean_t wired;
+	bool wired;
 	struct privcmd_map *umap;
 	int error;
 

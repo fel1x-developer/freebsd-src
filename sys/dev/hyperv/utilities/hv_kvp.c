@@ -138,11 +138,11 @@ typedef struct hv_kvp_sc {
 	struct task		task;
 
 	/* To track if transaction is active or not */
-	boolean_t		req_in_progress;
+	bool		req_in_progress;
 	/* Tracks if daemon did not reply back in time */
-	boolean_t		req_timed_out;
+	bool		req_timed_out;
 	/* Tracks if daemon is serving a request currently */
-	boolean_t		daemon_busy;
+	bool		daemon_busy;
 
 	/* Length of host message */
 	uint32_t		host_msg_len;
@@ -163,10 +163,10 @@ typedef struct hv_kvp_sc {
 	struct sema		dev_sema;
 
 	/* Indicates if daemon registered with driver */
-	boolean_t		register_done;
+	bool		register_done;
 
 	/* Character device status */
-	boolean_t		dev_accessed;
+	bool		dev_accessed;
 
 	struct cdev *hv_kvp_dev;
 

@@ -379,7 +379,7 @@ siena_vpd_reinit(
 	__in_bcount(size)	caddr_t data,
 	__in			size_t size)
 {
-	boolean_t wantpid;
+	bool wantpid;
 	efx_rc_t rc;
 
 	/*

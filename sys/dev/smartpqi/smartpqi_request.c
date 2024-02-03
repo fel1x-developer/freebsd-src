@@ -86,7 +86,7 @@ pqisrc_contiguous_free_elem(uint32_t pi, uint32_t ci, uint32_t elem_in_q)
 /* Subroutine to find out num of elements need for the request */
 static uint32_t
 pqisrc_num_elem_needed(pqisrc_softstate_t *softs, uint32_t SG_Count,
-                pqi_scsi_dev_t *devp, boolean_t is_write, IO_PATH_T io_path)
+                pqi_scsi_dev_t *devp, bool is_write, IO_PATH_T io_path)
 {
 	uint32_t num_sg;
 	uint32_t num_elem_required = 1;
@@ -117,7 +117,7 @@ pqisrc_num_elem_needed(pqisrc_softstate_t *softs, uint32_t SG_Count,
 }
 
 /* Subroutine to build SG list for the IU submission*/
-static boolean_t
+static bool
 pqisrc_build_sgl(sgt_t *sg_array, rcb_t *rcb, iu_header_t *iu_hdr,
 			uint32_t num_elem_alloted)
 {
@@ -125,7 +125,7 @@ pqisrc_build_sgl(sgt_t *sg_array, rcb_t *rcb, iu_header_t *iu_hdr,
 	uint32_t num_sg = OS_GET_IO_SG_COUNT(rcb);
 	sgt_t *sgt = sg_array;
 	sgt_t *sg_chain = NULL;
-	boolean_t partial = false;
+	bool partial = false;
 
 	DBG_FUNC("IN\n");
 
@@ -723,7 +723,7 @@ pqisrc_show_aio_R5or6_write(pqisrc_softstate_t *softs, rcb_t *rcb,
 }
 
 /* Is the cdb a read command? */
-boolean_t
+bool
 pqisrc_cdb_is_read(uint8_t *cdb)
 {
 	if (cdb[0] == SCMD_READ_6 || cdb[0] == SCMD_READ_10 ||
@@ -733,7 +733,7 @@ pqisrc_cdb_is_read(uint8_t *cdb)
 }
 
 /* Is the cdb a write command? */
-boolean_t
+bool
 pqisrc_cdb_is_write(uint8_t *cdb)
 {
 	if (cdb == NULL)
@@ -750,7 +750,7 @@ void
 pqisrc_show_aio_io(pqisrc_softstate_t *softs, rcb_t *rcb,
 	pqi_aio_req_t *aio_req, uint32_t num_elem_alloted)
 {
-	boolean_t is_write;
+	bool is_write;
 	DBG_FUNC("IN\n");
 
 	is_write = pqisrc_cdb_is_write(rcb->cdbp);
@@ -786,7 +786,7 @@ void
 pqisrc_build_aio_io(pqisrc_softstate_t *softs, rcb_t *rcb,
 	pqi_aio_req_t *aio_req, uint32_t num_elem_alloted)
 {
-	boolean_t is_write;
+	bool is_write;
 	DBG_FUNC("IN\n");
 
 	is_write = pqisrc_cdb_is_write(rcb->cdbp);
@@ -825,7 +825,7 @@ pqisrc_build_aio_io(pqisrc_softstate_t *softs, rcb_t *rcb,
  *	True is returned if the request is determined to be part of a stream, or
  *	if the controller does not handle AIO at the appropriate RAID level.
  */
-static boolean_t
+static bool
 pqisrc_is_parity_write_stream(pqisrc_softstate_t *softs, rcb_t *rcb)
 {
 	os_ticks_t oldest_ticks;
@@ -996,7 +996,7 @@ pqisrc_build_send_io(pqisrc_softstate_t *softs,rcb_t *rcb)
 	uint32_t num_elem_needed;
 	uint32_t num_elem_alloted = 0;
 	pqi_scsi_dev_t *devp = rcb->dvp;
-	boolean_t is_write;
+	bool is_write;
 
 	DBG_FUNC("IN\n");
 
@@ -1180,7 +1180,7 @@ fill_lba_for_scsi_rw(pqisrc_softstate_t *softs, uint8_t *cdb, aio_req_locator_t 
 
 
 /* determine whether writes to certain types of RAID are supported. */
-static boolean_t
+static bool
 pqisrc_is_supported_write(pqisrc_softstate_t *softs,
 	pqi_scsi_dev_t *device)
 {
@@ -1224,7 +1224,7 @@ pqisrc_is_supported_write(pqisrc_softstate_t *softs,
 }
 
 /* check for zero-byte transfers, invalid blocks, and wraparound */
-static inline boolean_t
+static inline bool
 pqisrc_is_invalid_block(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 {
 	DBG_FUNC("IN\n");
@@ -1248,7 +1248,7 @@ pqisrc_is_invalid_block(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 }
 
 /* Compute various attributes of request's location */
-static inline boolean_t
+static inline bool
 pqisrc_calc_disk_params(pqisrc_softstate_t *softs, aio_req_locator_t *l,  rcb_t *rcb)
 {
 	DBG_FUNC("IN\n");
@@ -1285,10 +1285,10 @@ pqisrc_calc_disk_params(pqisrc_softstate_t *softs, aio_req_locator_t *l,  rcb_t 
 }
 
 /* Not AIO-eligible if it isnt' a single row/column. */
-static inline boolean_t
+static inline bool
 pqisrc_is_single_row_column(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 {
-	boolean_t ret = true;
+	bool ret = true;
 	DBG_FUNC("IN\n");
 
 	if (l->row.first != l->row.last || l->col.first != l->col.last) {
@@ -1300,7 +1300,7 @@ pqisrc_is_single_row_column(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 }
 
 /* figure out disks/row, row, and map index. */
-static inline boolean_t
+static inline bool
 pqisrc_set_map_row_and_idx(pqisrc_softstate_t *softs, aio_req_locator_t *l, rcb_t *rcb)
 {
 	if (!l->row.data_disks) {
@@ -1343,7 +1343,7 @@ pqisrc_set_read_mirror(pqisrc_softstate_t *softs,
 }
 
 /* collect ioaccel handles for mirrors of given location. */
-static inline boolean_t
+static inline bool
 pqisrc_set_write_mirrors(
 	pqisrc_softstate_t *softs,
 	pqi_scsi_dev_t *device,
@@ -1367,10 +1367,10 @@ pqisrc_set_write_mirrors(
 }
 
 /* Make sure first and last block are in the same R5/R6 RAID group. */
-static inline boolean_t
+static inline bool
 pqisrc_is_r5or6_single_group(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 {
-	boolean_t ret = true;
+	bool ret = true;
 
 	DBG_FUNC("IN\n");
 	l->r5or6.row.blks_per_row = l->strip_sz * l->row.data_disks;
@@ -1390,10 +1390,10 @@ pqisrc_is_r5or6_single_group(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 	return ret;
 }
 /* Make sure R5 or R6 request doesn't span rows. */
-static inline boolean_t
+static inline bool
 pqisrc_is_r5or6_single_row(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 {
-	boolean_t ret = true;
+	bool ret = true;
 
 	DBG_FUNC("IN\n");
 
@@ -1413,10 +1413,10 @@ pqisrc_is_r5or6_single_row(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 }
 
 /* Make sure R5 or R6 request doesn't span columns. */
-static inline boolean_t
+static inline bool
 pqisrc_is_r5or6_single_column(pqisrc_softstate_t *softs, aio_req_locator_t *l)
 {
-	boolean_t ret = true;
+	bool ret = true;
 
 	/* Find the columns of the first and last block */
 	l->row.offset_first = l->r5or6.row.offset_first =
@@ -1460,10 +1460,10 @@ pqisrc_set_r5or6_row_and_index(aio_req_locator_t *l,
 }
 
 /* calculate physical disk block for aio request */
-static inline boolean_t
+static inline bool
 pqisrc_calc_aio_block(aio_req_locator_t *l)
 {
-	boolean_t ret = true;
+	bool ret = true;
 
 	l->block.disk_block =
 		GET_LE64((uint8_t *) (&l->raid_map->disk_starting_blk))
@@ -1492,12 +1492,12 @@ pqisrc_handle_blk_size_diffs(aio_req_locator_t *l)
  * handle based on dev type, Raid level, and encryption status.
  * TODO: make limits dynamic when this becomes possible.
  */
-static boolean_t
+static bool
 pqisrc_aio_req_too_big(pqisrc_softstate_t *softs,
 	pqi_scsi_dev_t *device, rcb_t *rcb,
 	aio_req_locator_t *l, uint32_t disk_blk_cnt)
 {
-	boolean_t ret = false;
+	bool ret = false;
 	uint32_t dev_max;
 	uint32_t size = disk_blk_cnt * device->raid_map->volume_blk_size;
 	dev_max = size;
@@ -1895,7 +1895,7 @@ pqisrc_send_aio_tmf(pqisrc_softstate_t *softs, pqi_scsi_dev_t *devp,
 	int rval = PQI_STATUS_SUCCESS;
 	pqi_aio_tmf_req_t tmf_req;
 	ib_queue_t *op_ib_q = NULL;
-	boolean_t is_write;
+	bool is_write;
 
 	memset(&tmf_req, 0, sizeof(pqi_aio_tmf_req_t));
 
@@ -2110,7 +2110,7 @@ get_counter_index(rcb_t *rcb)
 		case SA_RAID_UNKNOWN:
 		default:
 		{
-			static boolean_t asserted = false;
+			static bool asserted = false;
 			if (!asserted)
 			{
 				asserted = true;
@@ -2277,7 +2277,7 @@ print_this_counter(pqisrc_softstate_t *softs, io_counters_t *pcounter, char *msg
 }
 
 /* return true if buffer is all zeroes */
-boolean_t
+bool
 is_buffer_zero(void *buffer, uint32_t size)
 {
 	char *buf = buffer;

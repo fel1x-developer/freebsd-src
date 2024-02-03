@@ -102,7 +102,7 @@ static void nicvf_sq_disable(struct nicvf *, int);
 static void nicvf_sq_enable(struct nicvf *, struct snd_queue *, int);
 static void nicvf_put_sq_desc(struct snd_queue *, int);
 static void nicvf_cmp_queue_config(struct nicvf *, struct queue_set *, int,
-    boolean_t);
+    bool);
 static void nicvf_sq_free_used_descs(struct nicvf *, struct snd_queue *, int);
 
 static int nicvf_tx_mbuf_locked(struct snd_queue *, struct mbuf **);
@@ -532,7 +532,7 @@ nicvf_refill_rbdr(struct rbdr *rbdr, int mflags)
 	struct rbdr_entry_t *desc;
 	bus_dmamap_t dmap;
 	bus_addr_t rbuf;
-	boolean_t rb_alloc_fail;
+	bool rb_alloc_fail;
 	int new_rb;
 
 	rb_alloc_fail = TRUE;
@@ -845,7 +845,7 @@ nicvf_qs_err_task(void *arg, int pending)
 	struct queue_set *qs;
 	int qidx;
 	uint64_t status;
-	boolean_t enable = TRUE;
+	bool enable = TRUE;
 
 	nic = (struct nicvf *)arg;
 	qs = nic->qs;
@@ -1368,7 +1368,7 @@ nicvf_rcv_queue_config(struct nicvf *nic, struct queue_set *qs,
 /* Configures completion queue */
 static void
 nicvf_cmp_queue_config(struct nicvf *nic, struct queue_set *qs,
-    int qidx, boolean_t enable)
+    int qidx, bool enable)
 {
 	struct cmp_queue *cq;
 	struct cq_cfg cq_cfg;
@@ -1405,7 +1405,7 @@ nicvf_cmp_queue_config(struct nicvf *nic, struct queue_set *qs,
 /* Configures transmit queue */
 static void
 nicvf_snd_queue_config(struct nicvf *nic, struct queue_set *qs, int qidx,
-    boolean_t enable)
+    bool enable)
 {
 	union nic_mbx mbx = {};
 	struct snd_queue *sq;
@@ -1452,7 +1452,7 @@ nicvf_snd_queue_config(struct nicvf *nic, struct queue_set *qs, int qidx,
 /* Configures receive buffer descriptor ring */
 static void
 nicvf_rbdr_config(struct nicvf *nic, struct queue_set *qs, int qidx,
-    boolean_t enable)
+    bool enable)
 {
 	struct rbdr *rbdr;
 	struct rbdr_cfg rbdr_cfg;
@@ -1488,7 +1488,7 @@ nicvf_rbdr_config(struct nicvf *nic, struct queue_set *qs, int qidx,
 
 /* Requests PF to assign and enable Qset */
 void
-nicvf_qset_config(struct nicvf *nic, boolean_t enable)
+nicvf_qset_config(struct nicvf *nic, bool enable)
 {
 	union nic_mbx mbx = {};
 	struct queue_set *qs;
@@ -1615,9 +1615,9 @@ nicvf_set_qset_resources(struct nicvf *nic)
 }
 
 int
-nicvf_config_data_transfer(struct nicvf *nic, boolean_t enable)
+nicvf_config_data_transfer(struct nicvf *nic, bool enable)
 {
-	boolean_t disable = FALSE;
+	bool disable = FALSE;
 	struct queue_set *qs;
 	int qidx;
 

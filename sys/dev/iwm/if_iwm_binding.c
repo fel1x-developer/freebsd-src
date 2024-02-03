@@ -195,7 +195,7 @@ iwm_binding_cmd(struct iwm_softc *sc, uint32_t action,
 
 static int
 iwm_binding_update(struct iwm_softc *sc, struct iwm_vap *ivp,
-	struct iwm_phy_ctxt *phyctxt, boolean_t add)
+	struct iwm_phy_ctxt *phyctxt, bool add)
 {
 	struct iwm_iface_iterator_data data = {
 		.phyctxt = phyctxt,

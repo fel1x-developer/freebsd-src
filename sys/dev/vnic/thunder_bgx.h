@@ -209,7 +209,7 @@ const uint8_t *bgx_get_lmac_mac(int node, int bgx_idx, int lmacid);
 void bgx_set_lmac_mac(int node, int bgx_idx, int lmacid, const uint8_t *mac);
 void bgx_get_lmac_link_state(int node, int bgx_idx, int lmacid, void *status);
 void bgx_lmac_internal_loopback(int node, int bgx_idx,
-    int lmac_idx, boolean_t enable);
+    int lmac_idx, bool enable);
 uint64_t bgx_get_rx_stats(int node, int bgx_idx, int lmac, int idx);
 uint64_t bgx_get_tx_stats(int node, int bgx_idx, int lmac, int idx);
 #define	BGX_RX_STATS_COUNT 11

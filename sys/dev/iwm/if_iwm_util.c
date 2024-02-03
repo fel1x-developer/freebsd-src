@@ -498,7 +498,7 @@ iwm_dma_contig_free(struct iwm_dma_info *dma)
  * progress.
  */
 int
-iwm_send_lq_cmd(struct iwm_softc *sc, struct iwm_lq_cmd *lq, boolean_t init)
+iwm_send_lq_cmd(struct iwm_softc *sc, struct iwm_lq_cmd *lq, bool init)
 {
 	struct iwm_host_cmd cmd = {
 		.id = IWM_LQ_CMD,
@@ -513,7 +513,7 @@ iwm_send_lq_cmd(struct iwm_softc *sc, struct iwm_lq_cmd *lq, boolean_t init)
 	return iwm_send_cmd(sc, &cmd);
 }
 
-boolean_t
+bool
 iwm_rx_diversity_allowed(struct iwm_softc *sc)
 {
 	if (num_of_ant(iwm_get_valid_rx_ant(sc)) == 1)

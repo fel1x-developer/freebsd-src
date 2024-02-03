@@ -29,7 +29,7 @@
 /*
  * Checks a firmware feature status, given bit position.
  */
-static inline boolean_t
+static inline bool
 pqi_is_firmware_feature_supported(
 	struct pqi_config_table_firmware_features *firmware_features,
 	unsigned int bit_position)
@@ -53,7 +53,7 @@ pqi_is_firmware_feature_supported(
  * features and reports current enabled status, given
  * bit position.
  */
-static inline boolean_t
+static inline bool
 pqi_is_firmware_feature_enabled(
 	struct pqi_config_table_firmware_features *firmware_features,
 	uint8_t *firmware_features_iomem_addr,
@@ -171,8 +171,8 @@ typedef void (*feature_status_fn)(pqisrc_softstate_t *softs,
 struct pqi_firmware_feature {
 	char		*feature_name;
 	unsigned int	feature_bit;
-	boolean_t		supported;
-	boolean_t		enabled;
+	bool		supported;
+	bool		enabled;
 	feature_status_fn	feature_status;
 };
 

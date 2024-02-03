@@ -64,7 +64,7 @@ fail1:
 	__checkReturn	efx_rc_t
 ef10_mac_up(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *mac_upp)
+	__out		bool *mac_upp)
 {
 	ef10_link_state_t els;
 	efx_rc_t rc;
@@ -394,11 +394,11 @@ fail1:
 ef10_mac_filter_default_rxq_set(
 	__in		efx_nic_t *enp,
 	__in		efx_rxq_t *erp,
-	__in		boolean_t using_rss)
+	__in		bool using_rss)
 {
 	efx_port_t *epp = &(enp->en_port);
 	efx_rxq_t *old_rxq;
-	boolean_t old_using_rss;
+	bool old_using_rss;
 	efx_rc_t rc;
 
 	ef10_filter_get_default_rxq(enp, &old_rxq, &old_using_rss);

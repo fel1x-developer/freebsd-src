@@ -47,7 +47,7 @@ ef10_filter_entry_spec(
 		~(uintptr_t)EFX_EF10_FILTER_FLAGS));
 }
 
-static			boolean_t
+static			bool
 ef10_filter_entry_is_busy(
 	__in		const ef10_filter_table_t *eftp,
 	__in		unsigned int index)
@@ -58,7 +58,7 @@ ef10_filter_entry_is_busy(
 		return (B_FALSE);
 }
 
-static			boolean_t
+static			bool
 ef10_filter_entry_is_auto_old(
 	__in		const ef10_filter_table_t *eftp,
 	__in		unsigned int index)
@@ -453,7 +453,7 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_filter_equal(
 	__in		const efx_filter_spec_t *left,
 	__in		const efx_filter_spec_t *right)
@@ -494,7 +494,7 @@ ef10_filter_equal(
 
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_filter_same_dest(
 	__in		const efx_filter_spec_t *left,
 	__in		const efx_filter_spec_t *right)
@@ -537,7 +537,7 @@ ef10_filter_hash(
  * filters for specific local unicast MAC and IP addresses are
  * exclusive.
  */
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_filter_is_exclusive(
 	__in		efx_filter_spec_t *spec)
 {
@@ -566,7 +566,7 @@ ef10_filter_restore(
 	int tbl_id;
 	efx_filter_spec_t *spec;
 	ef10_filter_table_t *eftp = enp->en_filter.ef_ef10_filter_table;
-	boolean_t restoring;
+	bool restoring;
 	efsys_lock_state_t state;
 	efx_rc_t rc;
 
@@ -631,7 +631,7 @@ static	__checkReturn	efx_rc_t
 ef10_filter_add_internal(
 	__in		efx_nic_t *enp,
 	__inout		efx_filter_spec_t *spec,
-	__in		boolean_t may_replace,
+	__in		bool may_replace,
 	__out_opt	uint32_t *filter_id)
 {
 	efx_rc_t rc;
@@ -640,10 +640,10 @@ ef10_filter_add_internal(
 	uint32_t hash;
 	unsigned int depth;
 	int ins_index;
-	boolean_t replacing = B_FALSE;
+	bool replacing = B_FALSE;
 	unsigned int i;
 	efsys_lock_state_t state;
-	boolean_t locked = B_FALSE;
+	bool locked = B_FALSE;
 
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_HUNTINGTON ||
 	    enp->en_family == EFX_FAMILY_MEDFORD ||
@@ -815,7 +815,7 @@ fail1:
 ef10_filter_add(
 	__in		efx_nic_t *enp,
 	__inout		efx_filter_spec_t *spec,
-	__in		boolean_t may_replace)
+	__in		bool may_replace)
 {
 	efx_rc_t rc;
 
@@ -914,7 +914,7 @@ ef10_filter_delete(
 	unsigned int depth;
 	unsigned int i;
 	efsys_lock_state_t state;
-	boolean_t locked = B_FALSE;
+	bool locked = B_FALSE;
 
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_HUNTINGTON ||
 	    enp->en_family == EFX_FAMILY_MEDFORD ||
@@ -966,7 +966,7 @@ efx_mcdi_get_parser_disp_info(
 	__in				efx_nic_t *enp,
 	__out_ecount(buffer_length)	uint32_t *buffer,
 	__in				size_t buffer_length,
-	__in				boolean_t encap,
+	__in				bool encap,
 	__out				size_t *list_lengthp)
 {
 	efx_mcdi_req_t req;
@@ -1051,7 +1051,7 @@ ef10_filter_supported_filters(
 	uint32_t next_buf_idx;
 	size_t next_buf_length;
 	efx_rc_t rc;
-	boolean_t no_space = B_FALSE;
+	bool no_space = B_FALSE;
 	efx_filter_match_flags_t all_filter_flags =
 	    (EFX_FILTER_MATCH_REM_HOST | EFX_FILTER_MATCH_LOC_HOST |
 	    EFX_FILTER_MATCH_REM_MAC | EFX_FILTER_MATCH_REM_PORT |
@@ -1223,12 +1223,12 @@ fail1:
 static	__checkReturn	efx_rc_t
 ef10_filter_insert_multicast_list(
 	__in				efx_nic_t *enp,
-	__in				boolean_t mulcst,
-	__in				boolean_t brdcst,
+	__in				bool mulcst,
+	__in				bool brdcst,
 	__in_ecount(6*count)		uint8_t const *addrs,
 	__in				uint32_t count,
 	__in				efx_filter_flags_t filter_flags,
-	__in				boolean_t rollback)
+	__in				bool rollback)
 {
 	ef10_filter_table_t *eftp = enp->en_filter.ef_ef10_filter_table;
 	efx_filter_spec_t spec;
@@ -1403,7 +1403,7 @@ static ef10_filter_encap_entry_t ef10_filter_encap_list[] = {
 static	__checkReturn	efx_rc_t
 ef10_filter_insert_encap_filters(
 	__in		efx_nic_t *enp,
-	__in		boolean_t mulcst,
+	__in		bool mulcst,
 	__in		efx_filter_flags_t filter_flags)
 {
 	ef10_filter_table_t *table = enp->en_filter.ef_ef10_filter_table;
@@ -1532,10 +1532,10 @@ fail1:
 ef10_filter_reconfigure(
 	__in				efx_nic_t *enp,
 	__in_ecount(6)			uint8_t const *mac_addr,
-	__in				boolean_t all_unicst,
-	__in				boolean_t mulcst,
-	__in				boolean_t all_mulcst,
-	__in				boolean_t brdcst,
+	__in				bool all_unicst,
+	__in				bool mulcst,
+	__in				bool all_mulcst,
+	__in				bool brdcst,
 	__in_ecount(6*count)		uint8_t const *addrs,
 	__in				uint32_t count)
 {
@@ -1751,7 +1751,7 @@ fail1:
 ef10_filter_get_default_rxq(
 	__in		efx_nic_t *enp,
 	__out		efx_rxq_t **erpp,
-	__out		boolean_t *using_rss)
+	__out		bool *using_rss)
 {
 	ef10_filter_table_t *table = enp->en_filter.ef_ef10_filter_table;
 
@@ -1763,7 +1763,7 @@ ef10_filter_get_default_rxq(
 ef10_filter_default_rxq_set(
 	__in		efx_nic_t *enp,
 	__in		efx_rxq_t *erp,
-	__in		boolean_t using_rss)
+	__in		bool using_rss)
 {
 	ef10_filter_table_t *table = enp->en_filter.ef_ef10_filter_table;
 

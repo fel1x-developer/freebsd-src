@@ -209,7 +209,7 @@ sf_buf_ref(struct sf_buf *sf)
 /*
  * Run callback function on sf_buf that holds a certain page.
  */
-boolean_t
+bool
 sf_buf_process_page(vm_page_t m, void (*cb)(struct sf_buf *))
 {
 	struct sf_head *hash_list;

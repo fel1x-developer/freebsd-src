@@ -512,7 +512,7 @@ struct oce_set_eqd {
 };
 
 struct oce_aic_obj {             /* Adaptive interrupt coalescing (AIC) info */
-	boolean_t enable;
+	bool enable;
 	uint32_t  min_eqd;            /* in usecs */
 	uint32_t  max_eqd;            /* in usecs */
 	uint32_t  cur_eqd;            /* in usecs */
@@ -617,9 +617,9 @@ enum cq_len {
 struct cq_config {
 	enum cq_len q_len;
 	uint32_t item_size;
-	boolean_t is_eventable;
-	boolean_t sol_eventable;
-	boolean_t nodelay;
+	bool is_eventable;
+	bool sol_eventable;
+	bool nodelay;
 	uint16_t dma_coalescing;
 };
 
@@ -694,7 +694,7 @@ struct oce_wq {
 	uint32_t pkt_desc_tail;
 	uint32_t pkt_desc_head;
 	uint32_t wqm_used;
-	boolean_t resched;
+	bool resched;
 	uint32_t wq_free;
 	uint32_t tx_deferd;
 	uint32_t pkt_drops;

@@ -344,7 +344,7 @@ iwm_time_event_send_add(struct iwm_softc *sc, struct iwm_vap *ivp,
 
 void
 iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
-	uint32_t duration, uint32_t max_delay, boolean_t wait_for_notif)
+	uint32_t duration, uint32_t max_delay, bool wait_for_notif)
 {
 	const uint16_t te_notif_response[] = { IWM_TIME_EVENT_NOTIFICATION };
 	struct iwm_notification_wait wait_te_notif;

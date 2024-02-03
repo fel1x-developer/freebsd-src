@@ -93,7 +93,7 @@ static int vnode_pager_getpages(vm_object_t, vm_page_t *, int, int *, int *);
 static int vnode_pager_getpages_async(vm_object_t, vm_page_t *, int, int *,
     int *, vop_getpages_iodone_t, void *);
 static void vnode_pager_putpages(vm_object_t, vm_page_t *, int, int, int *);
-static boolean_t vnode_pager_haspage(vm_object_t, vm_pindex_t, int *, int *);
+static bool vnode_pager_haspage(vm_object_t, vm_pindex_t, int *, int *);
 static vm_object_t vnode_pager_alloc(void *, vm_ooffset_t, vm_prot_t,
     vm_ooffset_t, struct ucred *cred);
 static int vnode_pager_generic_getpages_done(struct buf *);
@@ -343,7 +343,7 @@ vnode_pager_dealloc(vm_object_t object)
 	VM_OBJECT_WLOCK(object);
 }
 
-static boolean_t
+static bool
 vnode_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
     int *after)
 {

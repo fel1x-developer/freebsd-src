@@ -60,7 +60,7 @@ static vm_object_t dev_pager_alloc(void *, vm_ooffset_t, vm_prot_t,
 static void dev_pager_dealloc(vm_object_t);
 static int dev_pager_getpages(vm_object_t, vm_page_t *, int, int *, int *);
 static void dev_pager_putpages(vm_object_t, vm_page_t *, int, int, int *);
-static boolean_t dev_pager_haspage(vm_object_t, vm_pindex_t, int *, int *);
+static bool dev_pager_haspage(vm_object_t, vm_pindex_t, int *, int *);
 static void dev_pager_free_page(vm_object_t object, vm_page_t m);
 static int dev_pager_populate(vm_object_t object, vm_pindex_t pidx,
     int fault_type, vm_prot_t, vm_pindex_t *first, vm_pindex_t *last);
@@ -409,7 +409,7 @@ dev_pager_putpages(vm_object_t object, vm_page_t *m, int count, int flags,
 	panic("dev_pager_putpage called");
 }
 
-static boolean_t
+static bool
 dev_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
     int *after)
 {

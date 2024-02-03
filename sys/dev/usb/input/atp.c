@@ -302,7 +302,7 @@ typedef struct fg_pspan {
 	u_int cum;         /* cumulative compression (from all sensors) */
 	u_int cog;         /* center of gravity */
 	u_int loc;         /* location (scaled using the mickeys factor) */
-	boolean_t matched; /* to track pspans as they match against strokes. */
+	bool matched; /* to track pspans as they match against strokes. */
 } fg_pspan;
 
 #define FG_MAX_PSPANS_PER_AXIS 3
@@ -340,7 +340,7 @@ struct wsp_finger_sensor_data {
 
 typedef struct wsp_finger {
 	/* to track fingers as they match against strokes. */
-	boolean_t matched;
+	bool matched;
 
 	/* location (scaled using the mickeys factor) */
 	int x;
@@ -602,7 +602,7 @@ typedef struct fg_stroke_component {
 	u_int loc;              /* location (scaled) */
 	u_int cum_pressure;     /* cumulative compression */
 	u_int max_cum_pressure; /* max cumulative compression */
-	boolean_t matched; /*to track components as they match against pspans.*/
+	bool matched; /*to track components as they match against pspans.*/
 
 	int   delta_mickeys;    /* change in location (un-smoothened movement)*/
 } fg_stroke_component_t;
@@ -617,7 +617,7 @@ typedef struct atp_stroke {
 	atp_stroke_type type;
 	uint32_t        flags; /* the state of this stroke */
 #define ATSF_ZOMBIE 0x1
-	boolean_t       matched;          /* to track match against fingers.*/
+	bool       matched;          /* to track match against fingers.*/
 
 	struct timeval  ctime; /* create time; for coincident siblings. */
 
@@ -767,30 +767,30 @@ static void	     fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
 static void	     wsp_interpret_sensor_data(struct atp_softc *, u_int);
 
 /* movement detection */
-static boolean_t     fg_match_stroke_component(fg_stroke_component_t *,
+static bool     fg_match_stroke_component(fg_stroke_component_t *,
     const fg_pspan *, atp_stroke_type);
 static void	     fg_match_strokes_against_pspans(struct atp_softc *,
     atp_axis, fg_pspan *, u_int, u_int);
-static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
+static bool     wsp_match_strokes_against_fingers(struct atp_softc *,
     wsp_finger_t *, u_int);
-static boolean_t     fg_update_strokes(struct atp_softc *, fg_pspan *, u_int,
+static bool     fg_update_strokes(struct atp_softc *, fg_pspan *, u_int,
     fg_pspan *, u_int);
-static boolean_t     wsp_update_strokes(struct atp_softc *,
+static bool     wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
 static void fg_add_stroke(struct atp_softc *, const fg_pspan *, const fg_pspan *);
 static void	     fg_add_new_strokes(struct atp_softc *, fg_pspan *,
     u_int, fg_pspan *, u_int);
 static void wsp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void	     atp_advance_stroke_state(struct atp_softc *,
-    atp_stroke_t *, boolean_t *);
-static boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
+    atp_stroke_t *, bool *);
+static bool atp_stroke_has_small_movement(const atp_stroke_t *);
 static void	     atp_update_pending_mickeys(atp_stroke_t *);
-static boolean_t     atp_compute_stroke_movement(atp_stroke_t *);
+static bool     atp_compute_stroke_movement(atp_stroke_t *);
 static void	     atp_terminate_stroke(struct atp_softc *, atp_stroke_t *);
 
 /* tap detection */
-static boolean_t atp_is_horizontal_scroll(const atp_stroke_t *);
-static boolean_t atp_is_vertical_scroll(const atp_stroke_t *);
+static bool atp_is_horizontal_scroll(const atp_stroke_t *);
+static bool atp_is_vertical_scroll(const atp_stroke_t *);
 static void	     atp_reap_sibling_zombies(void *);
 static void	     atp_convert_to_slide(struct atp_softc *, atp_stroke_t *);
 
@@ -1342,7 +1342,7 @@ wsp_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
  * Match a pressure-span against a stroke-component. If there is a
  * match, update the component's state and return true.
  */
-static boolean_t
+static bool
 fg_match_stroke_component(fg_stroke_component_t *component,
     const fg_pspan *pspan, atp_stroke_type stroke_type)
 {
@@ -1429,11 +1429,11 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 	} /* loop over strokes */
 }
 
-static boolean_t
+static bool
 wsp_match_strokes_against_fingers(struct atp_softc *sc,
     wsp_finger_t *fingers, u_int n_fingers)
 {
-	boolean_t movement = false;
+	bool movement = false;
 	atp_stroke_t *strokep;
 	u_int i;
 
@@ -1488,13 +1488,13 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
  * Update strokes by matching against current pressure-spans.
  * Return true if any movement is detected.
  */
-static boolean_t
+static bool
 fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
     u_int n_xpspans, fg_pspan *pspans_y, u_int n_ypspans)
 {
 	atp_stroke_t *strokep;
 	atp_stroke_t *strokep_next;
-	boolean_t movement = false;
+	bool movement = false;
 	u_int repeat_count = 0;
 	u_int i;
 	u_int j;
@@ -1632,11 +1632,11 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
  * Update strokes by matching against current pressure-spans.
  * Return true if any movement is detected.
  */
-static boolean_t
+static bool
 wsp_update_strokes(struct atp_softc *sc, wsp_finger_t fingers[WSP_MAX_FINGERS],
     u_int n_fingers)
 {
-	boolean_t movement = false;
+	bool movement = false;
 	atp_stroke_t *strokep_next;
 	atp_stroke_t *strokep;
 	u_int i;
@@ -1802,7 +1802,7 @@ wsp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 
 static void
 atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
-    boolean_t *movementp)
+    bool *movementp)
 {
 	/* Revitalize stroke if it had previously been marked as a zombie. */
 	if (strokep->flags & ATSF_ZOMBIE)
@@ -1840,7 +1840,7 @@ atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
 	}
 }
 
-static boolean_t
+static bool
 atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 {
 	return (((u_int)abs(strokep->instantaneous_dx) <=
@@ -1920,7 +1920,7 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
  * Compute a smoothened value for the stroke's movement from
  * instantaneous changes in the X and Y components.
  */
-static boolean_t
+static bool
 atp_compute_stroke_movement(atp_stroke_t *strokep)
 {
 	/*
@@ -1987,7 +1987,7 @@ atp_terminate_stroke(struct atp_softc *sc, atp_stroke_t *strokep)
 		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
 }
 
-static boolean_t
+static bool
 atp_is_horizontal_scroll(const atp_stroke_t *strokep)
 {
 	if (abs(strokep->cum_movement_x) < atp_slide_min_movement)
@@ -1997,7 +1997,7 @@ atp_is_horizontal_scroll(const atp_stroke_t *strokep)
 	return (abs(strokep->cum_movement_x / strokep->cum_movement_y) >= 4);
 }
 
-static boolean_t
+static bool
 atp_is_vertical_scroll(const atp_stroke_t *strokep)
 {
 	if (abs(strokep->cum_movement_y) < atp_slide_min_movement)
@@ -2384,7 +2384,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 
 			/* detect multi-finger vertical scrolls */
 			if (n_movements >= 2) {
-				boolean_t all_vertical_scrolls = true;
+				bool all_vertical_scrolls = true;
 				TAILQ_FOREACH(strokep, &sc->sc_stroke_used, entry) {
 					if (strokep->flags & ATSF_ZOMBIE)
 						continue;

@@ -206,17 +206,17 @@
  *	from enum iwm_sta_modify_flag. Otherwise, this is ignored.
  */
 extern	int iwm_sta_send_to_fw(struct iwm_softc *sc, struct iwm_node *in,
-				   boolean_t update);
+				   bool update);
 extern	int iwm_add_sta(struct iwm_softc *sc, struct iwm_node *in);
 extern	int iwm_update_sta(struct iwm_softc *sc, struct iwm_node *in);
 extern	int iwm_rm_sta(struct iwm_softc *sc, struct ieee80211vap *vap,
-			   boolean_t is_assoc);
+			   bool is_assoc);
 extern	int iwm_rm_sta_id(struct iwm_softc *sc, struct ieee80211vap *vap);
 
 extern	int iwm_add_aux_sta(struct iwm_softc *sc);
 extern	void iwm_del_aux_sta(struct iwm_softc *sc);
 
 extern	int iwm_drain_sta(struct iwm_softc *sc, struct iwm_vap *ivp,
-			      boolean_t drain);
+			      bool drain);
 
 #endif /* __IF_IWM_STA_H__ */

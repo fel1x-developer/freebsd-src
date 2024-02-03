@@ -173,7 +173,7 @@ struct g_eli_worker {
 	void			*w_first_key;
 	u_int			 w_number;
 	crypto_session_t	 w_sid;
-	boolean_t		 w_active;
+	bool		 w_active;
 	LIST_ENTRY(g_eli_worker) w_next;
 };
 
@@ -212,7 +212,7 @@ struct g_eli_softc {
 #ifndef _KERNEL
 	int		 sc_cpubind;
 #else /* _KERNEL */
-	boolean_t	 sc_cpubind;
+	bool	 sc_cpubind;
 
 	/* Only for software cryptography. */
 	struct bio_queue_head sc_queue;
@@ -689,7 +689,7 @@ int g_eli_read_metadata(struct g_class *mp, struct g_provider *pp,
 struct g_geom *g_eli_create(struct gctl_req *req, struct g_class *mp,
     struct g_provider *bpp, const struct g_eli_metadata *md,
     const u_char *mkey, int nkey);
-int g_eli_destroy(struct g_eli_softc *sc, boolean_t force);
+int g_eli_destroy(struct g_eli_softc *sc, bool force);
 
 int g_eli_access(struct g_provider *pp, int dr, int dw, int de);
 void g_eli_config(struct gctl_req *req, struct g_class *mp, const char *verb);
@@ -701,7 +701,7 @@ int g_eli_crypto_rerun(struct cryptop *crp);
 bool g_eli_alloc_data(struct bio *bp, int sz);
 void g_eli_free_data(struct bio *bp);
 
-void g_eli_crypto_read(struct g_eli_softc *sc, struct bio *bp, boolean_t fromworker);
+void g_eli_crypto_read(struct g_eli_softc *sc, struct bio *bp, bool fromworker);
 void g_eli_crypto_run(struct g_eli_worker *wr, struct bio *bp);
 
 void g_eli_auth_read(struct g_eli_softc *sc, struct bio *bp);

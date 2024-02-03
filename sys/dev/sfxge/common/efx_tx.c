@@ -111,7 +111,7 @@ siena_tx_qdesc_dma_create(
 	__in	efx_txq_t *etp,
 	__in	efsys_dma_addr_t addr,
 	__in	size_t size,
-	__in	boolean_t eop,
+	__in	bool eop,
 	__out	efx_desc_t *edp);
 
 #if EFSYS_OPT_QSTATS
@@ -608,7 +608,7 @@ efx_tx_qdesc_dma_create(
 	__in	efx_txq_t *etp,
 	__in	efsys_dma_addr_t addr,
 	__in	size_t size,
-	__in	boolean_t eop,
+	__in	bool eop,
 	__out	efx_desc_t *edp)
 {
 	efx_nic_t *enp = etp->et_enp;
@@ -753,7 +753,7 @@ siena_tx_init(
 									\
 		EFSYS_PROBE5(tx_post, unsigned int, (_etp)->et_index,	\
 		    unsigned int, id, efsys_dma_addr_t, (_addr),	\
-		    size_t, (_size), boolean_t, (_eop));		\
+		    size_t, (_size), bool, (_eop));		\
 									\
 		EFX_POPULATE_QWORD_4(qword,				\
 		    FSF_AZ_TX_KER_CONT, (_eop) ? 0 : 1,			\
@@ -1054,7 +1054,7 @@ siena_tx_qdesc_dma_create(
 	__in	efx_txq_t *etp,
 	__in	efsys_dma_addr_t addr,
 	__in	size_t size,
-	__in	boolean_t eop,
+	__in	bool eop,
 	__out	efx_desc_t *edp)
 {
 	/*
@@ -1066,7 +1066,7 @@ siena_tx_qdesc_dma_create(
 
 	EFSYS_PROBE4(tx_desc_dma_create, unsigned int, etp->et_index,
 		    efsys_dma_addr_t, addr,
-		    size_t, size, boolean_t, eop);
+		    size_t, size, bool, eop);
 
 	EFX_POPULATE_QWORD_4(edp->ed_eq,
 			    FSF_AZ_TX_KER_CONT, eop ? 0 : 1,

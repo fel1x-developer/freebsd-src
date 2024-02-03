@@ -441,7 +441,7 @@ out:
 }
 
 int
-bcm2835_mbox_set_power_state(uint32_t device_id, boolean_t on)
+bcm2835_mbox_set_power_state(uint32_t device_id, bool on)
 {
 	struct msg_set_power_state msg;
 	int err;

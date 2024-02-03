@@ -450,7 +450,7 @@ ef10_tx_qpost(
 		efx_buffer_t *ebp = &eb[i];
 		efsys_dma_addr_t addr = ebp->eb_addr;
 		size_t size = ebp->eb_size;
-		boolean_t eop = ebp->eb_eop;
+		bool eop = ebp->eb_eop;
 		unsigned int id;
 		size_t offset;
 		efx_qword_t qword;
@@ -464,7 +464,7 @@ ef10_tx_qpost(
 
 		EFSYS_PROBE5(tx_post, unsigned int, etp->et_index,
 		    unsigned int, id, efsys_dma_addr_t, addr,
-		    size_t, size, boolean_t, eop);
+		    size_t, size, bool, eop);
 
 		EFX_POPULATE_QWORD_5(qword,
 		    ESF_DZ_TX_KER_TYPE, 0,
@@ -591,7 +591,7 @@ ef10_tx_qdesc_dma_create(
 	__in	efx_txq_t *etp,
 	__in	efsys_dma_addr_t addr,
 	__in	size_t size,
-	__in	boolean_t eop,
+	__in	bool eop,
 	__out	efx_desc_t *edp)
 {
 	_NOTE(ARGUNUSED(etp))
@@ -601,7 +601,7 @@ ef10_tx_qdesc_dma_create(
 
 	EFSYS_PROBE4(tx_desc_dma_create, unsigned int, etp->et_index,
 		    efsys_dma_addr_t, addr,
-		    size_t, size, boolean_t, eop);
+		    size_t, size, bool, eop);
 
 	EFX_POPULATE_QWORD_5(edp->ed_eq,
 		    ESF_DZ_TX_KER_TYPE, 0,

@@ -151,7 +151,7 @@ void sf_buf_shootdown(struct sf_buf *, int);
 #endif
 
 #ifdef SFBUF_PROCESS_PAGE
-boolean_t sf_buf_process_page(vm_page_t, void (*)(struct sf_buf *));
+bool sf_buf_process_page(vm_page_t, void (*)(struct sf_buf *));
 #endif
 
 #else /* ! SFBUF */

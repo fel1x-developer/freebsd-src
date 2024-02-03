@@ -188,7 +188,7 @@ ef10_mcdi_send_request(
 	EFX_BAR_WRITED(enp, ER_DZ_MC_DB_HWRD_REG, &dword, B_FALSE);
 }
 
-	__checkReturn	boolean_t
+	__checkReturn	bool
 ef10_mcdi_poll_response(
 	__in		efx_nic_t *enp)
 {
@@ -276,7 +276,7 @@ fail1:
 ef10_mcdi_feature_supported(
 	__in		efx_nic_t *enp,
 	__in		efx_mcdi_feature_id_t id,
-	__out		boolean_t *supportedp)
+	__out		bool *supportedp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint32_t privilege_mask = encp->enc_privilege_mask;

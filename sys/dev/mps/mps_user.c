@@ -1993,7 +1993,7 @@ mpssas_record_event(struct mps_softc *sc,
 	uint32_t	event;
 	int		i, j;
 	uint16_t	event_data_len;
-	boolean_t	sendAEN = FALSE;
+	bool	sendAEN = FALSE;
 
 	event = event_reply->Event;
 

@@ -355,8 +355,8 @@ static void	iwm_setrates(struct iwm_softc *, struct iwm_node *, int);
 static int	iwm_newstate(struct ieee80211vap *, enum ieee80211_state, int);
 static void	iwm_endscan_cb(void *, int);
 static int	iwm_send_bt_init_conf(struct iwm_softc *);
-static boolean_t iwm_is_lar_supported(struct iwm_softc *);
-static boolean_t iwm_is_wifi_mcc_supported(struct iwm_softc *);
+static bool iwm_is_lar_supported(struct iwm_softc *);
+static bool iwm_is_wifi_mcc_supported(struct iwm_softc *);
 static int	iwm_send_update_mcc_cmd(struct iwm_softc *, const char *);
 static void	iwm_tt_tx_backoff(struct iwm_softc *, uint32_t);
 static int	iwm_init_hw(struct iwm_softc *);
@@ -3417,7 +3417,7 @@ iwm_rx_tx_cmd_single(struct iwm_softc *sc, struct iwm_rx_packet *pkt,
 	struct ieee80211vap *vap = ni->ni_vap;
 	int status = le16toh(tx_resp->status.status) & IWM_TX_STATUS_MSK;
 	int new_rate, cur_rate = vap->iv_bss->ni_txrate;
-	boolean_t rate_matched;
+	bool rate_matched;
 	uint8_t tx_resp_rate;
 
 	KASSERT(tx_resp->frame_count == 1, ("too many frames"));
@@ -4573,11 +4573,11 @@ iwm_send_bt_init_conf(struct iwm_softc *sc)
 	    &bt_cmd);
 }
 
-static boolean_t
+static bool
 iwm_is_lar_supported(struct iwm_softc *sc)
 {
-	boolean_t nvm_lar = sc->nvm_data->lar_enabled;
-	boolean_t tlv_lar = iwm_fw_has_capa(sc, IWM_UCODE_TLV_CAPA_LAR_SUPPORT);
+	bool nvm_lar = sc->nvm_data->lar_enabled;
+	bool tlv_lar = iwm_fw_has_capa(sc, IWM_UCODE_TLV_CAPA_LAR_SUPPORT);
 
 	if (iwm_lar_disable)
 		return FALSE;
@@ -4592,7 +4592,7 @@ iwm_is_lar_supported(struct iwm_softc *sc)
 		return tlv_lar;
 }
 
-static boolean_t
+static bool
 iwm_is_wifi_mcc_supported(struct iwm_softc *sc)
 {
 	return iwm_fw_has_api(sc, IWM_UCODE_TLV_API_WIFI_MCC_UPDATE) ||
@@ -5253,7 +5253,7 @@ iwm_handle_rxb(struct iwm_softc *sc, struct mbuf *m)
 	uint32_t offset = 0;
 	uint32_t maxoff = IWM_RBUF_SIZE;
 	uint32_t nextoff;
-	boolean_t stolen = FALSE;
+	bool stolen = FALSE;
 
 #define HAVEROOM(a)	\
     ((a) + sizeof(uint32_t) + sizeof(struct iwm_cmd_header) < maxoff)

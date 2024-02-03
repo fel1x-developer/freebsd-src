@@ -375,7 +375,7 @@ extern bool dumped_core;	/* system successfully dumped kernel core */
 	dumptid = curthread->td_tid;	\
 } while (0)
 
-int doadump(boolean_t);
+int doadump(bool);
 struct diocskerneldump_arg;
 int dumper_create(const struct dumperinfo *di_template, const char *devname,
     const struct diocskerneldump_arg *kda, struct dumperinfo **dip);

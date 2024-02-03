@@ -58,7 +58,7 @@ siena_rx_scale_mode_set(
 	__in		uint32_t rss_context,
 	__in		efx_rx_hash_alg_t alg,
 	__in		efx_rx_hash_type_t type,
-	__in		boolean_t insert);
+	__in		bool insert);
 
 static	__checkReturn	efx_rc_t
 siena_rx_scale_key_set(
@@ -554,7 +554,7 @@ efx_rx_scale_mode_set(
 	__in		uint32_t rss_context,
 	__in		efx_rx_hash_alg_t alg,
 	__in		efx_rx_hash_type_t type,
-	__in		boolean_t insert)
+	__in		bool insert)
 {
 	efx_nic_cfg_t *encp = &enp->en_nic_cfg;
 	const efx_rx_ops_t *erxop = enp->en_erxop;
@@ -1142,7 +1142,7 @@ siena_rx_scale_mode_set(
 	__in		uint32_t rss_context,
 	__in		efx_rx_hash_alg_t alg,
 	__in		efx_rx_hash_type_t type,
-	__in		boolean_t insert)
+	__in		bool insert)
 {
 	efx_rc_t rc;
 
@@ -1599,7 +1599,7 @@ siena_rx_qcreate(
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_oword_t oword;
 	uint32_t size;
-	boolean_t jumbo = B_FALSE;
+	bool jumbo = B_FALSE;
 	efx_rc_t rc;
 
 	_NOTE(ARGUNUSED(esmp))

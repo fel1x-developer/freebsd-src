@@ -2844,7 +2844,7 @@ vn_mmap(struct file *fp, vm_map_t map, vm_offset_t *addr, vm_size_t size,
 	struct vnode *vp;
 	vm_object_t object;
 	vm_prot_t maxprot;
-	boolean_t writecounted;
+	bool writecounted;
 	int error;
 
 #if defined(COMPAT_FREEBSD7) || defined(COMPAT_FREEBSD6) || \

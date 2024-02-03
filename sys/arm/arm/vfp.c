@@ -333,7 +333,7 @@ vfp_restore(struct vfp_state *vfpsave)
  * responsible for preventing a context switch while this is running.
  */
 void
-vfp_store(struct vfp_state *vfpsave, boolean_t disable_vfp)
+vfp_store(struct vfp_state *vfpsave, bool disable_vfp)
 {
 	uint32_t fpexc;
 

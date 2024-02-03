@@ -643,7 +643,7 @@ sf_buf_invalidate(struct sf_buf *sf)
  * (possibly old) mapping of the page by sf buffer exists.  Returns
  * TRUE when mapping was found and cache invalidated.
  */
-boolean_t
+bool
 sf_buf_invalidate_cache(vm_page_t m)
 {
 

@@ -191,7 +191,7 @@ vmbus_rxbr_setup(struct vmbus_rxbr *rbr, void *buf, int blen)
 	vmbus_br_setup(&rbr->rxbr, buf, blen);
 }
 
-static __inline boolean_t
+static __inline bool
 vmbus_rxbr_need_signal(const struct vmbus_rxbr *rbr, uint32_t bytes_read)
 {
 	uint32_t pending_snd_sz, canwrite_size;
@@ -273,7 +273,7 @@ vmbus_txbr_set_pending_snd_sz(struct vmbus_txbr *tbr, uint32_t size)
  *   empty, it will clear the br_imask and re-check to see if new
  *   data have arrived.
  */
-static __inline boolean_t
+static __inline bool
 vmbus_txbr_need_signal(const struct vmbus_txbr *tbr, uint32_t old_windex)
 {
 	mb();
@@ -363,7 +363,7 @@ int
 vmbus_txbr_write_call(struct vmbus_txbr *tbr,
     const struct iovec iov[], int iovlen,
     vmbus_br_copy_callback_t cb, void *cbarg,
-    boolean_t *need_sig)
+    bool *need_sig)
 {
 	uint32_t old_windex, windex, total;
 	uint64_t save_windex;
@@ -442,7 +442,7 @@ vmbus_txbr_write_call(struct vmbus_txbr *tbr,
  */
 int
 vmbus_txbr_write(struct vmbus_txbr *tbr, const struct iovec iov[], int iovlen,
-    boolean_t *need_sig)
+    bool *need_sig)
 {
 	uint32_t old_windex, windex, total;
 	uint64_t save_windex;
@@ -599,7 +599,7 @@ vmbus_rxbr_peek_call(struct vmbus_rxbr *rbr, int dlen, uint32_t skip,
  */
 int
 vmbus_rxbr_idxadv_peek(struct vmbus_rxbr *rbr, void *data, int dlen,
-    uint32_t idx_adv, boolean_t *need_sig)
+    uint32_t idx_adv, bool *need_sig)
 {
 	uint32_t rindex, br_dsize = rbr->rxbr_dsize;
 
@@ -646,7 +646,7 @@ vmbus_rxbr_idxadv_peek(struct vmbus_rxbr *rbr, void *data, int dlen,
  */
 int
 vmbus_rxbr_idxadv(struct vmbus_rxbr *rbr, uint32_t idx_adv,
-    boolean_t *need_sig)
+    bool *need_sig)
 {
 	uint32_t rindex, br_dsize = rbr->rxbr_dsize;
 
@@ -684,7 +684,7 @@ vmbus_rxbr_idxadv(struct vmbus_rxbr *rbr, uint32_t idx_adv,
  */
 int
 vmbus_rxbr_read(struct vmbus_rxbr *rbr, void *data, int dlen, uint32_t skip,
-    boolean_t *need_sig)
+    bool *need_sig)
 {
 	uint32_t rindex, br_dsize = rbr->rxbr_dsize;
 

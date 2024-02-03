@@ -58,7 +58,7 @@ efx_lic_v1v2_find_end(
 	__in			uint32_t offset,
 	__out			uint32_t *endp);
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_v1v2_find_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(buffer_size)
@@ -68,7 +68,7 @@ efx_lic_v1v2_find_key(
 	__out			uint32_t *startp,
 	__out			uint32_t *lengthp);
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_v1v2_validate_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(length)	caddr_t keyp,
@@ -169,7 +169,7 @@ static	__checkReturn	efx_rc_t
 efx_mcdi_licensed_app_state(
 	__in		efx_nic_t *enp,
 	__in		uint64_t app_id,
-	__out		boolean_t *licensedp);
+	__out		bool *licensedp);
 
 static const efx_lic_ops_t	__efx_lic_v2_ops = {
 	efx_mcdi_licensing_update_licenses,	/* elo_update_licenses */
@@ -204,7 +204,7 @@ static	__checkReturn	efx_rc_t
 efx_mcdi_licensing_v3_app_state(
 	__in		efx_nic_t *enp,
 	__in		uint64_t app_id,
-	__out		boolean_t *licensedp);
+	__out		bool *licensedp);
 
 static	__checkReturn	efx_rc_t
 efx_mcdi_licensing_v3_get_id(
@@ -232,7 +232,7 @@ efx_lic_v3_find_end(
 	__in			uint32_t offset,
 	__out			uint32_t *endp);
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_v3_find_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(buffer_size)
@@ -242,7 +242,7 @@ efx_lic_v3_find_key(
 	__out			uint32_t *startp,
 	__out			uint32_t *lengthp);
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_v3_validate_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(length)	caddr_t keyp,
@@ -466,7 +466,7 @@ efx_lic_v1v2_find_end(
 	return (0);
 }
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_v1v2_find_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(buffer_size)
@@ -476,7 +476,7 @@ efx_lic_v1v2_find_key(
 	__out			uint32_t *startp,
 	__out			uint32_t *lengthp)
 {
-	boolean_t found;
+	bool found;
 	uint16_t tlv_type;
 	uint16_t tlv_length;
 
@@ -498,12 +498,12 @@ efx_lic_v1v2_find_key(
 	return (found);
 
 fail1:
-	EFSYS_PROBE1(fail1, boolean_t, B_FALSE);
+	EFSYS_PROBE1(fail1, bool, B_FALSE);
 
 	return (B_FALSE);
 }
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_v1v2_validate_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(length)	caddr_t keyp,
@@ -540,7 +540,7 @@ fail3:
 fail2:
 	EFSYS_PROBE(fail2);
 fail1:
-	EFSYS_PROBE1(fail1, boolean_t, B_FALSE);
+	EFSYS_PROBE1(fail1, bool, B_FALSE);
 
 	return (B_FALSE);
 }
@@ -678,7 +678,7 @@ static	__checkReturn	efx_rc_t
 efx_mcdi_licensed_app_state(
 	__in		efx_nic_t *enp,
 	__in		uint64_t app_id,
-	__out		boolean_t *licensedp)
+	__out		bool *licensedp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_LICENSED_APP_STATE_IN_LEN,
@@ -940,7 +940,7 @@ static	__checkReturn	efx_rc_t
 efx_mcdi_licensing_v3_app_state(
 	__in		efx_nic_t *enp,
 	__in		uint64_t app_id,
-	__out		boolean_t *licensedp)
+	__out		bool *licensedp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_LICENSED_V3_APP_STATE_IN_LEN,
@@ -1076,7 +1076,7 @@ efx_lic_v3_find_end(
 	return (ef10_nvram_buffer_find_end(bufferp, buffer_size, offset, endp));
 }
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_v3_find_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(buffer_size)
@@ -1092,7 +1092,7 @@ efx_lic_v3_find_key(
 	    offset, startp, lengthp);
 }
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_v3_validate_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(length)	caddr_t keyp,
@@ -1130,7 +1130,7 @@ fail3:
 fail2:
 	EFSYS_PROBE(fail2);
 fail1:
-	EFSYS_PROBE1(fail1, boolean_t, B_FALSE);
+	EFSYS_PROBE1(fail1, bool, B_FALSE);
 
 	return (B_FALSE);
 }
@@ -1327,7 +1327,7 @@ fail1:
 	return (rc);
 }
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 efx_lic_check_support(
 	__in			efx_nic_t *enp)
 {
@@ -1397,7 +1397,7 @@ fail1:
 efx_lic_app_state(
 	__in		efx_nic_t *enp,
 	__in		uint64_t app_id,
-	__out		boolean_t *licensedp)
+	__out		bool *licensedp)
 {
 	const efx_lic_ops_t *elop = enp->en_elop;
 	efx_rc_t rc;
@@ -1505,7 +1505,7 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_find_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(buffer_size)
@@ -1532,14 +1532,14 @@ efx_lic_find_key(
  * Validate that the buffer contains a single key in a recognised format.
  * An empty or terminator buffer is not accepted as a valid key.
  */
-	__checkReturn	__success(return != B_FALSE)	boolean_t
+	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_validate_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(length)	caddr_t keyp,
 	__in			uint32_t length)
 {
 	const efx_lic_ops_t *elop = enp->en_elop;
-	boolean_t rc;
+	bool rc;
 
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
 	EFSYS_ASSERT3U(enp->en_mod_flags, &, EFX_MOD_LIC);

@@ -187,7 +187,7 @@ pqisrc_set_btl(pqi_scsi_dev_t *device, int bus, int target, int lun)
 
 /* Add all exposed physical devices, logical devices, controller devices, PT RAID
 *  devices and multi-lun devices */
-boolean_t
+bool
 pqisrc_add_softs_entry(pqisrc_softstate_t *softs, pqi_scsi_dev_t *device,
 						uint8_t *scsi3addr)
 {
@@ -807,13 +807,13 @@ pqisrc_get_phys_log_device_list(pqisrc_softstate_t *softs,
 	return ret;
 }
 
-inline boolean_t
+inline bool
 pqisrc_is_external_raid_device(pqi_scsi_dev_t *device)
 {
 	return device->is_external_raid_device;
 }
 
-static inline boolean_t
+static inline bool
 pqisrc_is_external_raid_addr(uint8_t *scsi3addr)
 {
 	return scsi3addr[2] != 0;
@@ -2012,7 +2012,7 @@ pqisrc_get_device_vpd_info(pqisrc_softstate_t *softs,
 int
 pqisrc_scan_devices(pqisrc_softstate_t *softs)
 {
-	boolean_t is_physical_device;
+	bool is_physical_device;
 	int ret;
 	int i;
 	int new_dev_cnt;

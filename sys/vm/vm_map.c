@@ -127,7 +127,7 @@ static uma_zone_t vmspace_zone;
 static int vmspace_zinit(void *mem, int size, int flags);
 static void _vm_map_init(vm_map_t map, pmap_t pmap, vm_offset_t min,
     vm_offset_t max);
-static void vm_map_entry_deallocate(vm_map_entry_t entry, boolean_t system_map);
+static void vm_map_entry_deallocate(vm_map_entry_t entry, bool system_map);
 static void vm_map_entry_dispose(vm_map_t map, vm_map_entry_t entry);
 static void vm_map_entry_unwire(vm_map_t map, vm_map_entry_t entry);
 static int vm_map_growstack(vm_map_t map, vm_offset_t addr,
@@ -1529,14 +1529,14 @@ vm_map_entry_resize(vm_map_t map, vm_map_entry_t entry, vm_size_t grow_amount)
  *	result indicates whether the address is
  *	actually contained in the map.
  */
-boolean_t
+bool
 vm_map_lookup_entry(
 	vm_map_t map,
 	vm_offset_t address,
 	vm_map_entry_t *entry)	/* OUT */
 {
 	vm_map_entry_t cur, header, lbound, ubound;
-	boolean_t locked;
+	bool locked;
 
 	/*
 	 * If the map is empty, then the map entry immediately preceding
@@ -3757,8 +3757,8 @@ vm_map_sync(
 	vm_map_t map,
 	vm_offset_t start,
 	vm_offset_t end,
-	boolean_t syncio,
-	boolean_t invalidate)
+	bool syncio,
+	bool invalidate)
 {
 	vm_map_entry_t entry, first_entry, next_entry;
 	vm_size_t size;
@@ -3766,7 +3766,7 @@ vm_map_sync(
 	vm_ooffset_t offset;
 	unsigned int last_timestamp;
 	int bdry_idx;
-	boolean_t failed;
+	bool failed;
 
 	vm_map_lock_read(map);
 	VM_MAP_RANGE_CHECK(map, start, end);
@@ -3876,7 +3876,7 @@ vm_map_entry_unwire(vm_map_t map, vm_map_entry_t entry)
 }
 
 static void
-vm_map_entry_deallocate(vm_map_entry_t entry, boolean_t system_map)
+vm_map_entry_deallocate(vm_map_entry_t entry, bool system_map)
 {
 
 	if ((entry->eflags & MAP_ENTRY_IS_SUB_MAP) == 0)
@@ -4087,7 +4087,7 @@ vm_map_remove(vm_map_t map, vm_offset_t start, vm_offset_t end)
  *
  *	The map must be locked.  A read lock is sufficient.
  */
-boolean_t
+bool
 vm_map_check_protection(vm_map_t map, vm_offset_t start, vm_offset_t end,
 			vm_prot_t protection)
 {
@@ -5009,7 +5009,7 @@ vm_map_lookup(vm_map_t *var_map,		/* IN/OUT */
 	      vm_object_t *object,		/* OUT */
 	      vm_pindex_t *pindex,		/* OUT */
 	      vm_prot_t *out_prot,		/* OUT */
-	      boolean_t *wired)			/* OUT */
+	      bool *wired)			/* OUT */
 {
 	vm_map_entry_t entry;
 	vm_map_t map = *var_map;
@@ -5180,7 +5180,7 @@ vm_map_lookup_locked(vm_map_t *var_map,		/* IN/OUT */
 		     vm_object_t *object,	/* OUT */
 		     vm_pindex_t *pindex,	/* OUT */
 		     vm_prot_t *out_prot,	/* OUT */
-		     boolean_t *wired)		/* OUT */
+		     bool *wired)		/* OUT */
 {
 	vm_map_entry_t entry;
 	vm_map_t map = *var_map;

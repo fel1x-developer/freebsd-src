@@ -180,7 +180,7 @@ static uint32_t dev_mask = 0;
 static int cpu_wins_no = 0;
 static int eth_port = 0;
 static int usb_port = 0;
-static boolean_t platform_io_coherent = false;
+static bool platform_io_coherent = false;
 
 static struct decode_win cpu_win_tbl[MAX_CPU_WIN];
 

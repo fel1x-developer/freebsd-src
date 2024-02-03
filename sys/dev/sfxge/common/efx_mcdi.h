@@ -52,7 +52,7 @@ extern "C" {
 #define	EFX_MCDI_STATUS_SLEEP_US	10000
 
 struct efx_mcdi_req_s {
-	boolean_t	emr_quiet;
+	bool	emr_quiet;
 	/* Inputs: Command #, input buffer and length */
 	unsigned int	emr_cmd;
 	uint8_t		*emr_in_buf;
@@ -75,8 +75,8 @@ typedef struct efx_mcdi_iface_s {
 	unsigned int		emi_max_version;
 	unsigned int		emi_seq;
 	efx_mcdi_req_t		*emi_pending_req;
-	boolean_t		emi_ev_cpl;
-	boolean_t		emi_new_epoch;
+	bool		emi_ev_cpl;
+	bool		emi_new_epoch;
 	int			emi_aborted;
 	uint32_t		emi_poll_cnt;
 	uint32_t		emi_mc_reboot_status;
@@ -161,7 +161,7 @@ efx_mcdi_exit_assertion_handler(
 extern	__checkReturn		efx_rc_t
 efx_mcdi_drv_attach(
 	__in			efx_nic_t *enp,
-	__in			boolean_t attach);
+	__in			bool attach);
 
 extern	__checkReturn		efx_rc_t
 efx_mcdi_get_board_cfg(
@@ -177,22 +177,22 @@ efx_mcdi_get_phy_cfg(
 extern	__checkReturn		efx_rc_t
 efx_mcdi_firmware_update_supported(
 	__in			efx_nic_t *enp,
-	__out			boolean_t *supportedp);
+	__out			bool *supportedp);
 
 extern	__checkReturn		efx_rc_t
 efx_mcdi_macaddr_change_supported(
 	__in			efx_nic_t *enp,
-	__out			boolean_t *supportedp);
+	__out			bool *supportedp);
 
 extern	__checkReturn		efx_rc_t
 efx_mcdi_link_control_supported(
 	__in			efx_nic_t *enp,
-	__out			boolean_t *supportedp);
+	__out			bool *supportedp);
 
 extern	__checkReturn		efx_rc_t
 efx_mcdi_mac_spoofing_supported(
 	__in			efx_nic_t *enp,
-	__out			boolean_t *supportedp);
+	__out			bool *supportedp);
 
 #if EFSYS_OPT_BIST
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
@@ -231,7 +231,7 @@ efx_mcdi_mac_stats_periodic(
 	__in		efx_nic_t *enp,
 	__in		efsys_mem_t *esmp,
 	__in		uint16_t period_ms,
-	__in		boolean_t events);
+	__in		bool events);
 
 #if EFSYS_OPT_LOOPBACK
 extern	__checkReturn	efx_rc_t

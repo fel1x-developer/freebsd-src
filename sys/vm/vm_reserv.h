@@ -52,7 +52,7 @@ vm_page_t	vm_reserv_alloc_contig(vm_object_t object, vm_pindex_t pindex,
 vm_page_t	vm_reserv_alloc_page(vm_object_t object, vm_pindex_t pindex,
 		    int domain, int req, vm_page_t mpred);
 void		vm_reserv_break_all(vm_object_t object);
-boolean_t	vm_reserv_free_page(vm_page_t m);
+bool	vm_reserv_free_page(vm_page_t m);
 void		vm_reserv_init(void);
 bool		vm_reserv_is_page_free(vm_page_t m);
 int		vm_reserv_level(vm_page_t m);

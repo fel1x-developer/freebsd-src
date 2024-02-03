@@ -1998,7 +1998,7 @@ oce_get_profile_config(POCE_SOFTC sc, uint32_t max_rss)
 	uint32_t desc_count = 0;
 	struct oce_nic_resc_desc *nic_desc = NULL;
 	int i;
-	boolean_t nic_desc_valid = FALSE;
+	bool nic_desc_valid = FALSE;
 
 	if (IS_BE2(sc))
 		return -1;
@@ -2096,7 +2096,7 @@ oce_get_func_config(POCE_SOFTC sc)
 	uint32_t desc_count = 0;
 	struct oce_nic_resc_desc *nic_desc = NULL;
 	int i;
-	boolean_t nic_desc_valid = FALSE;
+	bool nic_desc_valid = FALSE;
 	uint32_t max_rss = 0;
 
 	if ((IS_BE(sc) || IS_SH(sc)) && (!sc->be3_native))

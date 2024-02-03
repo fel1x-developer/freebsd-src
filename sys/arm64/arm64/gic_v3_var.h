@@ -77,7 +77,7 @@ struct gic_v3_softc {
 	u_int			gic_nirqs;
 	u_int			gic_idbits;
 
-	boolean_t		gic_registered;
+	bool		gic_registered;
 
 	int			gic_nchildren;
 	device_t		*gic_children;

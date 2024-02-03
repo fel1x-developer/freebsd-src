@@ -255,7 +255,7 @@ struct mtx_padalign vm_reserv_object_mtx[VM_RESERV_OBJ_LOCK_COUNT];
 static void		vm_reserv_break(vm_reserv_t rv);
 static void		vm_reserv_depopulate(vm_reserv_t rv, int index);
 static vm_reserv_t	vm_reserv_from_page(vm_page_t m);
-static boolean_t	vm_reserv_has_pindex(vm_reserv_t rv,
+static bool	vm_reserv_has_pindex(vm_reserv_t rv,
 			    vm_pindex_t pindex);
 static void		vm_reserv_populate(vm_reserv_t rv, int index);
 static void		vm_reserv_reclaim(vm_reserv_t rv);
@@ -497,7 +497,7 @@ found:
  * Returns TRUE if the given reservation contains the given page index and
  * FALSE otherwise.
  */
-static __inline boolean_t
+static __inline bool
 vm_reserv_has_pindex(vm_reserv_t rv, vm_pindex_t pindex)
 {
 
@@ -956,11 +956,11 @@ vm_reserv_break_all(vm_object_t object)
  * Frees the given page if it belongs to a reservation.  Returns TRUE if the
  * page is freed and FALSE otherwise.
  */
-boolean_t
+bool
 vm_reserv_free_page(vm_page_t m)
 {
 	vm_reserv_t rv;
-	boolean_t ret;
+	bool ret;
 
 	rv = vm_reserv_from_page(m);
 	if (rv->object == NULL)

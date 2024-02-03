@@ -188,7 +188,7 @@ extern	__checkReturn	efx_rc_t
 efx_nic_reset(
 	__in		efx_nic_t *enp);
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 efx_nic_hw_unavailable(
 	__in		efx_nic_t *enp);
 
@@ -300,13 +300,13 @@ extern			void
 efx_mcdi_request_start(
 	__in		efx_nic_t *enp,
 	__in		efx_mcdi_req_t *emrp,
-	__in		boolean_t ev_cpl);
+	__in		bool ev_cpl);
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 efx_mcdi_request_poll(
 	__in		efx_nic_t *enp);
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 efx_mcdi_request_abort(
 	__in		efx_nic_t *enp);
 
@@ -357,14 +357,14 @@ efx_intr_trigger(
 extern			void
 efx_intr_status_line(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
+	__out		bool *fatalp,
 	__out		uint32_t *maskp);
 
 extern			void
 efx_intr_status_message(
 	__in		efx_nic_t *enp,
 	__in		unsigned int message,
-	__out		boolean_t *fatalp);
+	__out		bool *fatalp);
 
 extern			void
 efx_intr_fatal(
@@ -556,10 +556,10 @@ efx_mac_addr_set(
 extern	__checkReturn			efx_rc_t
 efx_mac_filter_set(
 	__in				efx_nic_t *enp,
-	__in				boolean_t all_unicst,
-	__in				boolean_t mulcst,
-	__in				boolean_t all_mulcst,
-	__in				boolean_t brdcst);
+	__in				bool all_unicst,
+	__in				bool mulcst,
+	__in				bool all_mulcst,
+	__in				bool brdcst);
 
 extern	__checkReturn	efx_rc_t
 efx_mac_multicast_list_set(
@@ -571,7 +571,7 @@ extern	__checkReturn	efx_rc_t
 efx_mac_filter_default_rxq_set(
 	__in		efx_nic_t *enp,
 	__in		efx_rxq_t *erp,
-	__in		boolean_t using_rss);
+	__in		bool using_rss);
 
 extern			void
 efx_mac_filter_default_rxq_clear(
@@ -580,12 +580,12 @@ efx_mac_filter_default_rxq_clear(
 extern	__checkReturn	efx_rc_t
 efx_mac_drain(
 	__in		efx_nic_t *enp,
-	__in		boolean_t enabled);
+	__in		bool enabled);
 
 extern	__checkReturn	efx_rc_t
 efx_mac_up(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *mac_upp);
+	__out		bool *mac_upp);
 
 #define	EFX_FCNTL_RESPOND	0x00000001
 #define	EFX_FCNTL_GENERATE	0x00000002
@@ -594,7 +594,7 @@ extern	__checkReturn	efx_rc_t
 efx_mac_fcntl_set(
 	__in		efx_nic_t *enp,
 	__in		unsigned int fcntl,
-	__in		boolean_t autoneg);
+	__in		bool autoneg);
 
 extern			void
 efx_mac_fcntl_get(
@@ -664,7 +664,7 @@ efx_mac_stats_periodic(
 	__in				efx_nic_t *enp,
 	__in				efsys_mem_t *esmp,
 	__in				uint16_t period_ms,
-	__in				boolean_t events);
+	__in				bool events);
 
 extern	__checkReturn			efx_rc_t
 efx_mac_stats_update(
@@ -845,17 +845,17 @@ efx_mon_stat_description(
 
 #endif	/* EFSYS_OPT_NAMES */
 
-extern	__checkReturn			boolean_t
+extern	__checkReturn			bool
 efx_mon_mcdi_to_efx_stat(
 	__in				int mcdi_index,
 	__out				efx_mon_stat_t *statp);
 
-extern	__checkReturn			boolean_t
+extern	__checkReturn			bool
 efx_mon_get_stat_unit(
 	__in				efx_mon_stat_t stat,
 	__out				efx_mon_stat_unit_t *unitp);
 
-extern	__checkReturn			boolean_t
+extern	__checkReturn			bool
 efx_mon_get_stat_portmap(
 	__in				efx_mon_stat_t stat,
 	__out				efx_mon_stat_portmask_t *maskp);
@@ -1322,8 +1322,8 @@ typedef struct efx_nic_cfg_s {
 	 * Indicates whether port numbers can be included to the
 	 * input data for hash computation.
 	 */
-	boolean_t		enc_rx_scale_l4_hash_supported;
-	boolean_t		enc_rx_scale_additional_modes_supported;
+	bool		enc_rx_scale_l4_hash_supported;
+	bool		enc_rx_scale_additional_modes_supported;
 #endif /* EFSYS_OPT_RX_SCALE */
 #if EFSYS_OPT_LOOPBACK
 	efx_qword_t		enc_loopback_types[EFX_LINK_NMODES];
@@ -1355,12 +1355,12 @@ typedef struct efx_nic_cfg_s {
 	uint32_t		enc_vf;
 	uint32_t		enc_privilege_mask;
 #endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
-	boolean_t		enc_bug26807_workaround;
-	boolean_t		enc_bug35388_workaround;
-	boolean_t		enc_bug41750_workaround;
-	boolean_t		enc_bug61265_workaround;
-	boolean_t		enc_bug61297_workaround;
-	boolean_t		enc_rx_batching_enabled;
+	bool		enc_bug26807_workaround;
+	bool		enc_bug35388_workaround;
+	bool		enc_bug41750_workaround;
+	bool		enc_bug61265_workaround;
+	bool		enc_bug61297_workaround;
+	bool		enc_rx_batching_enabled;
 	/* Maximum number of descriptors completed in an rx event. */
 	uint32_t		enc_rx_batch_max;
 	/* Number of rx descriptors the hardware requires for a push. */
@@ -1377,26 +1377,26 @@ typedef struct efx_nic_cfg_s {
 	 * the hardware to apply TSO packet edits.
 	 */
 	uint32_t		enc_tx_tso_tcp_header_offset_limit;
-	boolean_t		enc_fw_assisted_tso_enabled;
-	boolean_t		enc_fw_assisted_tso_v2_enabled;
-	boolean_t		enc_fw_assisted_tso_v2_encap_enabled;
+	bool		enc_fw_assisted_tso_enabled;
+	bool		enc_fw_assisted_tso_v2_enabled;
+	bool		enc_fw_assisted_tso_v2_encap_enabled;
 	/* Number of TSO contexts on the NIC (FATSOv2) */
 	uint32_t		enc_fw_assisted_tso_v2_n_contexts;
-	boolean_t		enc_hw_tx_insert_vlan_enabled;
+	bool		enc_hw_tx_insert_vlan_enabled;
 	/* Number of PFs on the NIC */
 	uint32_t		enc_hw_pf_count;
 	/* Datapath firmware vadapter/vport/vswitch support */
-	boolean_t		enc_datapath_cap_evb;
-	boolean_t		enc_rx_disable_scatter_supported;
-	boolean_t		enc_allow_set_mac_with_installed_filters;
-	boolean_t		enc_enhanced_set_mac_supported;
-	boolean_t		enc_init_evq_v2_supported;
-	boolean_t		enc_rx_packed_stream_supported;
-	boolean_t		enc_rx_var_packed_stream_supported;
-	boolean_t		enc_rx_es_super_buffer_supported;
-	boolean_t		enc_fw_subvariant_no_tx_csum_supported;
-	boolean_t		enc_pm_and_rxdp_counters;
-	boolean_t		enc_mac_stats_40g_tx_size_bins;
+	bool		enc_datapath_cap_evb;
+	bool		enc_rx_disable_scatter_supported;
+	bool		enc_allow_set_mac_with_installed_filters;
+	bool		enc_enhanced_set_mac_supported;
+	bool		enc_init_evq_v2_supported;
+	bool		enc_rx_packed_stream_supported;
+	bool		enc_rx_var_packed_stream_supported;
+	bool		enc_rx_es_super_buffer_supported;
+	bool		enc_fw_subvariant_no_tx_csum_supported;
+	bool		enc_pm_and_rxdp_counters;
+	bool		enc_mac_stats_40g_tx_size_bins;
 	uint32_t		enc_tunnel_encapsulations_supported;
 	/*
 	 * NIC global maximum for unique UDP tunnel ports shared by all
@@ -1407,7 +1407,7 @@ typedef struct efx_nic_cfg_s {
 	uint8_t			enc_external_port;
 	uint32_t		enc_mcdi_max_payload_length;
 	/* VPD may be per-PF or global */
-	boolean_t		enc_vpd_is_global;
+	bool		enc_vpd_is_global;
 	/* Minimum unidirectional bandwidth in Mb/s to max out all ports */
 	uint32_t		enc_required_pcie_bandwidth_mbps;
 	uint32_t		enc_max_pcie_link_gen;
@@ -1415,11 +1415,11 @@ typedef struct efx_nic_cfg_s {
 	uint32_t		enc_nvram_update_verify_result_supported;
 	/* Firmware support for extended MAC_STATS buffer */
 	uint32_t		enc_mac_stats_nstats;
-	boolean_t		enc_fec_counters;
-	boolean_t		enc_hlb_counters;
+	bool		enc_fec_counters;
+	bool		enc_hlb_counters;
 	/* Firmware support for "FLAG" and "MARK" filter actions */
-	boolean_t		enc_filter_action_flag_supported;
-	boolean_t		enc_filter_action_mark_supported;
+	bool		enc_filter_action_flag_supported;
+	bool		enc_filter_action_mark_supported;
 	uint32_t		enc_filter_action_mark_max;
 } efx_nic_cfg_t;
 
@@ -1449,7 +1449,7 @@ typedef struct efx_nic_fw_info_s {
 	 * If datapath capabilities can be detected,
 	 * additional FW information is to be shown
 	 */
-	boolean_t	enfi_dpcpu_fw_ids_valid;
+	bool	enfi_dpcpu_fw_ids_valid;
 	/* Rx and Tx datapath CPU FW IDs */
 	uint16_t	enfi_rx_dpcpu_fw_id;
 	uint16_t	enfi_tx_dpcpu_fw_id;
@@ -1714,7 +1714,7 @@ efx_bootcfg_copy_sector(
 	__in			size_t sector_length,
 	__out_bcount(data_size)	uint8_t *data,
 	__in			size_t data_size,
-	__in			boolean_t handle_format_errors);
+	__in			bool handle_format_errors);
 
 extern				efx_rc_t
 efx_bootcfg_read(
@@ -1909,7 +1909,7 @@ typedef enum efx_pattern_type_t {
 typedef			void
 (*efx_sram_pattern_fn_t)(
 	__in		size_t row,
-	__in		boolean_t negate,
+	__in		bool negate,
 	__out		efx_qword_t *eqp);
 
 extern	__checkReturn	efx_rc_t
@@ -2027,7 +2027,7 @@ efx_ev_qpost(
 	__in		efx_evq_t *eep,
 	__in		uint16_t data);
 
-typedef __checkReturn	boolean_t
+typedef __checkReturn	bool
 (*efx_initialized_ev_t)(
 	__in_opt	void *arg);
 
@@ -2061,7 +2061,7 @@ typedef __checkReturn	boolean_t
 #define	EFX_EV_RX_NLABELS	32
 #define	EFX_EV_TX_NLABELS	32
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_rx_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t label,
@@ -2088,7 +2088,7 @@ typedef	__checkReturn	boolean_t
  * from upper layers point of view.
  */
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_rx_ps_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t label,
@@ -2098,7 +2098,7 @@ typedef	__checkReturn	boolean_t
 
 #endif
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_tx_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t label,
@@ -2114,33 +2114,33 @@ typedef	__checkReturn	boolean_t
 #define	EFX_EXCEPTION_TX_ERROR		0x00000008
 #define	EFX_EXCEPTION_EV_ERROR		0x00000009
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_exception_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t label,
 	__in		uint32_t data);
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_rxq_flush_done_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t rxq_index);
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_rxq_flush_failed_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t rxq_index);
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_txq_flush_done_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t txq_index);
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_software_ev_t)(
 	__in_opt	void *arg,
 	__in		uint16_t magic);
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_sram_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t code);
@@ -2149,24 +2149,24 @@ typedef	__checkReturn	boolean_t
 #define	EFX_SRAM_UPDATE		1
 #define	EFX_SRAM_ILLEGAL_CLEAR	2
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_wake_up_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t label);
 
-typedef	__checkReturn	boolean_t
+typedef	__checkReturn	bool
 (*efx_timer_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t label);
 
-typedef __checkReturn	boolean_t
+typedef __checkReturn	bool
 (*efx_link_change_ev_t)(
 	__in_opt	void *arg,
 	__in		efx_link_mode_t	link_mode);
 
 #if EFSYS_OPT_MON_STATS
 
-typedef __checkReturn	boolean_t
+typedef __checkReturn	bool
 (*efx_monitor_ev_t)(
 	__in_opt	void *arg,
 	__in		efx_mon_stat_t id,
@@ -2176,7 +2176,7 @@ typedef __checkReturn	boolean_t
 
 #if EFSYS_OPT_MAC_STATS
 
-typedef __checkReturn	boolean_t
+typedef __checkReturn	bool
 (*efx_mac_stats_ev_t)(
 	__in_opt	void *arg,
 	__in		uint32_t generation);
@@ -2207,7 +2207,7 @@ typedef struct efx_ev_callbacks_s {
 #endif	/* EFSYS_OPT_MAC_STATS */
 } efx_ev_callbacks_t;
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 efx_ev_qpending(
 	__in		efx_evq_t *eep,
 	__in		unsigned int count);
@@ -2452,7 +2452,7 @@ efx_rx_scale_mode_set(
 	__in	uint32_t rss_context,
 	__in	efx_rx_hash_alg_t alg,
 	__in	efx_rx_hash_type_t type,
-	__in	boolean_t insert);
+	__in	bool insert);
 
 extern	__checkReturn	efx_rc_t
 efx_rx_scale_tbl_set(
@@ -2572,7 +2572,7 @@ efx_rx_qcreate_es_super_buffer(
 typedef struct efx_buffer_s {
 	efsys_dma_addr_t	eb_addr;
 	size_t			eb_size;
-	boolean_t		eb_eop;
+	bool		eb_eop;
 } efx_buffer_t;
 
 typedef struct efx_desc_s {
@@ -2737,7 +2737,7 @@ efx_tx_qdesc_dma_create(
 	__in	efx_txq_t *etp,
 	__in	efsys_dma_addr_t addr,
 	__in	size_t size,
-	__in	boolean_t eop,
+	__in	bool eop,
 	__out	efx_desc_t *edp);
 
 extern	void
@@ -3075,7 +3075,7 @@ extern				void
 efx_lic_fini(
 	__in			efx_nic_t *enp);
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 efx_lic_check_support(
 	__in			efx_nic_t *enp);
 
@@ -3092,7 +3092,7 @@ extern	__checkReturn	efx_rc_t
 efx_lic_app_state(
 	__in		efx_nic_t *enp,
 	__in		uint64_t app_id,
-	__out		boolean_t *licensedp);
+	__out		bool *licensedp);
 
 extern	__checkReturn	efx_rc_t
 efx_lic_get_id(
@@ -3119,7 +3119,7 @@ efx_lic_find_end(
 	__in			uint32_t offset,
 	__out			uint32_t *endp);
 
-extern	__checkReturn	__success(return != B_FALSE)	boolean_t
+extern	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_find_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(buffer_size)
@@ -3129,7 +3129,7 @@ efx_lic_find_key(
 	__out			uint32_t *startp,
 	__out			uint32_t *lengthp);
 
-extern	__checkReturn	__success(return != B_FALSE)	boolean_t
+extern	__checkReturn	__success(return != B_FALSE)	bool
 efx_lic_validate_key(
 	__in			efx_nic_t *enp,
 	__in_bcount(length)	caddr_t keyp,

@@ -95,8 +95,8 @@ struct imx6_anatop_softc {
 	uint32_t	cpu_maxmhz;
 	uint32_t	cpu_maxmv;
 	uint32_t	cpu_maxmhz_hw;
-	boolean_t	cpu_overclock_enable;
-	boolean_t	cpu_init_done;
+	bool	cpu_overclock_enable;
+	bool	cpu_init_done;
 	uint32_t	refosc_mhz;
 	void		*temp_intrhand;
 	uint32_t	temp_high_val;
@@ -163,7 +163,7 @@ vdd_set(struct imx6_anatop_softc *sc, int mv)
 {
 	int newtarg, newtargSoc, oldtarg;
 	uint32_t delay, pmureg;
-	static boolean_t init_done = false;
+	static bool init_done = false;
 
 	/*
 	 * The datasheet says VDD_PU and VDD_SOC must be equal, and VDD_ARM

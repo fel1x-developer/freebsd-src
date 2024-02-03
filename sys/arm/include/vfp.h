@@ -157,7 +157,7 @@ void	get_vfpcontext(struct thread *, mcontext_vfp_t *);
 void	set_vfpcontext(struct thread *, mcontext_vfp_t *);
 void    vfp_init(void);
 void	vfp_new_thread(struct thread*, struct thread*, bool);
-void    vfp_store(struct vfp_state *, boolean_t);
+void    vfp_store(struct vfp_state *, bool);
 void    vfp_discard(struct thread *);
 void	vfp_restore_state(void);
 void	vfp_save_state(struct thread *, struct pcb *);

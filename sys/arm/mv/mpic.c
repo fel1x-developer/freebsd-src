@@ -146,7 +146,7 @@ static void	mpic_unmask_irq(uintptr_t nb);
 static void	mpic_mask_irq(uintptr_t nb);
 static void	mpic_mask_irq_err(uintptr_t nb);
 static void	mpic_unmask_irq_err(uintptr_t nb);
-static boolean_t mpic_irq_is_percpu(uintptr_t);
+static bool mpic_irq_is_percpu(uintptr_t);
 static int	mpic_intr(void *arg);
 static void	mpic_unmask_msi(void);
 void mpic_ipi_send(device_t, struct intr_irqsrc*, cpuset_t, u_int);
@@ -430,7 +430,7 @@ mpic_mask_irq_err(uintptr_t nb)
 	MPIC_CPU_WRITE(mv_mpic_sc, MPIC_ERR_MASK, mask);
 }
 
-static boolean_t
+static bool
 mpic_irq_is_percpu(uintptr_t nb)
 {
 	if (nb < MPIC_PPI)

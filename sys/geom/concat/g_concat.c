@@ -52,7 +52,7 @@ static u_int g_concat_debug = 0;
 SYSCTL_UINT(_kern_geom_concat, OID_AUTO, debug, CTLFLAG_RWTUN, &g_concat_debug, 0,
     "Debug level");
 
-static int g_concat_destroy(struct g_concat_softc *sc, boolean_t force);
+static int g_concat_destroy(struct g_concat_softc *sc, bool force);
 static int g_concat_destroy_geom(struct gctl_req *req, struct g_class *mp,
     struct g_geom *gp);
 
@@ -674,7 +674,7 @@ g_concat_create(struct g_class *mp, const struct g_concat_metadata *md,
 }
 
 static int
-g_concat_destroy(struct g_concat_softc *sc, boolean_t force)
+g_concat_destroy(struct g_concat_softc *sc, bool force)
 {
 	struct g_provider *pp;
 	struct g_consumer *cp, *cp1;

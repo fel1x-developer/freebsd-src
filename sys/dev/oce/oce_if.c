@@ -185,7 +185,7 @@ static void process_link_state(POCE_SOFTC sc,
 		 struct oce_async_cqe_link_state *acqe);
 static int oce_tx_asic_stall_verify(POCE_SOFTC sc, struct mbuf *m);
 static void oce_get_config(POCE_SOFTC sc);
-static struct mbuf *oce_insert_vlan_tag(POCE_SOFTC sc, struct mbuf *m, boolean_t *complete);
+static struct mbuf *oce_insert_vlan_tag(POCE_SOFTC sc, struct mbuf *m, bool *complete);
 static void oce_read_env_variables(POCE_SOFTC sc);
 
 /* IP specific */
@@ -952,7 +952,7 @@ oce_media_change(if_t ifp)
 }
 
 static void oce_is_pkt_dest_bmc(POCE_SOFTC sc,
-				struct mbuf *m, boolean_t *os2bmc,
+				struct mbuf *m, bool *os2bmc,
 				struct mbuf **m_new)
 {
 	struct ether_header *eh = NULL;
@@ -1041,8 +1041,8 @@ oce_tx(POCE_SOFTC sc, struct mbuf **mpp, int wq_index)
 	struct ether_header *eh = NULL;
 	int num_wqes;
 	uint32_t reg_value;
-	boolean_t complete = TRUE;
-	boolean_t os2bmc = FALSE;
+	bool complete = TRUE;
+	bool os2bmc = FALSE;
 
 	m = *mpp;
 	if (!m)
@@ -2772,7 +2772,7 @@ is_be3_a1(POCE_SOFTC sc)
 }
 
 static struct mbuf *
-oce_insert_vlan_tag(POCE_SOFTC sc, struct mbuf *m, boolean_t *complete)
+oce_insert_vlan_tag(POCE_SOFTC sc, struct mbuf *m, bool *complete)
 {
 	uint16_t vlan_tag = 0;
 

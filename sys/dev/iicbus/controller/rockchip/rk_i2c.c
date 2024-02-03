@@ -414,7 +414,7 @@ rk_i2c_intr(void *arg)
 }
 
 static void
-rk_i2c_start_xfer(struct rk_i2c_softc *sc, struct iic_msg *msg, boolean_t last)
+rk_i2c_start_xfer(struct rk_i2c_softc *sc, struct iic_msg *msg, bool last)
 {
 	uint32_t reg;
 	uint8_t len;

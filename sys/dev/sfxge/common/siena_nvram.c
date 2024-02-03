@@ -176,7 +176,7 @@ siena_nvram_partn_unlock(
 	__in			uint32_t partn,
 	__out_opt		uint32_t *verify_resultp)
 {
-	boolean_t reboot;
+	bool reboot;
 	efx_rc_t rc;
 
 	/*
@@ -304,7 +304,7 @@ fail1:
 siena_nvram_get_dynamic_cfg(
 	__in			efx_nic_t *enp,
 	__in			uint32_t partn,
-	__in			boolean_t vpd,
+	__in			bool vpd,
 	__out			siena_mc_dynamic_config_hdr_t **dcfgp,
 	__out			size_t *sizep)
 {

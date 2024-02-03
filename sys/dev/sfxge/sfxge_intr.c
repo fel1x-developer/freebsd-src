@@ -66,7 +66,7 @@ sfxge_intr_line_filter(void *arg)
 	struct sfxge_softc *sc;
 	efx_nic_t *enp;
 	struct sfxge_intr *intr;
-	boolean_t fatal;
+	bool fatal;
 	uint32_t qmask;
 
 	evq = (struct sfxge_evq *)arg;
@@ -131,7 +131,7 @@ sfxge_intr_message(void *arg)
 	efx_nic_t *enp;
 	struct sfxge_intr *intr;
 	unsigned int index;
-	boolean_t fatal;
+	bool fatal;
 
 	evq = (struct sfxge_evq *)arg;
 	sc = evq->sc;

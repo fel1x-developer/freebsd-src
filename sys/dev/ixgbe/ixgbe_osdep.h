@@ -147,7 +147,7 @@ typedef uint32_t	u32;
 typedef int32_t		s32;
 typedef uint64_t	u64;
 #ifndef __bool_true_false_are_defined
-typedef boolean_t	bool;
+typedef bool	bool;
 #endif
 
 /* shared code requires this */

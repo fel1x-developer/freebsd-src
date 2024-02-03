@@ -137,7 +137,7 @@ typedef struct efx_tx_ops_s {
 				      unsigned int, unsigned int,
 				      unsigned int *);
 	void		(*etxo_qdesc_dma_create)(efx_txq_t *, efsys_dma_addr_t,
-						size_t, boolean_t,
+						size_t, bool,
 						efx_desc_t *);
 	void		(*etxo_qdesc_tso_create)(efx_txq_t *, uint16_t,
 						uint32_t, uint8_t,
@@ -186,7 +186,7 @@ typedef struct efx_rx_ops_s {
 	efx_rc_t	(*erxo_scale_context_free)(efx_nic_t *, uint32_t);
 	efx_rc_t	(*erxo_scale_mode_set)(efx_nic_t *, uint32_t,
 					       efx_rx_hash_alg_t,
-					       efx_rx_hash_type_t, boolean_t);
+					       efx_rx_hash_type_t, bool);
 	efx_rc_t	(*erxo_scale_key_set)(efx_nic_t *, uint32_t,
 					      uint8_t *, size_t);
 	efx_rc_t	(*erxo_scale_tbl_set)(efx_nic_t *, uint32_t,
@@ -219,14 +219,14 @@ typedef struct efx_rx_ops_s {
 
 typedef struct efx_mac_ops_s {
 	efx_rc_t	(*emo_poll)(efx_nic_t *, efx_link_mode_t *);
-	efx_rc_t	(*emo_up)(efx_nic_t *, boolean_t *);
+	efx_rc_t	(*emo_up)(efx_nic_t *, bool *);
 	efx_rc_t	(*emo_addr_set)(efx_nic_t *);
 	efx_rc_t	(*emo_pdu_set)(efx_nic_t *);
 	efx_rc_t	(*emo_pdu_get)(efx_nic_t *, size_t *);
 	efx_rc_t	(*emo_reconfigure)(efx_nic_t *);
 	efx_rc_t	(*emo_multicast_list_set)(efx_nic_t *);
 	efx_rc_t	(*emo_filter_default_rxq_set)(efx_nic_t *,
-						      efx_rxq_t *, boolean_t);
+						      efx_rxq_t *, bool);
 	void		(*emo_filter_default_rxq_clear)(efx_nic_t *);
 #if EFSYS_OPT_LOOPBACK
 	efx_rc_t	(*emo_loopback_set)(efx_nic_t *, efx_link_mode_t,
@@ -237,14 +237,14 @@ typedef struct efx_mac_ops_s {
 	efx_rc_t	(*emo_stats_clear)(efx_nic_t *);
 	efx_rc_t	(*emo_stats_upload)(efx_nic_t *, efsys_mem_t *);
 	efx_rc_t	(*emo_stats_periodic)(efx_nic_t *, efsys_mem_t *,
-					      uint16_t, boolean_t);
+					      uint16_t, bool);
 	efx_rc_t	(*emo_stats_update)(efx_nic_t *, efsys_mem_t *,
 					    efsys_stat_t *, uint32_t *);
 #endif	/* EFSYS_OPT_MAC_STATS */
 } efx_mac_ops_t;
 
 typedef struct efx_phy_ops_s {
-	efx_rc_t	(*epo_power)(efx_nic_t *, boolean_t); /* optional */
+	efx_rc_t	(*epo_power)(efx_nic_t *, bool); /* optional */
 	efx_rc_t	(*epo_reset)(efx_nic_t *);
 	efx_rc_t	(*epo_reconfigure)(efx_nic_t *);
 	efx_rc_t	(*epo_verify)(efx_nic_t *);
@@ -270,12 +270,12 @@ typedef struct efx_filter_ops_s {
 	void		(*efo_fini)(efx_nic_t *);
 	efx_rc_t	(*efo_restore)(efx_nic_t *);
 	efx_rc_t	(*efo_add)(efx_nic_t *, efx_filter_spec_t *,
-				   boolean_t may_replace);
+				   bool may_replace);
 	efx_rc_t	(*efo_delete)(efx_nic_t *, efx_filter_spec_t *);
 	efx_rc_t	(*efo_supported_filters)(efx_nic_t *, uint32_t *,
 				   size_t, size_t *);
-	efx_rc_t	(*efo_reconfigure)(efx_nic_t *, uint8_t const *, boolean_t,
-				   boolean_t, boolean_t, boolean_t,
+	efx_rc_t	(*efo_reconfigure)(efx_nic_t *, uint8_t const *, bool,
+				   bool, bool, bool,
 				   uint8_t const *, uint32_t);
 } efx_filter_ops_t;
 
@@ -283,10 +283,10 @@ extern	__checkReturn	efx_rc_t
 efx_filter_reconfigure(
 	__in				efx_nic_t *enp,
 	__in_ecount(6)			uint8_t const *mac_addr,
-	__in				boolean_t all_unicst,
-	__in				boolean_t mulcst,
-	__in				boolean_t all_mulcst,
-	__in				boolean_t brdcst,
+	__in				bool all_unicst,
+	__in				bool mulcst,
+	__in				bool all_mulcst,
+	__in				bool brdcst,
 	__in_ecount(6*count)		uint8_t const *addrs,
 	__in				uint32_t count);
 
@@ -294,7 +294,7 @@ efx_filter_reconfigure(
 
 #if EFSYS_OPT_TUNNEL
 typedef struct efx_tunnel_ops_s {
-	boolean_t	(*eto_udp_encap_supported)(efx_nic_t *);
+	bool	(*eto_udp_encap_supported)(efx_nic_t *);
 	efx_rc_t	(*eto_reconfigure)(efx_nic_t *);
 } efx_tunnel_ops_t;
 #endif /* EFSYS_OPT_TUNNEL */
@@ -306,12 +306,12 @@ typedef struct efx_port_s {
 	uint32_t		ep_mac_pdu;
 	uint8_t			ep_mac_addr[6];
 	efx_link_mode_t		ep_link_mode;
-	boolean_t		ep_all_unicst;
-	boolean_t		ep_mulcst;
-	boolean_t		ep_all_mulcst;
-	boolean_t		ep_brdcst;
+	bool		ep_all_unicst;
+	bool		ep_mulcst;
+	bool		ep_all_mulcst;
+	bool		ep_brdcst;
 	unsigned int		ep_fcntl;
-	boolean_t		ep_fcntl_autoneg;
+	bool		ep_fcntl_autoneg;
 	efx_oword_t		ep_multicst_hash[2];
 	uint8_t			ep_mulcst_addr_list[EFX_MAC_ADDR_LEN *
 						    EFX_MAC_MULTICAST_LIST_MAX];
@@ -332,7 +332,7 @@ typedef struct efx_port_s {
 	uint32_t		ep_lp_cap_mask;
 	uint32_t		ep_default_adv_cap_mask;
 	uint32_t		ep_phy_cap_mask;
-	boolean_t		ep_mac_drain;
+	bool		ep_mac_drain;
 #if EFSYS_OPT_BIST
 	efx_bist_type_t		ep_current_bist;
 #endif
@@ -360,9 +360,9 @@ typedef struct efx_intr_ops_s {
 	void		(*eio_disable)(efx_nic_t *);
 	void		(*eio_disable_unlocked)(efx_nic_t *);
 	efx_rc_t	(*eio_trigger)(efx_nic_t *, unsigned int);
-	void		(*eio_status_line)(efx_nic_t *, boolean_t *, uint32_t *);
+	void		(*eio_status_line)(efx_nic_t *, bool *, uint32_t *);
 	void		(*eio_status_message)(efx_nic_t *, unsigned int,
-				 boolean_t *);
+				 bool *);
 	void		(*eio_fatal)(efx_nic_t *);
 	void		(*eio_fini)(efx_nic_t *);
 } efx_intr_ops_t;
@@ -383,7 +383,7 @@ typedef struct efx_nic_ops_s {
 	efx_rc_t	(*eno_get_vi_pool)(efx_nic_t *, uint32_t *);
 	efx_rc_t	(*eno_get_bar_region)(efx_nic_t *, efx_nic_region_t,
 					uint32_t *, size_t *);
-	boolean_t	(*eno_hw_unavailable)(efx_nic_t *);
+	bool	(*eno_hw_unavailable)(efx_nic_t *);
 	void		(*eno_set_hw_unavailable)(efx_nic_t *);
 #if EFSYS_OPT_DIAG
 	efx_rc_t	(*eno_register_test)(efx_nic_t *);
@@ -493,11 +493,11 @@ typedef struct efx_mcdi_ops_s {
 	void		(*emco_send_request)(efx_nic_t *, void *, size_t,
 					void *, size_t);
 	efx_rc_t	(*emco_poll_reboot)(efx_nic_t *);
-	boolean_t	(*emco_poll_response)(efx_nic_t *);
+	bool	(*emco_poll_response)(efx_nic_t *);
 	void		(*emco_read_response)(efx_nic_t *, void *, size_t, size_t);
 	void		(*emco_fini)(efx_nic_t *);
 	efx_rc_t	(*emco_feature_supported)(efx_nic_t *,
-					    efx_mcdi_feature_id_t, boolean_t *);
+					    efx_mcdi_feature_id_t, bool *);
 	void		(*emco_get_timeout)(efx_nic_t *, efx_mcdi_req_t *,
 					    uint32_t *);
 } efx_mcdi_ops_t;
@@ -620,7 +620,7 @@ efx_mcdi_nvram_write(
 efx_mcdi_nvram_update_finish(
 	__in			efx_nic_t *enp,
 	__in			uint32_t partn,
-	__in			boolean_t reboot,
+	__in			bool reboot,
 	__out_opt		uint32_t *verify_resultp);
 
 #if EFSYS_OPT_DIAG
@@ -639,16 +639,16 @@ efx_mcdi_nvram_test(
 typedef struct efx_lic_ops_s {
 	efx_rc_t	(*elo_update_licenses)(efx_nic_t *);
 	efx_rc_t	(*elo_get_key_stats)(efx_nic_t *, efx_key_stats_t *);
-	efx_rc_t	(*elo_app_state)(efx_nic_t *, uint64_t, boolean_t *);
+	efx_rc_t	(*elo_app_state)(efx_nic_t *, uint64_t, bool *);
 	efx_rc_t	(*elo_get_id)(efx_nic_t *, size_t, uint32_t *,
 				      size_t *, uint8_t *);
 	efx_rc_t	(*elo_find_start)
 				(efx_nic_t *, caddr_t, size_t, uint32_t *);
 	efx_rc_t	(*elo_find_end)(efx_nic_t *, caddr_t, size_t,
 				uint32_t, uint32_t *);
-	boolean_t	(*elo_find_key)(efx_nic_t *, caddr_t, size_t,
+	bool	(*elo_find_key)(efx_nic_t *, caddr_t, size_t,
 				uint32_t, uint32_t *, uint32_t *);
-	boolean_t	(*elo_validate_key)(efx_nic_t *,
+	bool	(*elo_validate_key)(efx_nic_t *,
 				caddr_t, uint32_t);
 	efx_rc_t	(*elo_read_key)(efx_nic_t *,
 				caddr_t, size_t, uint32_t, uint32_t,
@@ -723,7 +723,7 @@ struct efx_nic_s {
 	uint32_t		en_vport_id;
 #if EFSYS_OPT_LICENSING
 	const efx_lic_ops_t	*en_elop;
-	boolean_t		en_licensing_supported;
+	bool		en_licensing_supported;
 #endif
 	union {
 #if EFSYS_OPT_SIENA
@@ -766,7 +766,7 @@ struct efx_nic_s {
 
 #define	EFX_NIC_MAGIC	0x02121996
 
-typedef	boolean_t (*efx_ev_handler_t)(efx_evq_t *, efx_qword_t *,
+typedef	bool (*efx_ev_handler_t)(efx_evq_t *, efx_qword_t *,
     const efx_ev_callbacks_t *, void *);
 
 typedef struct efx_evq_rxq_state_s {
@@ -774,7 +774,7 @@ typedef struct efx_evq_rxq_state_s {
 	unsigned int			eers_rx_mask;
 #if EFSYS_OPT_RX_PACKED_STREAM || EFSYS_OPT_RX_ES_SUPER_BUFFER
 	unsigned int			eers_rx_stream_npackets;
-	boolean_t			eers_rx_packed_stream;
+	bool			eers_rx_packed_stream;
 #endif
 #if EFSYS_OPT_RX_PACKED_STREAM
 	unsigned int			eers_rx_packed_stream_credits;
@@ -1216,13 +1216,13 @@ extern	__checkReturn		efx_rc_t
 efx_vpd_hunk_verify(
 	__in_bcount(size)	caddr_t data,
 	__in			size_t size,
-	__out_opt		boolean_t *cksummedp);
+	__out_opt		bool *cksummedp);
 
 extern	__checkReturn		efx_rc_t
 efx_vpd_hunk_reinit(
 	__in_bcount(size)	caddr_t data,
 	__in			size_t size,
-	__in			boolean_t wantpid);
+	__in			bool wantpid);
 
 extern	__checkReturn		efx_rc_t
 efx_vpd_hunk_get(
@@ -1257,7 +1257,7 @@ extern	__checkReturn		efx_rc_t
 efx_mcdi_set_workaround(
 	__in			efx_nic_t *enp,
 	__in			uint32_t type,
-	__in			boolean_t enabled,
+	__in			bool enabled,
 	__out_opt		uint32_t *flagsp);
 
 extern	__checkReturn		efx_rc_t

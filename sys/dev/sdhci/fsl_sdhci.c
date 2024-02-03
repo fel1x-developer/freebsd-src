@@ -645,7 +645,7 @@ fsl_sdhc_set_clock(struct fsl_sdhci_softc *sc, uint16_t val)
 	WR4(sc, SDHCI_CLOCK_CONTROL, val32);
 }
 
-static boolean_t
+static bool
 fsl_sdhci_r1bfix_is_wait_done(struct fsl_sdhci_softc *sc)
 {
 	uint32_t inhibit;
@@ -690,7 +690,7 @@ static void
 fsl_sdhci_r1bfix_func(void * arg)
 {
 	struct fsl_sdhci_softc *sc = arg;
-	boolean_t r1bwait_done;
+	bool r1bwait_done;
 
 	mtx_lock(&sc->slot.mtx);
 	r1bwait_done = fsl_sdhci_r1bfix_is_wait_done(sc);

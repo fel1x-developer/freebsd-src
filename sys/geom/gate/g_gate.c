@@ -99,7 +99,7 @@ g_gate_detach(void *arg, int flags __unused)
 }
 
 static int
-g_gate_destroy(struct g_gate_softc *sc, boolean_t force)
+g_gate_destroy(struct g_gate_softc *sc, bool force)
 {
 	struct bio_queue_head queue;
 	struct g_provider *pp;

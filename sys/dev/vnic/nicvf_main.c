@@ -424,7 +424,7 @@ nicvf_if_ioctl(if_t ifp, u_long cmd, caddr_t data)
 	int rq_idx;
 #if defined(INET) || defined(INET6)
 	struct ifaddr *ifa;
-	boolean_t avoid_reset = FALSE;
+	bool avoid_reset = FALSE;
 #endif
 
 	nic = if_getsoftc(ifp);

@@ -31,6 +31,6 @@
 
 void sf_buf_map(struct sf_buf *, int);
 int sf_buf_unmap(struct sf_buf *);
-boolean_t sf_buf_invalidate_cache(vm_page_t);
+bool sf_buf_invalidate_cache(vm_page_t);
 
 #endif /* !_MACHINE_SF_BUF_H_ */

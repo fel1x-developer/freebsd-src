@@ -399,7 +399,7 @@ sfxge_mac_filter_set_locked(struct sfxge_softc *sc)
 {
 	if_t ifp = sc->ifnet;
 	struct sfxge_port *port = &sc->port;
-	boolean_t all_mulcst;
+	bool all_mulcst;
 	int rc;
 
 	mtx_assert(&port->lock, MA_OWNED);
@@ -917,7 +917,7 @@ sfxge_phy_cap_mask(struct sfxge_softc *sc, int ifmedia, uint32_t *phy_cap_mask)
 	/* Get global options (duplex), type and subtype bits */
 	int ifmedia_masked = ifmedia & (IFM_GMASK | IFM_NMASK | IFM_TMASK);
 	efx_phy_media_type_t medium_type;
-	boolean_t mode_found = B_FALSE;
+	bool mode_found = B_FALSE;
 	uint32_t cap_mask, mode_cap_mask;
 	efx_link_mode_t mode;
 	efx_phy_cap_type_t phy_cap;

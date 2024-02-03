@@ -2407,7 +2407,7 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	boolean_t
+	__checkReturn	bool
 ef10_nic_hw_unavailable(
 	__in		efx_nic_t *enp)
 {

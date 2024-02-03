@@ -57,7 +57,7 @@ struct vga_softc {
 	bus_space_handle_t	 vga_reg_handle;
 	int			 vga_wmode;
 	term_color_t		 vga_curfg, vga_curbg;
-	boolean_t		 vga_enabled;
+	bool		 vga_enabled;
 };
 
 /* Convenience macros. */

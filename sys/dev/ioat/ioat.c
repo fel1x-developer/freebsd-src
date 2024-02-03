@@ -80,9 +80,9 @@ static int ioat_map_pci_bar(struct ioat_softc *ioat);
 static void ioat_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nseg,
     int error);
 static void ioat_interrupt_handler(void *arg);
-static boolean_t ioat_model_resets_msix(struct ioat_softc *ioat);
+static bool ioat_model_resets_msix(struct ioat_softc *ioat);
 static int chanerr_to_errno(uint32_t);
-static void ioat_process_events(struct ioat_softc *ioat, boolean_t intr);
+static void ioat_process_events(struct ioat_softc *ioat, bool intr);
 static inline uint32_t ioat_get_active(struct ioat_softc *ioat);
 static inline uint32_t ioat_get_ring_space(struct ioat_softc *ioat);
 static void ioat_free_ring(struct ioat_softc *, uint32_t size,
@@ -714,7 +714,7 @@ ioat_setup_intr(struct ioat_softc *ioat)
 {
 	uint32_t num_vectors;
 	int error;
-	boolean_t use_msix;
+	bool use_msix;
 
 	use_msix = FALSE;
 
@@ -751,7 +751,7 @@ ioat_setup_intr(struct ioat_softc *ioat)
 	return (0);
 }
 
-static boolean_t
+static bool
 ioat_model_resets_msix(struct ioat_softc *ioat)
 {
 	u_int32_t pciid;
@@ -800,7 +800,7 @@ chanerr_to_errno(uint32_t chanerr)
 }
 
 static void
-ioat_process_events(struct ioat_softc *ioat, boolean_t intr)
+ioat_process_events(struct ioat_softc *ioat, bool intr)
 {
 	struct ioat_descriptor *desc;
 	struct bus_dmadesc *dmadesc;
@@ -1531,7 +1531,7 @@ ioat_get_ring_space(struct ioat_softc *ioat)
 static int
 ioat_reserve_space(struct ioat_softc *ioat, uint32_t num_descs, int mflags)
 {
-	boolean_t dug;
+	bool dug;
 	int error;
 
 	mtx_assert(&ioat->submit_lock, MA_OWNED);
@@ -1944,7 +1944,7 @@ ioat_setup_sysctl(device_t device)
 	    &ioat->version, 0, "HW version (0xMM form)");
 	SYSCTL_ADD_UINT(ctx, par, OID_AUTO, "max_xfer_size", CTLFLAG_RD,
 	    &ioat->max_xfer_size, 0, "HW maximum transfer size");
-	SYSCTL_ADD_INT(ctx, par, OID_AUTO, "intrdelay_supported", CTLFLAG_RD,
+	SYSCTL_ADD_BOOL(ctx, par, OID_AUTO, "intrdelay_supported", CTLFLAG_RD,
 	    &ioat->intrdelay_supported, 0, "Is INTRDELAY supported");
 	SYSCTL_ADD_U16(ctx, par, OID_AUTO, "intrdelay_max", CTLFLAG_RD,
 	    &ioat->intrdelay_max, 0,
@@ -1964,7 +1964,7 @@ ioat_setup_sysctl(device_t device)
 	SYSCTL_ADD_UQUAD(ctx, state, OID_AUTO, "last_completion", CTLFLAG_RD,
 	    ioat->comp_update, "HW addr of last completion");
 
-	SYSCTL_ADD_INT(ctx, state, OID_AUTO, "is_submitter_processing",
+	SYSCTL_ADD_BOOL(ctx, state, OID_AUTO, "is_submitter_processing",
 	    CTLFLAG_RD, &ioat->is_submitter_processing, 0,
 	    "submitter processing");
 

@@ -42,8 +42,8 @@ efx_mcdi_init_rxq(
 	__in		uint32_t label,
 	__in		uint32_t instance,
 	__in		efsys_mem_t *esmp,
-	__in		boolean_t disable_scatter,
-	__in		boolean_t want_inner_classes,
+	__in		bool disable_scatter,
+	__in		bool want_inner_classes,
 	__in		uint32_t ps_bufsize,
 	__in		uint32_t es_bufs_per_desc,
 	__in		uint32_t es_max_dma_len,
@@ -60,7 +60,7 @@ efx_mcdi_init_rxq(
 	uint64_t addr;
 	efx_rc_t rc;
 	uint32_t dma_mode;
-	boolean_t want_outer_classes;
+	bool want_outer_classes;
 
 	EFSYS_ASSERT3U(ndescs, <=, EFX_RXQ_MAXNDESCS);
 
@@ -624,7 +624,7 @@ ef10_rx_scale_mode_set(
 	__in		uint32_t rss_context,
 	__in		efx_rx_hash_alg_t alg,
 	__in		efx_rx_hash_type_t type,
-	__in		boolean_t insert)
+	__in		bool insert)
 {
 	efx_nic_cfg_t *encp = &enp->en_nic_cfg;
 	efx_rc_t rc;
@@ -1018,8 +1018,8 @@ ef10_rx_qcreate(
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_rc_t rc;
-	boolean_t disable_scatter;
-	boolean_t want_inner_classes;
+	bool disable_scatter;
+	bool want_inner_classes;
 	unsigned int ps_buf_size;
 	uint32_t es_bufs_per_desc = 0;
 	uint32_t es_max_dma_len = 0;

@@ -964,7 +964,7 @@ typedef uint8_t *passthru_buf_type_t;
 *retval False   On Failure
 *
 */
-static inline boolean_t
+static inline bool
 os_atomic64_cas(volatile uint64_t* var, uint64_t old_val, uint64_t new_val)
 {
         return (atomic_cmpset_64(var, old_val, new_val));

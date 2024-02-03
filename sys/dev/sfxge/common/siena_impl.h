@@ -119,7 +119,7 @@ siena_mcdi_send_request(
 	__in_bcount(sdu_len)	void *sdup,
 	__in			size_t sdu_len);
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 siena_mcdi_poll_response(
 	__in		efx_nic_t *enp);
 
@@ -142,7 +142,7 @@ extern	__checkReturn	efx_rc_t
 siena_mcdi_feature_supported(
 	__in		efx_nic_t *enp,
 	__in		efx_mcdi_feature_id_t id,
-	__out		boolean_t *supportedp);
+	__out		bool *supportedp);
 
 extern			void
 siena_mcdi_get_timeout(
@@ -169,7 +169,7 @@ extern	__checkReturn		efx_rc_t
 siena_nvram_get_dynamic_cfg(
 	__in			efx_nic_t *enp,
 	__in			uint32_t partn,
-	__in			boolean_t vpd,
+	__in			bool vpd,
 	__out			siena_mc_dynamic_config_hdr_t **dcfgp,
 	__out			size_t *sizep);
 
@@ -324,7 +324,7 @@ typedef struct siena_link_state_s {
 #if EFSYS_OPT_LOOPBACK
 	efx_loopback_type_t	sls_loopback;
 #endif
-	boolean_t		sls_mac_up;
+	bool		sls_mac_up;
 } siena_link_state_t;
 
 extern			void
@@ -341,7 +341,7 @@ siena_phy_get_link(
 extern	__checkReturn	efx_rc_t
 siena_phy_power(
 	__in		efx_nic_t *enp,
-	__in		boolean_t on);
+	__in		bool on);
 
 extern	__checkReturn	efx_rc_t
 siena_phy_reconfigure(
@@ -407,7 +407,7 @@ siena_mac_poll(
 extern	__checkReturn	efx_rc_t
 siena_mac_up(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *mac_upp);
+	__out		bool *mac_upp);
 
 extern	__checkReturn	efx_rc_t
 siena_mac_reconfigure(

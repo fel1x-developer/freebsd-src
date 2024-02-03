@@ -942,7 +942,7 @@ static int skip_jtag_interfaces = 1;
 SYSCTL_INT(_hw_usb_uftdi, OID_AUTO, skip_jtag_interfaces, CTLFLAG_RWTUN,
     &skip_jtag_interfaces, 1, "Skip creating tty devices for jtag interfaces");
 
-static boolean_t
+static bool
 is_jtag_interface(struct usb_attach_arg *uaa, const struct usb_device_id *id)
 {
 	int i, iface_bit;
@@ -1422,7 +1422,7 @@ uftdi_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
  * Return true if the given speed is within operational tolerance of the target
  * speed.  FTDI recommends that the hardware speed be within 3% of nominal.
  */
-static inline boolean_t
+static inline bool
 uftdi_baud_within_tolerance(uint64_t speed, uint64_t target)
 {
 	return ((speed >= (target * 100) / 103) &&

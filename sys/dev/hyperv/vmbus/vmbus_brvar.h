@@ -129,11 +129,11 @@ void		vmbus_rxbr_deinit(struct vmbus_rxbr *rbr);
 void		vmbus_rxbr_setup(struct vmbus_rxbr *rbr, void *buf, int blen);
 int		vmbus_rxbr_peek(struct vmbus_rxbr *rbr, void *data, int dlen);
 int		vmbus_rxbr_read(struct vmbus_rxbr *rbr, void *data, int dlen,
-		    uint32_t skip, boolean_t *need_sig);
+		    uint32_t skip, bool *need_sig);
 int		vmbus_rxbr_idxadv(struct vmbus_rxbr *rbr, uint32_t idx_adv,
-		    boolean_t *need_sig);
+		    bool *need_sig);
 int		vmbus_rxbr_idxadv_peek(struct vmbus_rxbr *rbr, void *data,
-		    int dlen, uint32_t idx_adv, boolean_t *need_sig);
+		    int dlen, uint32_t idx_adv, bool *need_sig);
 int		vmbus_rxbr_peek_call(struct vmbus_rxbr *rbr, int dlen,
 		    uint32_t skip, vmbus_br_copy_callback_t cb, void *cbarg);
 void		vmbus_rxbr_intr_mask(struct vmbus_rxbr *rbr);
@@ -144,11 +144,11 @@ void		vmbus_txbr_init(struct vmbus_txbr *tbr);
 void		vmbus_txbr_deinit(struct vmbus_txbr *tbr);
 void		vmbus_txbr_setup(struct vmbus_txbr *tbr, void *buf, int blen);
 int		vmbus_txbr_write(struct vmbus_txbr *tbr,
-		    const struct iovec iov[], int iovlen, boolean_t *need_sig);
+		    const struct iovec iov[], int iovlen, bool *need_sig);
 int		vmbus_txbr_write_call(struct vmbus_txbr *tbr,
 		    const struct iovec iov[], int iovlen,
 		    vmbus_br_copy_callback_t cb, void *cbarg,
-		    boolean_t *need_sig);
+		    bool *need_sig);
 uint32_t	vmbus_txbr_available(const struct vmbus_txbr *tbr);
 uint32_t	vmbus_txbr_get_imask(const struct vmbus_txbr *tbr);
 void		vmbus_txbr_set_pending_snd_sz(struct vmbus_txbr *tbr,

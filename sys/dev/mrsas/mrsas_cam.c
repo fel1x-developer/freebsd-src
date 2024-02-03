@@ -104,7 +104,7 @@ static int32_t
 mrsas_startio(struct mrsas_softc *sc, struct cam_sim *sim,
     union ccb *ccb);
 
-static boolean_t mrsas_is_prp_possible(struct mrsas_mpt_cmd *cmd,
+static bool mrsas_is_prp_possible(struct mrsas_mpt_cmd *cmd,
 	bus_dma_segment_t *segs, int nsegs);
 static void mrsas_build_ieee_sgl(struct mrsas_mpt_cmd *cmd,
 	bus_dma_segment_t *segs, int nseg);
@@ -838,7 +838,7 @@ mrsas_stream_detect(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
 	u_int32_t streamNum, shiftedValues, unshiftedValues;
 	u_int32_t indexValueMask, shiftedValuesMask;
 	int i;
-	boolean_t isReadAhead = false;
+	bool isReadAhead = false;
 	STREAM_DETECT *current_SD;
 
 	/* find possible stream */
@@ -1316,7 +1316,7 @@ mrsas_build_syspdio(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
  * return:				true: if PRP should be built
  *						false: if IEEE SGLs should be built
  */
-static boolean_t mrsas_is_prp_possible(struct mrsas_mpt_cmd *cmd,
+static bool mrsas_is_prp_possible(struct mrsas_mpt_cmd *cmd,
 	bus_dma_segment_t *segs, int nsegs)
 {
 	struct mrsas_softc *sc = cmd->sc;
@@ -1613,7 +1613,7 @@ mrsas_data_load_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
 	struct mrsas_mpt_cmd *cmd = (struct mrsas_mpt_cmd *)arg;
 	struct mrsas_softc *sc = cmd->sc;
-	boolean_t build_prp = false;
+	bool build_prp = false;
 
 	if (error) {
 		cmd->error_code = error;

@@ -80,7 +80,7 @@ bgx_fdt_get_macaddr(phandle_t phy, uint8_t *hwaddr)
 		memcpy(hwaddr, addr, ETHER_ADDR_LEN);
 }
 
-static boolean_t
+static bool
 bgx_fdt_phy_mode_match(struct bgx *bgx, char *qlm_mode, ssize_t size)
 {
 	const char *type;
@@ -143,7 +143,7 @@ bgx_fdt_phy_mode_match(struct bgx *bgx, char *qlm_mode, ssize_t size)
 	return (FALSE);
 }
 
-static boolean_t
+static bool
 bgx_fdt_phy_name_match(struct bgx *bgx, char *phy_name, ssize_t size)
 {
 	const char *type;

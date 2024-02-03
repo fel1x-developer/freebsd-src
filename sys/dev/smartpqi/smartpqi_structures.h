@@ -212,7 +212,7 @@ typedef struct pqi_taglist {
         uint32_t        head;
         uint32_t        tail;
         uint32_t       	*elem_array;
-	boolean_t       lockcreated;
+	bool       lockcreated;
 	char            lockname[LOCKNAME_SIZE];
 	OS_LOCK_T       lock	OS_ATTRIBUTE_ALIGNED(8);
 }pqi_taglist_t;
@@ -434,7 +434,7 @@ typedef struct pqi_event_acknowledge_request {
 }pqi_event_acknowledge_request_t;
 
 struct pqi_event {
-	boolean_t	pending;
+	bool	pending;
 	uint8_t	  	event_type;
 	uint16_t	event_id;
 	uint32_t	additional_event_id;
@@ -588,8 +588,8 @@ typedef struct ib_queue {
 	uint32_t	*pi_register_abs;
 	uint32_t	*ci_virt_addr;
 	dma_addr_t	ci_dma_addr;
-	boolean_t	created;
-	boolean_t	lockcreated;
+	bool	created;
+	bool	lockcreated;
 	char		lockname[LOCKNAME_SIZE];
 	OS_PQILOCK_T	lock	OS_ATTRIBUTE_ALIGNED(8);
 	struct dma_mem	 alloc_dma;
@@ -607,7 +607,7 @@ typedef struct ob_queue {
 	uint32_t	*ci_register_abs;
 	uint32_t	*pi_virt_addr;
 	dma_addr_t	pi_dma_addr;
-	boolean_t	created;
+	bool	created;
 	struct dma_mem	 alloc_dma;
 }ob_queue_t;
 
@@ -905,15 +905,15 @@ typedef struct pqi_scsi_device {
 	int 	reset_in_progress;
 	int 	logical_unit_number;
 	os_dev_info_t	*dip;			/*os specific scsi device information*/
-	boolean_t	invalid;
-	boolean_t	path_destroyed;
-	boolean_t	firmware_queue_depth_set;
+	bool	invalid;
+	bool	path_destroyed;
+	bool	firmware_queue_depth_set;
 	OS_ATOMIC64_T   active_requests;
 	struct pqisrc_softstate *softs;
-	boolean_t schedule_rescan;
-	boolean_t in_remove;
+	bool schedule_rescan;
+	bool in_remove;
 	struct pqi_stream_data stream_data[NUM_STREAMS_PER_LUN];
-	boolean_t is_multi_lun;
+	bool is_multi_lun;
 
 }pqi_scsi_dev_t;
 
@@ -1055,7 +1055,7 @@ typedef struct aio_req_locator {
 	struct aio_r5or6_loc r5or6;	/* Raid 5/6-specific bits */
 	struct aio_map map;		/* map row, count, and index */
 	struct aio_disk_group group;	/* first, last, and curr group */
-	boolean_t is_write;
+	bool is_write;
 	uint32_t stripesz;
 	uint16_t strip_sz;
 	int offload_to_mirror;
@@ -1232,7 +1232,7 @@ typedef struct request_container_block {
 	int			cmdlen;
 	uint32_t		bcount;	/* buffer size in byte */
 	uint32_t		ioaccel_handle;
-	boolean_t 		encrypt_enable;
+	bool 		encrypt_enable;
 	struct pqi_enc_info 	enc_info;
 	uint32_t		row_num;
 	uint32_t		blocks_per_row;
@@ -1241,13 +1241,13 @@ typedef struct request_container_block {
 	ib_queue_t		*req_q;
 	IO_PATH_T		path;
 	int 			resp_qid;
-	boolean_t		req_pending;
+	bool		req_pending;
 	uint32_t		it_nexus[PQISRC_MAX_SUPPORTED_MIRRORS];
-	boolean_t		timedout;
+	bool		timedout;
 	int			tm_req;
 	int			aio_retry;
-	boolean_t	is_abort_cmd_from_host;		/* true if this is a TMF abort */
-	boolean_t	host_wants_to_abort_this;	/* set to true to ID the request targeted by TMF */
+	bool	is_abort_cmd_from_host;		/* true if this is a TMF abort */
+	bool	host_wants_to_abort_this;	/* set to true to ID the request targeted by TMF */
 	uint64_t		submit_time_user_secs;		/* host submit time in user seconds */
 	uint64_t		host_timeout_ms;				/* original host timeout value in msec */
 	int			cm_flags;
@@ -1259,7 +1259,7 @@ typedef struct request_container_block {
 }rcb_t;
 
 typedef struct bit_map {
-	boolean_t 			bit_vector[MAX_TARGET_BIT];
+	bool 			bit_vector[MAX_TARGET_BIT];
 }bit_map_t;
 
 typedef enum _io_type
@@ -1338,14 +1338,14 @@ typedef struct pqisrc_softstate {
 	int				intr_count;
 	int				num_cpus_online;
 	int				num_devs;
-	boolean_t			share_opq_and_eventq;
+	bool			share_opq_and_eventq;
 	rcb_t				*rcb;
 #ifndef LOCKFREE_STACK
 	pqi_taglist_t			taglist;
 #else
 	lockless_stack_t		taglist;
 #endif /* LOCKFREE_STACK */
-	boolean_t			devlist_lockcreated;
+	bool			devlist_lockcreated;
 	OS_LOCK_T			devlist_lock	OS_ATTRIBUTE_ALIGNED(8);
 	char				devlist_lock_name[LOCKNAME_SIZE];
 	pqi_scsi_dev_t			*device_list[PQI_MAX_DEVICES][PQI_MAX_MULTILUN];
@@ -1362,36 +1362,36 @@ typedef struct pqisrc_softstate {
 	uint32_t			func_id;
 	uint8_t				adapter_num; /* globally unique adapter number */
 	char 				*os_name;
-	boolean_t			ctrl_online;
+	bool			ctrl_online;
 	uint8_t				pqi_reset_quiesce_allowed : 1;
-	boolean_t 			ctrl_in_pqi_mode;
+	bool 			ctrl_in_pqi_mode;
 	bit_map_t			bit_map;
 	uint32_t			adapterQDepth;
 	uint32_t 			dma_mem_consumed;
-	boolean_t			adv_aio_capable;
-	boolean_t			aio_raid1_write_bypass;
-	boolean_t			aio_raid5_write_bypass;
-	boolean_t			aio_raid6_write_bypass;
-	boolean_t			enable_stream_detection;
+	bool			adv_aio_capable;
+	bool			aio_raid1_write_bypass;
+	bool			aio_raid5_write_bypass;
+	bool			aio_raid6_write_bypass;
+	bool			enable_stream_detection;
 	uint16_t			max_aio_write_raid5_6; /* bytes */
 	uint16_t			max_aio_write_raid1_10_2drv; /* bytes */
 	uint16_t			max_aio_write_raid1_10_3drv; /* bytes */
 	uint16_t			max_aio_rw_xfer_crypto_nvme; /* bytes */
 	uint16_t 			max_aio_rw_xfer_crypto_sas_sata;	/* bytes */
 	io_counters_t	counters[MAX_IO_COUNTER];
-	boolean_t			log_io_counters;
-	boolean_t			ld_rescan;
+	bool			log_io_counters;
+	bool			ld_rescan;
 
 #ifdef PQI_NEED_RESCAN_TIMER_FOR_RBOD_HOTPLUG
 	reportlun_data_ext_t *log_dev_list;
 	size_t				log_dev_data_length;
 	uint32_t			num_ptraid_targets;
 #endif
-	boolean_t			timeout_in_passthrough;
-	boolean_t			timeout_in_tmf;
-	boolean_t			sata_unique_wwn;
-	boolean_t			page83id_in_rpl;
-	boolean_t			err_resp_verbose;
+	bool			timeout_in_passthrough;
+	bool			timeout_in_tmf;
+	bool			sata_unique_wwn;
+	bool			page83id_in_rpl;
+	bool			err_resp_verbose;
 
 #ifdef DEVICE_HINT
 	device_hint			hint;

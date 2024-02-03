@@ -124,7 +124,7 @@ ixgbe_process_vf_ack(struct ixgbe_softc *sc, struct ixgbe_vf *vf)
 		ixgbe_send_vf_nack(sc, vf, 0);
 }
 
-static inline boolean_t
+static inline bool
 ixgbe_vf_mac_changed(struct ixgbe_vf *vf, const uint8_t *mac)
 {
 	return (bcmp(mac, vf->ether_addr, ETHER_ADDR_LEN) != 0);
@@ -255,7 +255,7 @@ ixgbe_vf_set_default_vlan(struct ixgbe_softc *sc, struct ixgbe_vf *vf,
 } /* ixgbe_vf_set_default_vlan */
 
 
-static boolean_t
+static bool
 ixgbe_vf_frame_size_compatible(struct ixgbe_softc *sc, struct ixgbe_vf *vf)
 {
 

@@ -5438,7 +5438,7 @@ vm_page_invalid(vm_page_t m)
  *	into memory and the file's size is not page aligned.
  */
 void
-vm_page_zero_invalid(vm_page_t m, boolean_t setvalid)
+vm_page_zero_invalid(vm_page_t m, bool setvalid)
 {
 	int b;
 	int i;
@@ -5668,7 +5668,7 @@ DB_SHOW_COMMAND_FLAGS(pageq, vm_page_print_pageq_info, DB_CMD_MEMSAFE)
 DB_SHOW_COMMAND(pginfo, vm_page_print_pginfo)
 {
 	vm_page_t m;
-	boolean_t phys, virt;
+	bool phys, virt;
 
 	if (!have_addr) {
 		db_printf("show pginfo addr\n");

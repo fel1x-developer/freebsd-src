@@ -251,7 +251,7 @@ efx_dhcp_walk_tags(
 	__in		uint16_t opt)
 {
 	efx_rc_t rc = 0;
-	boolean_t is_encap = B_FALSE;
+	bool is_encap = B_FALSE;
 
 	if (DHCP_IS_ENCAP_OPT(opt)) {
 		/*
@@ -758,7 +758,7 @@ efx_bootcfg_copy_sector(
 	__in			size_t sector_length,
 	__out_bcount(data_size)	uint8_t *data,
 	__in			size_t data_size,
-	__in			boolean_t handle_format_errors)
+	__in			bool handle_format_errors)
 {
 	_NOTE(ARGUNUSED(enp))
 

@@ -186,7 +186,7 @@ bsd_status_to_pqi_status(int bsd_status)
  * Return false : If the feature is enabled from device hints.
  * Return default: The feature status is not deciding from hints.
  * */
-boolean_t
+bool
 check_device_hint_status(struct pqisrc_softstate *softs, unsigned int feature_bit)
 {
 	DBG_FUNC("IN\n");

@@ -175,7 +175,7 @@ struct msix_entry {
 #define	RSS_HASH_KEY_SIZE		5 /* 320 bit key */
 
 struct nicvf_rss_info {
-	boolean_t enable;
+	bool enable;
 #define	RSS_L2_EXTENDED_HASH_ENA	(1UL << 0)
 #define	RSS_IP_HASH_ENA			(1UL << 1)
 #define	RSS_TCP_HASH_ENA		(1UL << 2)
@@ -298,8 +298,8 @@ struct nicvf {
 	uint8_t			hwaddr[ETHER_ADDR_LEN];
 	uint8_t			vf_id;
 	uint8_t			node;
-	boolean_t		tns_mode:1;
-	boolean_t		sqs_mode:1;
+	bool		tns_mode:1;
+	bool		sqs_mode:1;
 	bool			loopback_supported:1;
 	struct nicvf_rss_info	rss_info;
 	uint16_t		mtu;
@@ -308,8 +308,8 @@ struct nicvf {
 	uint8_t			tx_queues;
 	uint8_t			max_queues;
 	struct resource		*reg_base;
-	boolean_t		link_up;
-	boolean_t		hw_tso;
+	bool		link_up;
+	bool		hw_tso;
 	uint8_t			duplex;
 	uint32_t		speed;
 	uint8_t			cpi_alg;
@@ -326,16 +326,16 @@ struct nicvf {
 	struct mtx		stats_mtx;
 
 	/* MSI-X  */
-	boolean_t		msix_enabled;
+	bool		msix_enabled;
 	uint8_t			num_vec;
 	struct msix_entry	msix_entries[NIC_VF_MSIX_VECTORS];
 	struct resource *	msix_table_res;
 	char			irq_name[NIC_VF_MSIX_VECTORS][20];
-	boolean_t		irq_allocated[NIC_VF_MSIX_VECTORS];
+	bool		irq_allocated[NIC_VF_MSIX_VECTORS];
 
 	/* VF <-> PF mailbox communication */
-	boolean_t		pf_acked;
-	boolean_t		pf_nacked;
+	bool		pf_acked;
+	bool		pf_nacked;
 } __aligned(CACHE_LINE_SIZE);
 
 /*
@@ -379,9 +379,9 @@ struct nic_cfg_msg {
 	uint8_t		msg;
 	uint8_t		vf_id;
 	uint8_t		node_id;
-	boolean_t	tns_mode:1;
-	boolean_t	sqs_mode:1;
-	boolean_t	loopback_supported:1;
+	bool	tns_mode:1;
+	bool	sqs_mode:1;
+	bool	loopback_supported:1;
 	uint8_t	mac_addr[ETHER_ADDR_LEN];
 };
 
@@ -406,7 +406,7 @@ struct sq_cfg_msg {
 	uint8_t		msg;
 	uint8_t		qs_num;
 	uint8_t		sq_num;
-	boolean_t	sqs_mode;
+	bool	sqs_mode;
 	uint64_t	cfg;
 };
 
@@ -470,7 +470,7 @@ struct bgx_link_status {
 struct set_loopback {
 	uint8_t		msg;
 	uint8_t		vf_id;
-	boolean_t	enable;
+	bool	enable;
 };
 
 /* 128 bit shared memory between PF and each VF */
@@ -504,7 +504,7 @@ nic_get_node_id(struct resource *res)
 	return ((addr >> NIC_NODE_ID_SHIFT) & NIC_NODE_ID_MASK);
 }
 
-static __inline boolean_t
+static __inline bool
 pass1_silicon(device_t dev)
 {
 

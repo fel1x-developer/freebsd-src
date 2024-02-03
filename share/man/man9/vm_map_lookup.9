@@ -38,7 +38,7 @@
 .Fo vm_map_lookup
 .Fa "vm_map_t *var_map" "vm_offset_t vaddr" "vm_prot_t fault_type"
 .Fa "vm_map_entry_t *out_entry" "vm_object_t *object" "vm_pindex_t *pindex"
-.Fa "vm_prot_t *out_prot" "boolean_t *wired"
+.Fa "vm_prot_t *out_prot" "bool *wired"
 .Fc
 .Ft void
 .Fn vm_map_lookup_done "vm_map_t map" "vm_map_entry_t entry"

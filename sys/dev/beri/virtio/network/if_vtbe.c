@@ -114,7 +114,7 @@ struct vtbe_softc {
 	if_t			ifp;
 	int			if_flags;
 	struct mtx		mtx;
-	boolean_t		is_attached;
+	bool		is_attached;
 
 	int			beri_mem_offset;
 	device_t		pio_send;

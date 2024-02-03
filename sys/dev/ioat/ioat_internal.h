@@ -467,12 +467,12 @@ struct ioat_softc {
 	uint64_t		*comp_update;
 	bus_addr_t		comp_update_bus_addr;
 
-	boolean_t		quiescing;
-	boolean_t		destroying;
-	boolean_t		is_submitter_processing;
-	boolean_t		intrdelay_supported;
-	boolean_t		resetting;		/* submit_lock */
-	boolean_t		resetting_cleanup;	/* cleanup_lock */
+	bool		quiescing;
+	bool		destroying;
+	bool		is_submitter_processing;
+	bool		intrdelay_supported;
+	bool		resetting;		/* submit_lock */
+	bool		resetting_cleanup;	/* cleanup_lock */
 
 	struct ioat_descriptor	*ring;
 
@@ -558,25 +558,25 @@ ioat_write_chainaddr(struct ioat_softc *ioat, uint64_t addr)
 		ioat_write_double_4(ioat, IOAT_CHAINADDR_OFFSET_LOW, addr);
 }
 
-static inline boolean_t
+static inline bool
 is_ioat_active(uint64_t status)
 {
 	return ((status & IOAT_CHANSTS_STATUS) == IOAT_CHANSTS_ACTIVE);
 }
 
-static inline boolean_t
+static inline bool
 is_ioat_idle(uint64_t status)
 {
 	return ((status & IOAT_CHANSTS_STATUS) == IOAT_CHANSTS_IDLE);
 }
 
-static inline boolean_t
+static inline bool
 is_ioat_halted(uint64_t status)
 {
 	return ((status & IOAT_CHANSTS_STATUS) == IOAT_CHANSTS_HALTED);
 }
 
-static inline boolean_t
+static inline bool
 is_ioat_suspended(uint64_t status)
 {
 	return ((status & IOAT_CHANSTS_STATUS) == IOAT_CHANSTS_SUSPENDED);
@@ -594,7 +594,7 @@ ioat_reset(struct ioat_softc *ioat)
 	ioat_write_1(ioat, IOAT_CHANCMD_OFFSET, IOAT_CHANCMD_RESET);
 }
 
-static inline boolean_t
+static inline bool
 ioat_reset_pending(struct ioat_softc *ioat)
 {
 	uint8_t cmd;

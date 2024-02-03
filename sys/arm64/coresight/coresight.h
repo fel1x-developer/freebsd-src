@@ -87,7 +87,7 @@ struct endpoint {
 	ACPI_HANDLE their_handle;
 	ACPI_HANDLE my_handle;
 #endif
-	boolean_t input;
+	bool input;
 	int reg;
 	struct coresight_device *cs_dev;
 	LIST_ENTRY(endpoint) endplink;
@@ -117,7 +117,7 @@ struct etm_state {
 };
 
 struct etr_state {
-	boolean_t started;
+	bool started;
 	uint32_t cycle;
 	uint32_t offset;
 	uint32_t low;

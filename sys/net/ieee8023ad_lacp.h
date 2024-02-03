@@ -247,7 +247,7 @@ struct lacp_softc {
 	struct mtx		lsc_mtx;
 	struct lacp_aggregator	*lsc_active_aggregator;
 	TAILQ_HEAD(, lacp_aggregator) lsc_aggregators;
-	boolean_t		lsc_suppress_distributing;
+	bool		lsc_suppress_distributing;
 	struct callout		lsc_transit_callout;
 	struct callout		lsc_callout;
 	LIST_HEAD(, lacp_port)	lsc_ports;
@@ -259,7 +259,7 @@ struct lacp_softc {
 		u_int32_t	lsc_tx_test;
 	} lsc_debug;
 	u_int32_t		lsc_strict_mode;
-	boolean_t		lsc_fast_timeout; /* if set, fast timeout */
+	bool		lsc_fast_timeout; /* if set, fast timeout */
 };
 
 #define	LACP_TYPE_ACTORINFO	1

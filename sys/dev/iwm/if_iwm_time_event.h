@@ -109,7 +109,7 @@
 extern	void iwm_rx_time_event_notif(struct iwm_softc *sc,
 	    struct iwm_rx_packet *pkt);
 extern	void iwm_protect_session(struct iwm_softc *sc, struct iwm_vap *ivp,
-	    uint32_t duration, uint32_t max_delay, boolean_t wait_for_notif);
+	    uint32_t duration, uint32_t max_delay, bool wait_for_notif);
 extern	void iwm_stop_session_protection(struct iwm_softc *sc,
 	    struct iwm_vap *ivp);
 

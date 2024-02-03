@@ -105,7 +105,7 @@ struct msg_set_power_state {
 };
 
 /* Sets the power state for a given device */
-int bcm2835_mbox_set_power_state(uint32_t, boolean_t);
+int bcm2835_mbox_set_power_state(uint32_t, bool);
 
 #define BCM2835_MBOX_TAG_NOTIFY_XHCI_RESET	0x00030058
 

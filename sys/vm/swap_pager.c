@@ -422,7 +422,7 @@ static int	swap_pager_getpages(vm_object_t, vm_page_t *, int, int *,
 static int	swap_pager_getpages_async(vm_object_t, vm_page_t *, int, int *,
     int *, pgo_getpages_iodone_t, void *);
 static void	swap_pager_putpages(vm_object_t, vm_page_t *, int, int, int *);
-static boolean_t
+static bool
 		swap_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before, int *after);
 static void	swap_pager_init(void);
 static void	swap_pager_unswapped(vm_page_t);
@@ -1122,7 +1122,7 @@ swap_pager_copy(vm_object_t srcobject, vm_object_t dstobject,
  *	If TRUE, we also try to determine how much valid, contiguous backing
  *	store exists before and after the requested page.
  */
-static boolean_t
+static bool
 swap_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
     int *after)
 {

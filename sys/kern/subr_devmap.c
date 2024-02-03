@@ -38,7 +38,7 @@
 #include <machine/vmparam.h>
 
 static const struct devmap_entry *devmap_table;
-static boolean_t devmap_bootstrap_done = false;
+static bool devmap_bootstrap_done = false;
 
 /*
  * The allocated-kva (akva) devmap table and metadata.  Platforms can call

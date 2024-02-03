@@ -29,7 +29,7 @@
 /*
  * Function used to validate the adapter health.
  */
-boolean_t
+bool
 pqisrc_ctrl_offline(pqisrc_softstate_t *softs)
 {
 	DBG_FUNC("IN\n");
@@ -42,7 +42,7 @@ pqisrc_ctrl_offline(pqisrc_softstate_t *softs)
  * mask clear pqi register
  */
 void
-pqisrc_configure_legacy_intx(pqisrc_softstate_t *softs, boolean_t enable_intx)
+pqisrc_configure_legacy_intx(pqisrc_softstate_t *softs, bool enable_intx)
 {
 	uint32_t intx_mask;
 
@@ -186,7 +186,7 @@ pqisrc_wait_on_condition(pqisrc_softstate_t *softs, rcb_t *rcb,
 }
 
 /* Function used to validate the device wwid. */
-boolean_t
+bool
 pqisrc_device_equal(pqi_scsi_dev_t *dev1,
 	pqi_scsi_dev_t *dev2)
 {
@@ -194,21 +194,21 @@ pqisrc_device_equal(pqi_scsi_dev_t *dev1,
 }
 
 /* Function used to validate the device scsi3addr. */
-boolean_t
+bool
 pqisrc_scsi3addr_equal(uint8_t *scsi3addr1, uint8_t *scsi3addr2)
 {
 	return memcmp(scsi3addr1, scsi3addr2, 8) == 0;
 }
 
 /* Function used to validate hba_lunid */
-boolean_t
+bool
 pqisrc_is_hba_lunid(uint8_t *scsi3addr)
 {
 	return pqisrc_scsi3addr_equal(scsi3addr, RAID_CTLR_LUNID);
 }
 
 /* Function used to validate type of device */
-boolean_t
+bool
 pqisrc_is_logical_device(pqi_scsi_dev_t *device)
 {
 	return !device->is_physical_device;
@@ -218,7 +218,7 @@ pqisrc_is_logical_device(pqi_scsi_dev_t *device)
 void
 pqisrc_sanitize_inquiry_string(unsigned char *s, int len)
 {
-	boolean_t terminated = false;
+	bool terminated = false;
 
 	DBG_FUNC("IN\n");
 

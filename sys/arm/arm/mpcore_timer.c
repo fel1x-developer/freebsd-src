@@ -109,7 +109,7 @@ struct arm_tmr_softc {
 static struct eventtimer *arm_tmr_et;
 static struct timecounter *arm_tmr_tc;
 static uint64_t arm_tmr_freq;
-static boolean_t arm_tmr_freq_varies;
+static bool arm_tmr_freq_varies;
 
 #define	tmr_prv_read_4(sc, reg)         bus_read_4((sc)->prv_mem, reg)
 #define	tmr_prv_write_4(sc, reg, val)   bus_write_4((sc)->prv_mem, reg, val)

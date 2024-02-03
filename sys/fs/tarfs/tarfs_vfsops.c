@@ -201,7 +201,7 @@ tarfs_str2int64(const char *strp, size_t len, int64_t *num)
  * Verifies the checksum of a header.  Returns true if the checksum is
  * valid, false otherwise.
  */
-static boolean_t
+static bool
 tarfs_checksum(struct ustar_header *hdrp)
 {
 	const unsigned char *ptr;
@@ -274,14 +274,14 @@ tarfs_checksum(struct ustar_header *hdrp)
 static int
 tarfs_lookup_path(struct tarfs_mount *tmp, char *name, size_t namelen,
     char **endp, char **sepp, struct tarfs_node **retparent,
-    struct tarfs_node **retnode, boolean_t create_dirs)
+    struct tarfs_node **retnode, bool create_dirs)
 {
 	struct componentname cn = { };
 	struct tarfs_node *parent, *tnp;
 	char *sep;
 	size_t len;
 	int error;
-	boolean_t do_lookup;
+	bool do_lookup;
 
 	MPASS(name != NULL && namelen != 0);
 
@@ -451,7 +451,7 @@ tarfs_alloc_one(struct tarfs_mount *tmp, size_t *blknump)
 	long major = -1, minor = -1;
 	unsigned int flags = 0;
 	int error;
-	boolean_t sparse = false;
+	bool sparse = false;
 
 again:
 	/* read next header */

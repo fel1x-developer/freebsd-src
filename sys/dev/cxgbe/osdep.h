@@ -76,7 +76,7 @@ typedef uint64_t __be64;
 #endif
 
 #ifndef __bool_true_false_are_defined
-typedef boolean_t bool;
+typedef bool bool;
 #define false FALSE
 #define true TRUE
 #endif

@@ -743,7 +743,7 @@ gntdev_get_offset_for_vaddr(struct ioctl_gntdev_get_offset_for_vaddr *arg,
 	vm_object_t mem;
 	vm_pindex_t pindex;
 	vm_prot_t prot;
-	boolean_t wired;
+	bool wired;
 	struct gntdev_gmap *gmap;
 	int rc;
 

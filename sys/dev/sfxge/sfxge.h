@@ -164,7 +164,7 @@ struct sfxge_evq {
 	efsys_mem_t		mem;
 	efx_evq_t		*common;
 	unsigned int		read_ptr;
-	boolean_t		exception;
+	bool		exception;
 	unsigned int		rx_done;
 	unsigned int		tx_done;
 
@@ -286,7 +286,7 @@ struct sfxge_softc {
 	efx_nic_t			*enp;
 	efsys_lock_t			enp_lock;
 
-	boolean_t			txq_dynamic_cksum_toggle_supported;
+	bool			txq_dynamic_cksum_toggle_supported;
 
 	unsigned int			rxq_entries;
 	unsigned int			txq_entries;

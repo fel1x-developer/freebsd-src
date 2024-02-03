@@ -145,7 +145,7 @@ pqisrc_extract_sense_data(sense_data_u_t *sense_data, uint8_t *key, uint8_t *asc
 }
 
 /* Suppress common errors unless verbose debug flag is on */
-boolean_t
+bool
 suppress_innocuous_error_prints(pqisrc_softstate_t *softs, rcb_t *rcb)
 {
 	uint8_t opcode = rcb->cdbp ? rcb->cdbp[0] : 0xFF;
@@ -219,7 +219,7 @@ pqisrc_show_raid_error_info(pqisrc_softstate_t *softs, rcb_t *rcb, raid_path_err
 }
 
 /*  return true if this an innocuous error */
-boolean_t
+bool
 pqisrc_is_innocuous_error(pqisrc_softstate_t *softs, rcb_t *rcb, void *err_info)
 {
 	uint8_t opcode = rcb->cdbp ? rcb->cdbp[0] : 0xFF;
@@ -433,7 +433,7 @@ pqisrc_process_response_queue(pqisrc_softstate_t *softs, int oq_id)
 	DBG_IO("ci : %u pi : %u qid : %u\n", oq_ci, oq_pi, ob_q->q_id);
 
 	while (1) {
-		boolean_t os_scsi_cmd = false;
+		bool os_scsi_cmd = false;
 		rcb_t *rcb = NULL;
 		uint32_t tag = 0;
 		uint32_t offset;

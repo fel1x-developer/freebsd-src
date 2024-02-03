@@ -75,6 +75,6 @@
 
 extern	int iwm_sf_update(struct iwm_softc *sc,
 			      struct ieee80211vap *changed_vif,
-			      boolean_t remove_vif);
+			      bool remove_vif);
 
 #endif	/* __IF_IWM_SF_H__ */

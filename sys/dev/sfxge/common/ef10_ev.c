@@ -54,35 +54,35 @@
  */
 #define	EFX_EF10_ALWAYS_INTERRUPTING_EVQ_INDEX	(0)
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_rx(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
 	__in		const efx_ev_callbacks_t *eecp,
 	__in_opt	void *arg);
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_tx(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
 	__in		const efx_ev_callbacks_t *eecp,
 	__in_opt	void *arg);
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_driver(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
 	__in		const efx_ev_callbacks_t *eecp,
 	__in_opt	void *arg);
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_drv_gen(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
 	__in		const efx_ev_callbacks_t *eecp,
 	__in_opt	void *arg);
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_mcdi(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -143,7 +143,7 @@ efx_mcdi_init_evq(
 	__in		uint32_t irq,
 	__in		uint32_t us,
 	__in		uint32_t flags,
-	__in		boolean_t low_latency)
+	__in		bool low_latency)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload,
@@ -153,7 +153,7 @@ efx_mcdi_init_evq(
 	uint64_t addr;
 	int npages;
 	int i;
-	boolean_t interrupting;
+	bool interrupting;
 	int ev_cut_through;
 	efx_rc_t rc;
 
@@ -284,7 +284,7 @@ efx_mcdi_init_evq_v2(
 	EFX_MCDI_DECLARE_BUF(payload,
 		MC_CMD_INIT_EVQ_V2_IN_LEN(EFX_EVQ_NBUFS(EFX_EVQ_MAXNEVS)),
 		MC_CMD_INIT_EVQ_V2_OUT_LEN);
-	boolean_t interrupting;
+	bool interrupting;
 	unsigned int evq_type;
 	efx_qword_t *dma_addr;
 	uint64_t addr;
@@ -536,7 +536,7 @@ ef10_ev_qcreate(
 		 * throughput and corresponding type should be specified
 		 * to choose it.)
 		 */
-		boolean_t low_latency = encp->enc_datapath_cap_evb ? 0 : 1;
+		bool low_latency = encp->enc_datapath_cap_evb ? 0 : 1;
 		rc = efx_mcdi_init_evq(enp, index, esmp, ndescs, irq, us, flags,
 		    low_latency);
 		if (rc != 0)
@@ -767,7 +767,7 @@ ef10_ev_qstats_update(
 
 #if EFSYS_OPT_RX_PACKED_STREAM || EFSYS_OPT_RX_ES_SUPER_BUFFER
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_rx_packed_stream(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -777,11 +777,11 @@ ef10_ev_rx_packed_stream(
 	uint32_t label;
 	uint32_t pkt_count_lbits;
 	uint16_t flags;
-	boolean_t should_abort;
+	bool should_abort;
 	efx_evq_rxq_state_t *eersp;
 	unsigned int pkt_count;
 	unsigned int current_id;
-	boolean_t new_buffer;
+	bool new_buffer;
 
 	pkt_count_lbits = EFX_QWORD_FIELD(*eqp, ESF_DZ_RX_DSC_PTR_LBITS);
 	label = EFX_QWORD_FIELD(*eqp, ESF_DZ_RX_QLABEL);
@@ -859,7 +859,7 @@ deliver:
 
 #endif /* EFSYS_OPT_RX_PACKED_STREAM || EFSYS_OPT_RX_ES_SUPER_BUFFER */
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_rx(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -875,8 +875,8 @@ ef10_ev_rx(
 	uint32_t l4_class;
 	uint32_t next_read_lbits;
 	uint16_t flags;
-	boolean_t cont;
-	boolean_t should_abort;
+	bool cont;
+	bool should_abort;
 	efx_evq_rxq_state_t *eersp;
 	unsigned int desc_count;
 	unsigned int last_used_id;
@@ -1071,7 +1071,7 @@ deliver:
 	return (should_abort);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_tx(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -1081,7 +1081,7 @@ ef10_ev_tx(
 	efx_nic_t *enp = eep->ee_enp;
 	uint32_t id;
 	uint32_t label;
-	boolean_t should_abort;
+	bool should_abort;
 
 	EFX_EV_QSTAT_INCR(eep, EV_TX);
 
@@ -1107,7 +1107,7 @@ ef10_ev_tx(
 	return (should_abort);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_driver(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -1115,7 +1115,7 @@ ef10_ev_driver(
 	__in_opt	void *arg)
 {
 	unsigned int code;
-	boolean_t should_abort;
+	bool should_abort;
 
 	EFX_EV_QSTAT_INCR(eep, EV_DRIVER);
 	should_abort = B_FALSE;
@@ -1157,7 +1157,7 @@ ef10_ev_driver(
 	return (should_abort);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_drv_gen(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -1165,7 +1165,7 @@ ef10_ev_drv_gen(
 	__in_opt	void *arg)
 {
 	uint32_t data;
-	boolean_t should_abort;
+	bool should_abort;
 
 	EFX_EV_QSTAT_INCR(eep, EV_DRV_GEN);
 	should_abort = B_FALSE;
@@ -1185,7 +1185,7 @@ ef10_ev_drv_gen(
 	return (should_abort);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 ef10_ev_mcdi(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -1194,7 +1194,7 @@ ef10_ev_mcdi(
 {
 	efx_nic_t *enp = eep->ee_enp;
 	unsigned int code;
-	boolean_t should_abort = B_FALSE;
+	bool should_abort = B_FALSE;
 
 	EFX_EV_QSTAT_INCR(eep, EV_MCDI_RESPONSE);
 
@@ -1394,8 +1394,8 @@ ef10_ev_rxlabel_init(
 {
 	efx_evq_rxq_state_t *eersp;
 #if EFSYS_OPT_RX_PACKED_STREAM || EFSYS_OPT_RX_ES_SUPER_BUFFER
-	boolean_t packed_stream = (type == EFX_RXQ_TYPE_PACKED_STREAM);
-	boolean_t es_super_buffer = (type == EFX_RXQ_TYPE_ES_SUPER_BUFFER);
+	bool packed_stream = (type == EFX_RXQ_TYPE_PACKED_STREAM);
+	bool es_super_buffer = (type == EFX_RXQ_TYPE_ES_SUPER_BUFFER);
 #endif
 
 	_NOTE(ARGUNUSED(type))

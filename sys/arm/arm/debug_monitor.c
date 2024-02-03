@@ -65,7 +65,7 @@ static int dbg_reset_state(void);
 static int dbg_setup_breakpoint(db_expr_t, db_expr_t, u_int);
 static int dbg_remove_breakpoint(u_int);
 static u_int dbg_find_slot(enum dbg_t, db_expr_t);
-static boolean_t dbg_check_slot_free(enum dbg_t, u_int);
+static bool dbg_check_slot_free(enum dbg_t, u_int);
 
 static int dbg_remove_xpoint(struct dbg_wb_conf *);
 static int dbg_setup_xpoint(struct dbg_wb_conf *);
@@ -74,7 +74,7 @@ static int dbg_capable_var;	/* Indicates that machine is capable of using
 				   HW watchpoints/breakpoints */
 
 static uint32_t dbg_model;	/* Debug Arch. Model */
-static boolean_t dbg_ossr;	/* OS Save and Restore implemented */
+static bool dbg_ossr;	/* OS Save and Restore implemented */
 
 static uint32_t dbg_watchpoint_num;
 static uint32_t dbg_breakpoint_num;
@@ -242,14 +242,14 @@ dbg_wb_write_reg(int reg, int n, uint32_t val)
 	isb();
 }
 
-static __inline boolean_t
+static __inline bool
 dbg_capable(void)
 {
 
 	return (atomic_cmpset_int(&dbg_capable_var, 0, 0) == 0);
 }
 
-boolean_t
+bool
 kdb_cpu_pc_is_singlestep(db_addr_t pc)
 {
 	/*
@@ -452,7 +452,7 @@ dbg_show_watchpoint(void)
 {
 	uint32_t wcr, len, type;
 	uint32_t addr;
-	boolean_t is_enabled;
+	bool is_enabled;
 	int i;
 
 	if (!dbg_capable()) {
@@ -484,7 +484,7 @@ dbg_show_watchpoint(void)
 	}
 }
 
-static boolean_t
+static bool
 dbg_check_slot_free(enum dbg_t type, u_int slot)
 {
 	uint32_t cr, vr;
@@ -575,7 +575,7 @@ dbg_find_slot(enum dbg_t type, db_expr_t addr)
 	return (~0U);
 }
 
-static __inline boolean_t
+static __inline bool
 dbg_monitor_is_enabled(void)
 {
 
@@ -622,7 +622,7 @@ dbg_setup_xpoint(struct dbg_wb_conf *conf)
 	const char *typestr;
 	uint32_t cr_size, cr_priv, cr_access;
 	uint32_t reg_ctrl, reg_addr, ctrl, addr;
-	boolean_t is_bkpt;
+	bool is_bkpt;
 	u_int cpu;
 	u_int i;
 
@@ -739,7 +739,7 @@ dbg_remove_xpoint(struct dbg_wb_conf *conf)
 	struct pcpu *pcpu;
 	struct dbreg *d;
 	uint32_t reg_ctrl, reg_addr, addr;
-	boolean_t is_bkpt;
+	bool is_bkpt;
 	u_int cpu;
 	u_int i;
 
@@ -800,7 +800,7 @@ dbg_get_debug_model(void)
 	return (dbg_m);
 }
 
-static __inline boolean_t
+static __inline bool
 dbg_get_ossr(void)
 {
 
@@ -817,7 +817,7 @@ dbg_get_ossr(void)
 	}
 }
 
-static __inline boolean_t
+static __inline bool
 dbg_arch_supported(void)
 {
 	uint32_t dbg_didr;

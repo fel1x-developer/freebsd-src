@@ -108,7 +108,7 @@ static void	lacp_update_portmap(struct lacp_softc *);
 static void	lacp_select_active_aggregator(struct lacp_softc *);
 static uint16_t	lacp_compose_key(struct lacp_port *);
 static int	tlv_check(const void *, size_t, const struct tlvhdr *,
-		    const struct tlv_template *, boolean_t);
+		    const struct tlv_template *, bool);
 static void	lacp_tick(void *);
 
 static void	lacp_fill_aggregator_id(struct lacp_aggregator *,
@@ -1505,9 +1505,9 @@ lacp_sm_mux(struct lacp_port *lp)
 	struct lagg_port *lgp = lp->lp_lagg;
 	struct lagg_softc *sc = lgp->lp_softc;
 	enum lacp_mux_state new_state;
-	boolean_t p_sync =
+	bool p_sync =
 		    (lp->lp_partner.lip_state & LACP_STATE_SYNC) != 0;
-	boolean_t p_collecting =
+	bool p_collecting =
 	    (lp->lp_partner.lip_state & LACP_STATE_COLLECTING) != 0;
 	enum lacp_selected selected = lp->lp_selected;
 	struct lacp_aggregator *la;
@@ -1772,7 +1772,7 @@ lacp_sm_rx_timer(struct lacp_port *lp)
 static void
 lacp_sm_rx_record_pdu(struct lacp_port *lp, const struct lacpdu *du)
 {
-	boolean_t active;
+	bool active;
 	uint8_t oldpstate;
 	char buf[LACP_STATESTR_MAX+1];
 
@@ -2062,7 +2062,7 @@ bad:
 
 static int
 tlv_check(const void *p, size_t size, const struct tlvhdr *tlv,
-    const struct tlv_template *tmpl, boolean_t check_type)
+    const struct tlv_template *tmpl, bool check_type)
 {
 	while (/* CONSTCOND */ 1) {
 		if ((const char *)tlv - (const char *)p + sizeof(*tlv) > size) {

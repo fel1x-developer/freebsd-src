@@ -57,14 +57,14 @@ typedef struct armada_thermal_data {
 	void (*tsen_init)(struct armada_thermal_softc *);
 
 	/* Test for a valid sensor value */
-	boolean_t (*is_valid)(struct armada_thermal_softc *);
+	bool (*is_valid)(struct armada_thermal_softc *);
 
 	/* Formula coefficients: temp = (b + m * reg) / div */
 	u_long coef_b;
 	u_long coef_m;
 	u_long coef_div;
 
-	boolean_t inverted;
+	bool inverted;
 
 	/* Shift and mask to access the sensor temperature */
 	u_int temp_shift;
@@ -72,7 +72,7 @@ typedef struct armada_thermal_data {
 	u_int is_valid_shift;
 } armada_tdata_t;
 
-static boolean_t armada_tsen_readout_valid(struct armada_thermal_softc *);
+static bool armada_tsen_readout_valid(struct armada_thermal_softc *);
 static int armada_tsen_get_temp(struct armada_thermal_softc *, u_long *);
 static void armada380_tsen_init(struct armada_thermal_softc *);
 static void armada_temp_update(void *);
@@ -236,12 +236,12 @@ armada_thermal_detach(device_t dev)
 	return (0);
 }
 
-static boolean_t
+static bool
 armada_tsen_readout_valid(struct armada_thermal_softc *sc)
 {
 	const armada_tdata_t *tdata;
 	uint32_t tsen_stat;
-	boolean_t is_valid;
+	bool is_valid;
 
 	tdata = sc->tdata;
 	tsen_stat = bus_read_4(sc->stat_res, 0);

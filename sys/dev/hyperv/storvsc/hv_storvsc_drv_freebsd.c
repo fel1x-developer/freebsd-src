@@ -121,7 +121,7 @@ struct hv_sgl_node {
 struct hv_sgl_page_pool{
 	LIST_HEAD(, hv_sgl_node) in_use_sgl_list;
 	LIST_HEAD(, hv_sgl_node) free_sgl_list;
-	boolean_t                is_init;
+	bool                is_init;
 } g_hv_sgl_page_pool;
 
 enum storvsc_request_type {
@@ -205,8 +205,8 @@ struct storvsc_softc {
 	struct cam_sim			*hs_sim;
 	struct cam_path 		*hs_path;
 	uint32_t			hs_num_out_reqs;
-	boolean_t			hs_destroy;
-	boolean_t			hs_drain_notify;
+	bool			hs_destroy;
+	bool			hs_drain_notify;
 	struct sema 			hs_drain_sema;	
 	struct hv_storvsc_request	hs_init_req;
 	struct hv_storvsc_request	hs_reset_req;
@@ -465,7 +465,7 @@ hv_storvsc_channel_init(struct storvsc_softc *sc)
 	struct hv_storvsc_request *request;
 	struct vstor_packet *vstor_packet;
 	uint16_t max_subch;
-	boolean_t support_multichannel;
+	bool support_multichannel;
 	uint32_t version;
 
 	max_subch = 0;
@@ -1753,8 +1753,8 @@ storvsc_check_bounce_buffer_sgl(bus_dma_segment_t *sgl,
 	int offset = 0;
 	uint64_t phys_addr = 0;
 	uint64_t tmp_bits = 0;
-	boolean_t found_hole = FALSE;
-	boolean_t pre_aligned = TRUE;
+	bool found_hole = FALSE;
+	bool pre_aligned = TRUE;
 
 	if (sg_count < 2){
 		return -1;
@@ -2409,7 +2409,7 @@ storvsc_io_done(struct hv_storvsc_request *reqp)
 		 * "(Medium not present - tray closed)". This error can be
 		 * ignored since it will be sent to host periodically.
 		 */
-		boolean_t unit_not_ready = \
+		bool unit_not_ready = \
 		    vm_srb->scsi_status == SCSI_STATUS_CHECK_COND &&
 		    cmd->opcode == TEST_UNIT_READY &&
 		    srb_status == SRB_STATUS_ERROR;

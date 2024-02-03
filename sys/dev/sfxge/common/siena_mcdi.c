@@ -123,7 +123,7 @@ siena_mcdi_poll_reboot(
 #endif
 }
 
-extern	__checkReturn	boolean_t
+extern	__checkReturn	bool
 siena_mcdi_poll_response(
 	__in		efx_nic_t *enp)
 {
@@ -222,7 +222,7 @@ siena_mcdi_fini(
 siena_mcdi_feature_supported(
 	__in		efx_nic_t *enp,
 	__in		efx_mcdi_feature_id_t id,
-	__out		boolean_t *supportedp)
+	__out		bool *supportedp)
 {
 	efx_rc_t rc;
 

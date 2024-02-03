@@ -217,12 +217,12 @@ efx_mcdi_poll_reboot(
 	return (rc);
 }
 
-static			boolean_t
+static			bool
 efx_mcdi_poll_response(
 	__in		efx_nic_t *enp)
 {
 	const efx_mcdi_ops_t *emcop = enp->en_mcdi.em_emcop;
-	boolean_t available;
+	bool available;
 
 	available = emcop->emco_poll_response(enp);
 	return (available);
@@ -244,7 +244,7 @@ efx_mcdi_read_response(
 efx_mcdi_request_start(
 	__in		efx_nic_t *enp,
 	__in		efx_mcdi_req_t *emrp,
-	__in		boolean_t ev_cpl)
+	__in		bool ev_cpl)
 {
 #if EFSYS_OPT_MCDI_LOGGING
 	const efx_mcdi_transport_t *emtp = enp->en_mcdi.em_emtp;
@@ -255,7 +255,7 @@ efx_mcdi_request_start(
 	unsigned int max_version;
 	unsigned int seq;
 	unsigned int xflags;
-	boolean_t new_epoch;
+	bool new_epoch;
 	efsys_lock_state_t state;
 
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
@@ -497,7 +497,7 @@ efx_mcdi_finish_response(
 #endif /* EFSYS_OPT_MCDI_LOGGING */
 }
 
-	__checkReturn	boolean_t
+	__checkReturn	bool
 efx_mcdi_request_poll(
 	__in		efx_nic_t *enp)
 {
@@ -570,13 +570,13 @@ fail1:
 	return (B_TRUE);
 }
 
-	__checkReturn	boolean_t
+	__checkReturn	bool
 efx_mcdi_request_abort(
 	__in		efx_nic_t *enp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	efx_mcdi_req_t *emrp;
-	boolean_t aborted;
+	bool aborted;
 	efsys_lock_state_t state;
 
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
@@ -874,7 +874,7 @@ efx_mcdi_ev_death(
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	const efx_mcdi_transport_t *emtp = enp->en_mcdi.em_emtp;
 	efx_mcdi_req_t *emrp = NULL;
-	boolean_t ev_cpl;
+	bool ev_cpl;
 	efsys_lock_state_t state;
 
 	/*
@@ -1046,7 +1046,7 @@ efx_mcdi_get_capabilities(
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_CAPABILITIES_IN_LEN,
 		MC_CMD_GET_CAPABILITIES_V2_OUT_LEN);
-	boolean_t v2_capable;
+	bool v2_capable;
 	efx_rc_t rc;
 
 	req.emr_cmd = MC_CMD_GET_CAPABILITIES;
@@ -1109,7 +1109,7 @@ fail1:
 static	__checkReturn	efx_rc_t
 efx_mcdi_do_reboot(
 	__in		efx_nic_t *enp,
-	__in		boolean_t after_assertion)
+	__in		bool after_assertion)
 {
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_REBOOT_IN_LEN,
 		MC_CMD_REBOOT_OUT_LEN);
@@ -1277,7 +1277,7 @@ fail1:
 	__checkReturn	efx_rc_t
 efx_mcdi_drv_attach(
 	__in		efx_nic_t *enp,
-	__in		boolean_t attach)
+	__in		bool attach)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_DRV_ATTACH_IN_LEN,
@@ -1567,7 +1567,7 @@ fail1:
 	__checkReturn		efx_rc_t
 efx_mcdi_firmware_update_supported(
 	__in			efx_nic_t *enp,
-	__out			boolean_t *supportedp)
+	__out			bool *supportedp)
 {
 	const efx_mcdi_ops_t *emcop = enp->en_mcdi.em_emcop;
 	efx_rc_t rc;
@@ -1592,7 +1592,7 @@ fail1:
 	__checkReturn		efx_rc_t
 efx_mcdi_macaddr_change_supported(
 	__in			efx_nic_t *enp,
-	__out			boolean_t *supportedp)
+	__out			bool *supportedp)
 {
 	const efx_mcdi_ops_t *emcop = enp->en_mcdi.em_emcop;
 	efx_rc_t rc;
@@ -1617,7 +1617,7 @@ fail1:
 	__checkReturn		efx_rc_t
 efx_mcdi_link_control_supported(
 	__in			efx_nic_t *enp,
-	__out			boolean_t *supportedp)
+	__out			bool *supportedp)
 {
 	const efx_mcdi_ops_t *emcop = enp->en_mcdi.em_emcop;
 	efx_rc_t rc;
@@ -1642,7 +1642,7 @@ fail1:
 	__checkReturn		efx_rc_t
 efx_mcdi_mac_spoofing_supported(
 	__in			efx_nic_t *enp,
-	__out			boolean_t *supportedp)
+	__out			bool *supportedp)
 {
 	const efx_mcdi_ops_t *emcop = enp->en_mcdi.em_emcop;
 	efx_rc_t rc;
@@ -1950,7 +1950,7 @@ efx_mcdi_mac_stats_periodic(
 	__in		efx_nic_t *enp,
 	__in		efsys_mem_t *esmp,
 	__in		uint16_t period_ms,
-	__in		boolean_t events)
+	__in		bool events)
 {
 	efx_rc_t rc;
 
@@ -2086,7 +2086,7 @@ fail1:
 efx_mcdi_set_workaround(
 	__in			efx_nic_t *enp,
 	__in			uint32_t type,
-	__in			boolean_t enabled,
+	__in			bool enabled,
 	__out_opt		uint32_t *flagsp)
 {
 	efx_mcdi_req_t req;

@@ -76,9 +76,9 @@ struct ti_sdhci_softc {
 	uint64_t		baseclk_hz;
 	uint32_t		cmd_and_mode;
 	uint32_t		sdhci_clkdiv;
-	boolean_t		disable_highspeed;
-	boolean_t		force_card_present;
-	boolean_t		disable_readonly;
+	bool		disable_highspeed;
+	bool		force_card_present;
+	bool		disable_readonly;
 };
 
 /*

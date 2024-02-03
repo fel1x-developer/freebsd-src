@@ -52,8 +52,8 @@ static int oce_skyhawk_fwupgrade(POCE_SOFTC sc, const struct firmware *fw);
 static int  oce_sys_fwupgrade(SYSCTL_HANDLER_ARGS);
 static int  oce_lancer_fwupgrade(POCE_SOFTC sc, const struct firmware *fw);
 static int oce_sysctl_sfp_vpd_dump(SYSCTL_HANDLER_ARGS);
-static boolean_t oce_phy_flashing_required(POCE_SOFTC sc);
-static boolean_t oce_img_flashing_required(POCE_SOFTC sc, const char *p,
+static bool oce_phy_flashing_required(POCE_SOFTC sc);
+static bool oce_img_flashing_required(POCE_SOFTC sc, const char *p,
 				int img_optype, uint32_t img_offset,
 				uint32_t img_size, uint32_t hdrs_size);
 static void oce_add_stats_sysctls_be3(POCE_SOFTC sc,
@@ -585,7 +585,7 @@ oce_be3_fwupgrade(POCE_SOFTC sc, const struct firmware *fw)
 	return rc;
 }
 
-static boolean_t
+static bool
 oce_phy_flashing_required(POCE_SOFTC sc)
 {
 	int status = 0;
@@ -603,7 +603,7 @@ oce_phy_flashing_required(POCE_SOFTC sc)
 	return FALSE;
 }
 
-static boolean_t
+static bool
 oce_img_flashing_required(POCE_SOFTC sc, const char *p,
 				int img_optype, uint32_t img_offset,
 				uint32_t img_size, uint32_t hdrs_size)

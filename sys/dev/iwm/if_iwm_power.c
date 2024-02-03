@@ -229,12 +229,12 @@ iwm_power_log(struct iwm_softc *sc, struct iwm_mac_power_cmd *cmd)
 		    "DTIM periods to skip = %u\n", cmd->skip_dtim_periods);
 }
 
-static boolean_t
+static bool
 iwm_power_is_radar(struct iwm_softc *sc)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct ieee80211_channel *chan;
-	boolean_t radar_detect = FALSE;
+	bool radar_detect = FALSE;
 
 	chan = ic->ic_bsschan;
 	if (chan == IEEE80211_CHAN_ANYC ||
@@ -283,7 +283,7 @@ iwm_power_build_cmd(struct iwm_softc *sc, struct iwm_vap *ivp,
 	struct ieee80211_node *ni = vap->iv_bss;
 	int dtimper, dtimper_msec;
 	int keep_alive;
-	boolean_t bss_conf_ps = FALSE;
+	bool bss_conf_ps = FALSE;
 
 	cmd->id_and_color = htole32(IWM_FW_CMD_ID_AND_COLOR(ivp->id,
 	    ivp->color));
@@ -378,7 +378,7 @@ static int
 iwm_power_set_ps(struct iwm_softc *sc)
 {
 	struct ieee80211vap *vap;
-	boolean_t disable_ps;
+	bool disable_ps;
 	int ret;
 
 	/* disable PS if CAM */
@@ -392,7 +392,7 @@ iwm_power_set_ps(struct iwm_softc *sc)
 
 	/* update device power state if it has changed */
 	if (sc->sc_ps_disabled != disable_ps) {
-		boolean_t old_ps_disabled = sc->sc_ps_disabled;
+		bool old_ps_disabled = sc->sc_ps_disabled;
 
 		sc->sc_ps_disabled = disable_ps;
 		ret = iwm_power_update_device(sc);
@@ -414,7 +414,7 @@ iwm_power_set_ba(struct iwm_softc *sc, struct iwm_vap *ivp)
 	};
 	struct ieee80211vap *vap = &ivp->iv_vap;
 	struct ieee80211_node *ni = vap->iv_bss;
-	boolean_t bss_conf_ps = FALSE;
+	bool bss_conf_ps = FALSE;
 
 	if (!sc->sc_bf.bf_enabled)
 		return 0;

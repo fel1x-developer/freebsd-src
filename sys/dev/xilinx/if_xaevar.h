@@ -54,9 +54,9 @@ struct xae_softc {
 	struct mtx		mtx;
 	void *			intr_cookie;
 	struct callout		xae_callout;
-	boolean_t		link_is_up;
-	boolean_t		is_attached;
-	boolean_t		is_detaching;
+	bool		link_is_up;
+	bool		is_attached;
+	bool		is_detaching;
 	int			phy_addr;
 
 	/* xDMA TX */

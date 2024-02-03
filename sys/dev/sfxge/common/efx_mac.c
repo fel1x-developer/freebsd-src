@@ -203,17 +203,17 @@ fail1:
 	__checkReturn			efx_rc_t
 efx_mac_filter_set(
 	__in				efx_nic_t *enp,
-	__in				boolean_t all_unicst,
-	__in				boolean_t mulcst,
-	__in				boolean_t all_mulcst,
-	__in				boolean_t brdcst)
+	__in				bool all_unicst,
+	__in				bool mulcst,
+	__in				bool all_mulcst,
+	__in				bool brdcst)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_mac_ops_t *emop = epp->ep_emop;
-	boolean_t old_all_unicst;
-	boolean_t old_mulcst;
-	boolean_t old_all_mulcst;
-	boolean_t old_brdcst;
+	bool old_all_unicst;
+	bool old_mulcst;
+	bool old_all_mulcst;
+	bool old_brdcst;
 	efx_rc_t rc;
 
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
@@ -248,7 +248,7 @@ fail1:
 	__checkReturn			efx_rc_t
 efx_mac_drain(
 	__in				efx_nic_t *enp,
-	__in				boolean_t enabled)
+	__in				bool enabled)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_mac_ops_t *emop = epp->ep_emop;
@@ -277,7 +277,7 @@ fail1:
 	__checkReturn	efx_rc_t
 efx_mac_up(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *mac_upp)
+	__out		bool *mac_upp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_mac_ops_t *emop = epp->ep_emop;
@@ -301,13 +301,13 @@ fail1:
 efx_mac_fcntl_set(
 	__in				efx_nic_t *enp,
 	__in				unsigned int fcntl,
-	__in				boolean_t autoneg)
+	__in				bool autoneg)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_mac_ops_t *emop = epp->ep_emop;
 	const efx_phy_ops_t *epop = epp->ep_epop;
 	unsigned int old_fcntl;
-	boolean_t old_autoneg;
+	bool old_autoneg;
 	unsigned int old_adv_cap;
 	efx_rc_t rc;
 
@@ -477,7 +477,7 @@ fail1:
 efx_mac_filter_default_rxq_set(
 	__in		efx_nic_t *enp,
 	__in		efx_rxq_t *erp,
-	__in		boolean_t using_rss)
+	__in		bool using_rss)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_mac_ops_t *emop = epp->ep_emop;
@@ -794,7 +794,7 @@ efx_mac_stats_periodic(
 	__in				efx_nic_t *enp,
 	__in				efsys_mem_t *esmp,
 	__in				uint16_t period_ms,
-	__in				boolean_t events)
+	__in				bool events)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_mac_ops_t *emop = epp->ep_emop;

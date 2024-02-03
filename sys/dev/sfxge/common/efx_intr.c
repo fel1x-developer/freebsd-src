@@ -66,20 +66,20 @@ siena_intr_fini(
 static			void
 siena_intr_status_line(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
+	__out		bool *fatalp,
 	__out		uint32_t *qmaskp);
 
 static			void
 siena_intr_status_message(
 	__in		efx_nic_t *enp,
 	__in		unsigned int message,
-	__out		boolean_t *fatalp);
+	__out		bool *fatalp);
 
 static			void
 siena_intr_fatal(
 	__in		efx_nic_t *enp);
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_intr_check_fatal(
 	__in		efx_nic_t *enp);
 
@@ -257,7 +257,7 @@ efx_intr_trigger(
 			void
 efx_intr_status_line(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
+	__out		bool *fatalp,
 	__out		uint32_t *qmaskp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
@@ -273,7 +273,7 @@ efx_intr_status_line(
 efx_intr_status_message(
 	__in		efx_nic_t *enp,
 	__in		unsigned int message,
-	__out		boolean_t *fatalp)
+	__out		bool *fatalp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 	const efx_intr_ops_t *eiop = eip->ei_eiop;
@@ -448,7 +448,7 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_intr_check_fatal(
 	__in		efx_nic_t *enp)
 {
@@ -475,7 +475,7 @@ siena_intr_check_fatal(
 static			void
 siena_intr_status_line(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
+	__out		bool *fatalp,
 	__out		uint32_t *qmaskp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
@@ -503,7 +503,7 @@ static			void
 siena_intr_status_message(
 	__in		efx_nic_t *enp,
 	__in		unsigned int message,
-	__out		boolean_t *fatalp)
+	__out		bool *fatalp)
 {
 	efx_intr_t *eip = &(enp->en_intr);
 

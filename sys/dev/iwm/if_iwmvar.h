@@ -212,7 +212,7 @@ struct iwm_nvm_data {
 	uint16_t nvm_version;
 	uint8_t max_tx_pwr_half_dbm;
 
-	boolean_t lar_enabled;
+	bool lar_enabled;
 	uint16_t nvm_ch_flags[];
 };
 
@@ -362,7 +362,7 @@ struct iwm_vap {
 	uint16_t		id;
 	uint16_t		color;
 
-	boolean_t		have_wme;
+	bool		have_wme;
 	/*
 	 * QoS data from net80211, need to store this here
 	 * as net80211 has a separate callback but we need
@@ -376,7 +376,7 @@ struct iwm_vap {
 	} queue_params[WME_NUM_AC];
 
 	/* indicates that this interface requires PS to be disabled */
-	boolean_t		ps_disabled;
+	bool		ps_disabled;
 };
 #define IWM_VAP(_vap)		((struct iwm_vap *)(_vap))
 
@@ -536,13 +536,13 @@ struct iwm_softc {
 	uint16_t		num_of_paging_blk;
 	uint16_t		num_of_pages_in_last_blk;
 
-	boolean_t		last_ebs_successful;
+	bool		last_ebs_successful;
 
 	/* last smart fifo state that was successfully sent to firmware */
 	enum iwm_sf_state	sf_state;
 
 	/* Indicate if device power save is allowed */
-	boolean_t		sc_ps_disabled;
+	bool		sc_ps_disabled;
 
 	int			sc_ltr_enabled;
 

@@ -1249,7 +1249,7 @@ int
 vm_mmap_vnode(struct thread *td, vm_size_t objsize,
     vm_prot_t prot, vm_prot_t *maxprotp, int *flagsp,
     struct vnode *vp, vm_ooffset_t *foffp, vm_object_t *objp,
-    boolean_t *writecounted)
+    bool *writecounted)
 {
 	struct vattr va;
 	vm_object_t obj;
@@ -1421,7 +1421,7 @@ vm_mmap(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
 	vm_object_t object;
 	struct thread *td = curthread;
 	int error;
-	boolean_t writecounted;
+	bool writecounted;
 
 	if (size == 0)
 		return (EINVAL);
@@ -1510,7 +1510,7 @@ kern_mmap_racct_check(struct thread *td, vm_map_t map, vm_size_t size)
 int
 vm_mmap_object(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
     vm_prot_t maxprot, int flags, vm_object_t object, vm_ooffset_t foff,
-    boolean_t writecounted, struct thread *td)
+    bool writecounted, struct thread *td)
 {
 	vm_offset_t default_addr, max_addr;
 	int docow, error, findspace, rv;

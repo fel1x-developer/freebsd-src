@@ -465,7 +465,7 @@ more:
  */
 int
 vm_pageout_flush(vm_page_t *mc, int count, int flags, int mreq, int *prunlen,
-    boolean_t *eio)
+    bool *eio)
 {
 	vm_object_t object = mc[0]->object;
 	int pageout_status[count];

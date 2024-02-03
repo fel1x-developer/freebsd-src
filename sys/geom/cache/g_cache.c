@@ -90,7 +90,7 @@ SYSCTL_PROC(_kern_geom_cache, OID_AUTO, used_hi,
     sysctl_handle_pct, "IU",
     "");
 
-static int g_cache_destroy(struct g_cache_softc *sc, boolean_t force);
+static int g_cache_destroy(struct g_cache_softc *sc, bool force);
 static g_ctl_destroy_geom_t g_cache_destroy_geom;
 
 static g_taste_t g_cache_taste;
@@ -549,7 +549,7 @@ g_cache_create(struct g_class *mp, struct g_provider *pp,
 }
 
 static int
-g_cache_destroy(struct g_cache_softc *sc, boolean_t force)
+g_cache_destroy(struct g_cache_softc *sc, bool force)
 {
 	struct g_geom *gp;
 	struct g_provider *pp;

@@ -52,7 +52,7 @@
 #include "iicbus_if.h"
 
 struct a37x0_iic_softc {
-	boolean_t		sc_fast_mode;
+	bool		sc_fast_mode;
 	bus_space_tag_t		sc_bst;
 	bus_space_handle_t	sc_bsh;
 	device_t		sc_dev;

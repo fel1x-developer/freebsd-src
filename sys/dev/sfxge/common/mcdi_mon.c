@@ -88,7 +88,7 @@ mcdi_mon_decode_stats(
 	for (sensor = 0; sensor < sensor_max; ++sensor) {
 		efx_mon_stat_t id;
 		efx_mon_stat_portmask_t stat_portmask = 0;
-		boolean_t decode_ok;
+		bool decode_ok;
 		efx_mon_stat_unit_t stat_unit;
 
 		if ((sensor % (MC_CMD_SENSOR_PAGE0_NEXT + 1)) ==

@@ -107,10 +107,10 @@ static struct g_geom *create_virstor_geom(struct g_class *,
     struct g_virstor_metadata *);
 static void virstor_check_and_run(struct g_virstor_softc *);
 static u_int virstor_valid_components(struct g_virstor_softc *);
-static int virstor_geom_destroy(struct g_virstor_softc *, boolean_t,
-    boolean_t);
+static int virstor_geom_destroy(struct g_virstor_softc *, bool,
+    bool);
 static void remove_component(struct g_virstor_softc *,
-    struct g_virstor_component *, boolean_t);
+    struct g_virstor_component *, bool);
 static void bioq_dismantle(struct bio_queue_head *);
 static int allocate_chunk(struct g_virstor_softc *,
     struct g_virstor_component **, u_int *, u_int *);
@@ -877,7 +877,7 @@ delay_destroy_consumer(void *arg, int flags __unused)
  */
 static void
 remove_component(struct g_virstor_softc *sc, struct g_virstor_component *comp,
-    boolean_t delay)
+    bool delay)
 {
 	struct g_consumer *c;
 
@@ -911,8 +911,8 @@ remove_component(struct g_virstor_softc *sc, struct g_virstor_component *comp,
  * See g_virstor_destroy_geom for the other one
  */
 static int
-virstor_geom_destroy(struct g_virstor_softc *sc, boolean_t force,
-    boolean_t delay)
+virstor_geom_destroy(struct g_virstor_softc *sc, bool force,
+    bool delay)
 {
 	struct g_provider *pp;
 	struct g_geom *gp;

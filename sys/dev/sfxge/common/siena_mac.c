@@ -66,7 +66,7 @@ fail1:
 	__checkReturn	efx_rc_t
 siena_mac_up(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *mac_upp)
+	__out		bool *mac_upp)
 {
 	siena_link_state_t sls;
 	efx_rc_t rc;

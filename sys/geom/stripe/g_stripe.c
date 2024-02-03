@@ -47,7 +47,7 @@ static MALLOC_DEFINE(M_STRIPE, "stripe_data", "GEOM_STRIPE Data");
 
 static uma_zone_t g_stripe_zone;
 
-static int g_stripe_destroy(struct g_stripe_softc *sc, boolean_t force);
+static int g_stripe_destroy(struct g_stripe_softc *sc, bool force);
 static int g_stripe_destroy_geom(struct gctl_req *req, struct g_class *mp,
     struct g_geom *gp);
 
@@ -874,7 +874,7 @@ g_stripe_create(struct g_class *mp, const struct g_stripe_metadata *md,
 }
 
 static int
-g_stripe_destroy(struct g_stripe_softc *sc, boolean_t force)
+g_stripe_destroy(struct g_stripe_softc *sc, bool force)
 {
 	struct g_provider *pp;
 	struct g_consumer *cp, *cp1;

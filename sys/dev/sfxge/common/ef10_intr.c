@@ -143,7 +143,7 @@ fail1:
 			void
 ef10_intr_status_line(
 	__in		efx_nic_t *enp,
-	__out		boolean_t *fatalp,
+	__out		bool *fatalp,
 	__out		uint32_t *qmaskp)
 {
 	efx_dword_t dword;
@@ -165,7 +165,7 @@ ef10_intr_status_line(
 ef10_intr_status_message(
 	__in		efx_nic_t *enp,
 	__in		unsigned int message,
-	__out		boolean_t *fatalp)
+	__out		bool *fatalp)
 {
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_HUNTINGTON ||
 	    enp->en_family == EFX_FAMILY_MEDFORD ||

@@ -294,7 +294,7 @@ iwm_sf_config(struct iwm_softc *sc, struct ieee80211_node *ni,
  */
 int
 iwm_sf_update(struct iwm_softc *sc, struct ieee80211vap *changed_vif,
-	boolean_t remove_vif)
+	bool remove_vif)
 {
 	enum iwm_sf_state new_state;
 	struct ieee80211_node *ni = NULL;

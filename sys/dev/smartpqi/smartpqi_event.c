@@ -176,7 +176,7 @@ pqisrc_process_event_intr_src(pqisrc_softstate_t *softs,int obq_id)
 	pqi_event_response_t response;
 	ob_queue_t *event_q;
 	struct pqi_event *pending_event;
-	boolean_t  need_delayed_work = false;
+	bool  need_delayed_work = false;
 
 	DBG_FUNC(" IN\n");
 

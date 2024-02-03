@@ -343,7 +343,7 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	boolean_t
+	__checkReturn	bool
 efx_ev_qpending(
 	__in		efx_evq_t *eep,
 	__in		unsigned int count)
@@ -440,7 +440,7 @@ efx_ev_qpoll(
 
 		/* Process the batch of events */
 		for (index = 0; index < total; ++index) {
-			boolean_t should_abort;
+			bool should_abort;
 			uint32_t code;
 
 #if EFSYS_OPT_EV_PREFETCH
@@ -636,7 +636,7 @@ siena_ev_init(
 
 }
 
-static  __checkReturn   boolean_t
+static  __checkReturn   bool
 siena_ev_rx_not_ok(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -644,7 +644,7 @@ siena_ev_rx_not_ok(
 	__in		uint32_t id,
 	__inout		uint16_t *flagsp)
 {
-	boolean_t ignore = B_FALSE;
+	bool ignore = B_FALSE;
 
 	if (EFX_QWORD_FIELD(*eqp, FSF_AZ_RX_EV_TOBE_DISC) != 0) {
 		EFX_EV_QSTAT_INCR(eep, EV_RX_TOBE_DISC);
@@ -726,7 +726,7 @@ siena_ev_rx_not_ok(
 	return (ignore);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_ev_rx(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -736,16 +736,16 @@ siena_ev_rx(
 	uint32_t id;
 	uint32_t size;
 	uint32_t label;
-	boolean_t ok;
+	bool ok;
 #if EFSYS_OPT_RX_SCATTER
-	boolean_t sop;
-	boolean_t jumbo_cont;
+	bool sop;
+	bool jumbo_cont;
 #endif	/* EFSYS_OPT_RX_SCATTER */
 	uint32_t hdr_type;
-	boolean_t is_v6;
+	bool is_v6;
 	uint16_t flags;
-	boolean_t ignore;
-	boolean_t should_abort;
+	bool ignore;
+	bool should_abort;
 
 	EFX_EV_QSTAT_INCR(eep, EV_RX);
 
@@ -880,7 +880,7 @@ siena_ev_rx(
 	return (should_abort);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_ev_tx(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -889,7 +889,7 @@ siena_ev_tx(
 {
 	uint32_t id;
 	uint32_t label;
-	boolean_t should_abort;
+	bool should_abort;
 
 	EFX_EV_QSTAT_INCR(eep, EV_TX);
 
@@ -926,7 +926,7 @@ siena_ev_tx(
 	return (B_FALSE);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_ev_global(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -940,14 +940,14 @@ siena_ev_global(
 	return (B_FALSE);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_ev_driver(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
 	__in		const efx_ev_callbacks_t *eecp,
 	__in_opt	void *arg)
 {
-	boolean_t should_abort;
+	bool should_abort;
 
 	EFX_EV_QSTAT_INCR(eep, EV_DRIVER);
 	should_abort = B_FALSE;
@@ -1069,7 +1069,7 @@ siena_ev_driver(
 	return (should_abort);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_ev_drv_gen(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -1077,7 +1077,7 @@ siena_ev_drv_gen(
 	__in_opt	void *arg)
 {
 	uint32_t data;
-	boolean_t should_abort;
+	bool should_abort;
 
 	EFX_EV_QSTAT_INCR(eep, EV_DRV_GEN);
 
@@ -1097,7 +1097,7 @@ siena_ev_drv_gen(
 
 #if EFSYS_OPT_MCDI
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_ev_mcdi(
 	__in		efx_evq_t *eep,
 	__in		efx_qword_t *eqp,
@@ -1106,7 +1106,7 @@ siena_ev_mcdi(
 {
 	efx_nic_t *enp = eep->ee_enp;
 	unsigned int code;
-	boolean_t should_abort = B_FALSE;
+	bool should_abort = B_FALSE;
 
 	EFSYS_ASSERT3U(enp->en_family, ==, EFX_FAMILY_SIENA);
 
@@ -1303,7 +1303,7 @@ siena_ev_qcreate(
 	uint32_t size;
 	efx_oword_t oword;
 	efx_rc_t rc;
-	boolean_t notify_mode;
+	bool notify_mode;
 
 	_NOTE(ARGUNUSED(esmp))
 

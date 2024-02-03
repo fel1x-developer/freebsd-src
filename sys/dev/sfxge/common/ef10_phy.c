@@ -128,9 +128,9 @@ mcdi_phy_decode_link_mode(
 	__out		unsigned int *fcntlp,
 	__out		efx_phy_fec_type_t *fecp)
 {
-	boolean_t fd = !!(link_flags &
+	bool fd = !!(link_flags &
 		    (1 << MC_CMD_GET_LINK_OUT_FULL_DUPLEX_LBN));
-	boolean_t up = !!(link_flags &
+	bool up = !!(link_flags &
 		    (1 << MC_CMD_GET_LINK_OUT_LINK_UP_LBN));
 
 	_NOTE(ARGUNUSED(enp))
@@ -259,7 +259,7 @@ ef10_phy_link_ev(
 	__checkReturn	efx_rc_t
 ef10_phy_power(
 	__in		efx_nic_t *enp,
-	__in		boolean_t power)
+	__in		bool power)
 {
 	efx_rc_t rc;
 
@@ -365,7 +365,7 @@ ef10_phy_reconfigure(
 	unsigned int led_mode;
 #endif
 	unsigned int speed;
-	boolean_t supported;
+	bool supported;
 	efx_rc_t rc;
 
 	if ((rc = efx_mcdi_link_control_supported(enp, &supported)) != 0)

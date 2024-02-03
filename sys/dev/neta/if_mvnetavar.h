@@ -129,9 +129,9 @@ struct mvneta_rx_ring {
 
 	/* LRO */
 	struct lro_ctrl			lro;
-	boolean_t			lro_enabled;
+	bool			lro_enabled;
 	/* Is this queue out of mbuf */
-	boolean_t			needs_refill;
+	bool			needs_refill;
 } __aligned(CACHE_LINE_SIZE);
 
 struct mvneta_tx_ring {
@@ -162,7 +162,7 @@ struct mvneta_tx_ring {
 #define	MVNETA_WATCHDOG	(10 * hz) /* 10s */
 	int				watchdog_time;
 	int				queue_status;
-	boolean_t			queue_hung;
+	bool			queue_hung;
 
 	/* Task */
 	struct task			task;
@@ -269,14 +269,14 @@ struct mvneta_softc {
 	enum mvneta_phy_mode	phy_mode;
 	int			phy_addr;
 	int			phy_speed;	/* PHY speed */
-	boolean_t		phy_fdx;	/* Full duplex mode */
-	boolean_t		autoneg;	/* Autonegotiation status */
-	boolean_t		use_inband_status;	/* In-band link status */
+	bool		phy_fdx;	/* Full duplex mode */
+	bool		autoneg;	/* Autonegotiation status */
+	bool		use_inband_status;	/* In-band link status */
 
 	/*
 	 * Link State control
 	 */
-	boolean_t	linkup;
+	bool	linkup;
         device_t        miibus;
 	struct mii_data *mii;
 	uint8_t		enaddr[ETHER_ADDR_LEN];
@@ -321,7 +321,7 @@ struct mvneta_softc {
 int mvneta_attach(device_t);
 
 #ifdef FDT
-boolean_t mvneta_has_switch_fdt(device_t);
+bool mvneta_has_switch_fdt(device_t);
 int mvneta_fdt_mac_address(struct mvneta_softc *, uint8_t *);
 #endif
 

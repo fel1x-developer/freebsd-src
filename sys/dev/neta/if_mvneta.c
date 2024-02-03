@@ -151,7 +151,7 @@ STATIC void mvneta_adjust_link(struct mvneta_softc *);
 STATIC void mvneta_update_eee(struct mvneta_softc *);
 STATIC void mvneta_update_fc(struct mvneta_softc *);
 STATIC void mvneta_link_isr(struct mvneta_softc *);
-STATIC void mvneta_linkupdate(struct mvneta_softc *, boolean_t);
+STATIC void mvneta_linkupdate(struct mvneta_softc *, bool);
 STATIC void mvneta_linkup(struct mvneta_softc *);
 STATIC void mvneta_linkdown(struct mvneta_softc *);
 STATIC void mvneta_linkreset(struct mvneta_softc *);
@@ -186,7 +186,7 @@ STATIC uint64_t mvneta_read_mib(struct mvneta_softc *, int);
 STATIC void mvneta_update_mib(struct mvneta_softc *);
 
 /* Switch */
-STATIC boolean_t mvneta_has_switch(device_t);
+STATIC bool mvneta_has_switch(device_t);
 
 #define	mvneta_sc_lock(sc) mtx_lock(&sc->mtx)
 #define	mvneta_sc_unlock(sc) mtx_unlock(&sc->mtx)
@@ -395,7 +395,7 @@ mvneta_get_mac_address(struct mvneta_softc *sc, uint8_t *addr)
 	return (0);
 }
 
-STATIC boolean_t
+STATIC bool
 mvneta_has_switch(device_t self)
 {
 #ifdef FDT
@@ -2442,7 +2442,7 @@ STATIC int
 mvneta_update_media(struct mvneta_softc *sc, int media)
 {
 	int reg, err;
-	boolean_t running;
+	bool running;
 
 	err = 0;
 
@@ -2497,7 +2497,7 @@ out:
 STATIC void
 mvneta_adjust_link(struct mvneta_softc *sc)
 {
-	boolean_t phy_linkup;
+	bool phy_linkup;
 	int reg;
 
 	/* Update eee/fc */
@@ -2559,7 +2559,7 @@ mvneta_link_isr(struct mvneta_softc *sc)
 }
 
 STATIC void
-mvneta_linkupdate(struct mvneta_softc *sc, boolean_t linkup)
+mvneta_linkupdate(struct mvneta_softc *sc, bool linkup)
 {
 
 	KASSERT_SC_MTX(sc);

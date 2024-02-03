@@ -1088,7 +1088,7 @@ struct IO_REQUEST_INFO {
 	/* span[7:5], arm[4:0] */
 	u_int8_t span_arm;
 	u_int8_t pd_after_lb;
-	boolean_t raCapable;
+	bool raCapable;
 	u_int16_t r1_alt_dev_handle;
 };
 
@@ -1125,15 +1125,15 @@ typedef struct _STREAM_DETECT {
 	u_int16_t numSGEsInGroup;
 	u_int8_t isRead;
 	u_int8_t groupDepth;
-	boolean_t groupFlush;
+	bool groupFlush;
 	u_int8_t reserved[7];
 } STREAM_DETECT, *PTR_STREAM_DETECT;
 
 typedef struct _LD_STREAM_DETECT {
-	boolean_t writeBack;
-	boolean_t FPWriteEnabled;
-	boolean_t membersSSDs;
-	boolean_t fpCacheBypassCapable;
+	bool writeBack;
+	bool FPWriteEnabled;
+	bool membersSSDs;
+	bool fpCacheBypassCapable;
 	u_int32_t mruBitMap;
 	volatile long iosToFware;
 	volatile long writeBytesOutstanding;
@@ -1745,9 +1745,9 @@ struct mrsas_mpt_cmd {
 	union ccb *ccb_ptr;
 	struct callout cm_callout;
 	struct mrsas_softc *sc;
-	boolean_t tmCapable;
+	bool tmCapable;
 	u_int16_t r1_alt_dev_handle;
-	boolean_t cmd_completed;
+	bool cmd_completed;
 	struct mrsas_mpt_cmd *peer_cmd;
 	bool	callout_owner;
 	TAILQ_ENTRY(mrsas_mpt_cmd) next;
@@ -3612,10 +3612,10 @@ struct mrsas_softc {
 	u_int32_t drv_map_sz;
 
 	u_int32_t nvme_page_size;
-	boolean_t is_ventura;
-	boolean_t is_aero;
-	boolean_t msix_combined;
-	boolean_t atomic_desc_support;
+	bool is_ventura;
+	bool is_aero;
+	bool msix_combined;
+	bool atomic_desc_support;
 	u_int16_t maxRaidMapSize;
 
 	/* Non dma-able memory. Driver local copy. */

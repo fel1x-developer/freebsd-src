@@ -79,7 +79,7 @@ static int mrsas_alloc_mem(struct mrsas_softc *sc);
 static int mrsas_init_fw(struct mrsas_softc *sc);
 static int mrsas_setup_raidmap(struct mrsas_softc *sc);
 static void megasas_setup_jbod_map(struct mrsas_softc *sc);
-static int megasas_sync_pd_seq_num(struct mrsas_softc *sc, boolean_t pend);
+static int megasas_sync_pd_seq_num(struct mrsas_softc *sc, bool pend);
 static int mrsas_clear_intr(struct mrsas_softc *sc);
 static int mrsas_get_ctrl_info(struct mrsas_softc *sc);
 static void mrsas_update_ext_vd_details(struct mrsas_softc *sc);
@@ -4223,7 +4223,7 @@ mrsas_flush_cache(struct mrsas_softc *sc)
 }
 
 int
-megasas_sync_pd_seq_num(struct mrsas_softc *sc, boolean_t pend)
+megasas_sync_pd_seq_num(struct mrsas_softc *sc, bool pend)
 {
 	int retcode = 0;
 	u_int8_t do_ocr = 1;

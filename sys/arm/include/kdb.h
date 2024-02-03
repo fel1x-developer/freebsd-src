@@ -36,7 +36,7 @@
 
 extern void kdb_cpu_clear_singlestep(void);
 extern void kdb_cpu_set_singlestep(void);
-boolean_t kdb_cpu_pc_is_singlestep(db_addr_t);
+bool kdb_cpu_pc_is_singlestep(db_addr_t);
 int kdb_cpu_set_watchpoint(vm_offset_t addr, size_t size, int access);
 int kdb_cpu_clr_watchpoint(vm_offset_t addr, size_t size);
 

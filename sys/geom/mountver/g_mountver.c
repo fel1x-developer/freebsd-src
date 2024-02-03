@@ -60,7 +60,7 @@ static eventhandler_tag g_mountver_pre_sync = NULL;
 static void g_mountver_queue(struct bio *bp);
 static void g_mountver_orphan(struct g_consumer *cp);
 static void g_mountver_resize(struct g_consumer *cp);
-static int g_mountver_destroy(struct g_geom *gp, boolean_t force);
+static int g_mountver_destroy(struct g_geom *gp, bool force);
 static g_taste_t g_mountver_taste;
 static int g_mountver_destroy_geom(struct gctl_req *req, struct g_class *mp,
     struct g_geom *gp);
@@ -357,7 +357,7 @@ fail:
 }
 
 static int
-g_mountver_destroy(struct g_geom *gp, boolean_t force)
+g_mountver_destroy(struct g_geom *gp, bool force)
 {
 	struct g_mountver_softc *sc;
 	struct g_provider *pp;

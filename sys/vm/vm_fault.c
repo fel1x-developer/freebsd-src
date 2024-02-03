@@ -122,7 +122,7 @@ struct faultstate {
 	vm_prot_t	fault_type;
 	vm_prot_t	prot;
 	int		fault_flags;
-	boolean_t	wired;
+	bool	wired;
 
 	/* Control state. */
 	struct timeval	oom_start_time;
@@ -1970,7 +1970,7 @@ vm_fault_quick_hold_pages(vm_map_t map, vm_offset_t addr, vm_size_t len,
 	vm_offset_t end, va;
 	vm_page_t *mp;
 	int count;
-	boolean_t pmap_failed;
+	bool pmap_failed;
 
 	if (len == 0)
 		return (0);

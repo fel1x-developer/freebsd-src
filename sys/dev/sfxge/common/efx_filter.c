@@ -54,7 +54,7 @@ static	__checkReturn	efx_rc_t
 siena_filter_add(
 	__in		efx_nic_t *enp,
 	__inout		efx_filter_spec_t *spec,
-	__in		boolean_t may_replace);
+	__in		bool may_replace);
 
 static	__checkReturn	efx_rc_t
 siena_filter_delete(
@@ -283,10 +283,10 @@ fail1:
 efx_filter_reconfigure(
 	__in				efx_nic_t *enp,
 	__in_ecount(6)			uint8_t const *mac_addr,
-	__in				boolean_t all_unicst,
-	__in				boolean_t mulcst,
-	__in				boolean_t all_mulcst,
-	__in				boolean_t brdcst,
+	__in				bool all_unicst,
+	__in				bool mulcst,
+	__in				bool all_mulcst,
+	__in				bool brdcst,
 	__in_ecount(6*count)		uint8_t const *addrs,
 	__in				uint32_t count)
 {
@@ -668,7 +668,7 @@ siena_filter_spec_from_gen_spec(
 	__in		efx_filter_spec_t *gen_spec)
 {
 	efx_rc_t rc;
-	boolean_t is_full = B_FALSE;
+	bool is_full = B_FALSE;
 
 	if (gen_spec->efs_flags & EFX_FILTER_FLAG_TX)
 		EFSYS_ASSERT3U(gen_spec->efs_flags, ==, EFX_FILTER_FLAG_TX);
@@ -852,7 +852,7 @@ siena_filter_tbl_increment(
 	return ((uint16_t)(key * 2 - 1));
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_filter_test_used(
 	__in		siena_filter_tbl_t *sftp,
 	__in		unsigned int index)
@@ -1049,7 +1049,7 @@ siena_filter_build(
 
 	switch (siena_filter_tbl_id(type)) {
 	case EFX_SIENA_FILTER_TBL_RX_IP: {
-		boolean_t is_udp = (type == EFX_SIENA_FILTER_RX_UDP_FULL ||
+		bool is_udp = (type == EFX_SIENA_FILTER_RX_UDP_FULL ||
 		    type == EFX_SIENA_FILTER_RX_UDP_WILD);
 		EFX_POPULATE_OWORD_7(*filter,
 		    FRF_BZ_RSS_EN,
@@ -1066,7 +1066,7 @@ siena_filter_build(
 	}
 
 	case EFX_SIENA_FILTER_TBL_RX_MAC: {
-		boolean_t is_wild = (type == EFX_SIENA_FILTER_RX_MAC_WILD);
+		bool is_wild = (type == EFX_SIENA_FILTER_RX_MAC_WILD);
 		EFX_POPULATE_OWORD_7(*filter,
 		    FRF_CZ_RMFT_RSS_EN,
 		    (flags & EFX_FILTER_FLAG_RX_RSS) ? 1 : 0,
@@ -1082,7 +1082,7 @@ siena_filter_build(
 	}
 
 	case EFX_SIENA_FILTER_TBL_TX_IP: {
-		boolean_t is_udp = (type == EFX_SIENA_FILTER_TX_UDP_FULL ||
+		bool is_udp = (type == EFX_SIENA_FILTER_TX_UDP_FULL ||
 		    type == EFX_SIENA_FILTER_TX_UDP_WILD);
 		EFX_POPULATE_OWORD_5(*filter,
 		    FRF_CZ_TIFT_TCP_UDP, is_udp,
@@ -1095,7 +1095,7 @@ siena_filter_build(
 	}
 
 	case EFX_SIENA_FILTER_TBL_TX_MAC: {
-		boolean_t is_wild = (type == EFX_SIENA_FILTER_TX_MAC_WILD);
+		bool is_wild = (type == EFX_SIENA_FILTER_TX_MAC_WILD);
 		EFX_POPULATE_OWORD_5(*filter,
 		    FRF_CZ_TMFT_TXQ_ID, spec->sfs_dmaq_id,
 		    FRF_CZ_TMFT_WILDCARD_MATCH, is_wild,
@@ -1170,7 +1170,7 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	boolean_t
+static	__checkReturn	bool
 siena_filter_equal(
 	__in		const siena_filter_spec_t *left,
 	__in		const siena_filter_spec_t *right)
@@ -1199,7 +1199,7 @@ siena_filter_search(
 	__in		siena_filter_tbl_t *sftp,
 	__in		siena_filter_spec_t *spec,
 	__in		uint32_t key,
-	__in		boolean_t for_insert,
+	__in		bool for_insert,
 	__out		int *filter_index,
 	__out		unsigned int *depth_required)
 {
@@ -1458,7 +1458,7 @@ static	 __checkReturn	efx_rc_t
 siena_filter_add(
 	__in		efx_nic_t *enp,
 	__inout		efx_filter_spec_t *spec,
-	__in		boolean_t may_replace)
+	__in		bool may_replace)
 {
 	efx_rc_t rc;
 	siena_filter_spec_t sf_spec;

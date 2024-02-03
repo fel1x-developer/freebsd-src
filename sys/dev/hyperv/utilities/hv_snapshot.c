@@ -217,9 +217,9 @@ typedef struct hv_vss_sc {
 	LIST_HEAD(, hv_vss_req_internal)	req_free_list;
 
 	/* Indicates if daemon registered with driver */
-	boolean_t				register_done;
+	bool				register_done;
 
-	boolean_t				app_register_done;
+	bool				app_register_done;
 
 	/* cdev for file system freeze/thaw */
 	struct cdev				*hv_vss_dev;

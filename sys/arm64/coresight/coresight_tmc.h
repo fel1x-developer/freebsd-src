@@ -127,7 +127,7 @@ struct tmc_softc {
 #define	CORESIGHT_ETF			2
 	uint32_t			nev;
 	struct coresight_event		*event;
-	boolean_t			etf_configured;
+	bool			etf_configured;
 };
 
 int tmc_attach(device_t dev);

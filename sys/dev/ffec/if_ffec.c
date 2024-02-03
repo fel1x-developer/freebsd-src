@@ -160,9 +160,9 @@ struct ffec_softc {
 	mii_contype_t		phy_conn_type;
 	uint32_t		fecflags;
 	uint8_t			fectype;
-	boolean_t		link_is_up;
-	boolean_t		is_attached;
-	boolean_t		is_detaching;
+	bool		link_is_up;
+	bool		is_attached;
+	bool		is_detaching;
 	int			tx_watchdog_count;
 	int			rxbuf_align;
 	int			txbuf_align;
@@ -301,7 +301,7 @@ ffec_miigasket_setup(struct ffec_softc *sc)
 		continue;
 }
 
-static boolean_t
+static bool
 ffec_miibus_iowait(struct ffec_softc *sc)
 {
 	uint32_t timeout;
@@ -704,7 +704,7 @@ ffec_txfinish_locked(struct ffec_softc *sc)
 	if_t ifp;
 	struct ffec_hwdesc *desc;
 	struct ffec_bufmap *bmap;
-	boolean_t retired_buffer;
+	bool retired_buffer;
 
 	FFEC_ASSERT_LOCKED(sc);
 
@@ -872,7 +872,7 @@ ffec_rxfinish_locked(struct ffec_softc *sc)
 {
 	struct ffec_hwdesc *desc;
 	int len;
-	boolean_t produced_empty_buffer;
+	bool produced_empty_buffer;
 
 	FFEC_ASSERT_LOCKED(sc);
 

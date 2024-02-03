@@ -242,7 +242,7 @@ bgx_reg_modify(struct bgx *bgx, uint8_t lmac, uint64_t offset, uint64_t val)
 
 static int
 bgx_poll_reg(struct bgx *bgx, uint8_t lmac, uint64_t reg, uint64_t mask,
-    boolean_t zero)
+    bool zero)
 {
 	int timeout = 10;
 	uint64_t reg_val;
@@ -525,7 +525,7 @@ bgx_add_dmac_addr(uint64_t dmac, int node, int bgx_idx, int lmac)
 /* Configure BGX LMAC in internal loopback mode */
 void
 bgx_lmac_internal_loopback(int node, int bgx_idx,
-    int lmac_idx, boolean_t enable)
+    int lmac_idx, bool enable)
 {
 	struct bgx *bgx;
 	struct lmac *lmac;

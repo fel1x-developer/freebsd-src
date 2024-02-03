@@ -67,7 +67,7 @@
 
 static int mvneta_fdt_probe(device_t);
 static int mvneta_fdt_attach(device_t);
-STATIC boolean_t mvneta_find_ethernet_prop_switch(phandle_t, phandle_t);
+STATIC bool mvneta_find_ethernet_prop_switch(phandle_t, phandle_t);
 
 static device_method_t mvneta_fdt_methods[] = {
 	/* Device interface */
@@ -256,10 +256,10 @@ mvneta_fdt_mac_address(struct mvneta_softc *sc, uint8_t *addr)
 	return (0);
 }
 
-STATIC boolean_t
+STATIC bool
 mvneta_find_ethernet_prop_switch(phandle_t ethernet, phandle_t node)
 {
-	boolean_t ret;
+	bool ret;
 	phandle_t child, switch_eth_handle, switch_eth;
 
 	for (child = OF_child(node); child != 0; child = OF_peer(child)) {
@@ -282,7 +282,7 @@ mvneta_find_ethernet_prop_switch(phandle_t ethernet, phandle_t node)
 	return (false);
 }
 
-boolean_t
+bool
 mvneta_has_switch_fdt(device_t self)
 {
 	phandle_t node;

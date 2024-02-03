@@ -203,7 +203,7 @@ g_eli_crypto_write_done(struct cryptop *crp)
  * g_eli_start -> G_ELI_CRYPTO_READ -> g_io_request -> g_eli_read_done -> g_eli_crypto_run -> g_eli_crypto_read_done -> g_io_deliver
  */
 void
-g_eli_crypto_read(struct g_eli_softc *sc, struct bio *bp, boolean_t fromworker)
+g_eli_crypto_read(struct g_eli_softc *sc, struct bio *bp, bool fromworker)
 {
 	struct g_consumer *cp;
 	struct bio *cbp;

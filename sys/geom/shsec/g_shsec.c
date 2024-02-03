@@ -47,7 +47,7 @@ static MALLOC_DEFINE(M_SHSEC, "shsec_data", "GEOM_SHSEC Data");
 
 static uma_zone_t g_shsec_zone;
 
-static int g_shsec_destroy(struct g_shsec_softc *sc, boolean_t force);
+static int g_shsec_destroy(struct g_shsec_softc *sc, bool force);
 static int g_shsec_destroy_geom(struct gctl_req *req, struct g_class *mp,
     struct g_geom *gp);
 
@@ -570,7 +570,7 @@ g_shsec_create(struct g_class *mp, const struct g_shsec_metadata *md)
 }
 
 static int
-g_shsec_destroy(struct g_shsec_softc *sc, boolean_t force)
+g_shsec_destroy(struct g_shsec_softc *sc, bool force)
 {
 	struct g_provider *pp;
 	struct g_geom *gp;

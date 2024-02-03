@@ -50,7 +50,7 @@ static const uint8_t fake_dynamic_cfg_nvram[] = {
 
 static int
 sfxge_nvram_rw(struct sfxge_softc *sc, sfxge_ioc_t *ip, efx_nvram_type_t type,
-	       boolean_t write)
+	       bool write)
 {
 	efx_nic_t *enp = sc->enp;
 	size_t total_size = ip->u.nvram.size;

@@ -88,7 +88,7 @@
 
 /* Structure to be used by the SR-IOV for VF configuration schemas */
 struct nicvf_info {
-	boolean_t		vf_enabled;
+	bool		vf_enabled;
 	int			vf_flags;
 };
 
@@ -101,7 +101,7 @@ struct nicpf {
 	struct resource *	reg_base;       /* Register start address */
 	struct pkind_cfg	pkind;
 	uint8_t			vf_lmac_map[MAX_LMAC];
-	boolean_t		mbx_lock[MAX_NUM_VFS_SUPPORTED];
+	bool		mbx_lock[MAX_NUM_VFS_SUPPORTED];
 
 	struct callout		check_link;
 	struct mtx		check_link_mtx;
@@ -114,7 +114,7 @@ struct nicpf {
 	uint16_t		rss_ind_tbl_size;
 
 	/* MSI-X */
-	boolean_t		msix_enabled;
+	bool		msix_enabled;
 	uint8_t			num_vec;
 	struct msix_entry	msix_entries[NIC_PF_MSIX_VECTORS];
 	struct resource *	msix_table_res;

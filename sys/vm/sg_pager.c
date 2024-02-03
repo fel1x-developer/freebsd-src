@@ -55,7 +55,7 @@ static void sg_pager_dealloc(vm_object_t);
 static int sg_pager_getpages(vm_object_t, vm_page_t *, int, int *, int *);
 static void sg_pager_putpages(vm_object_t, vm_page_t *, int, 
 		int, int *);
-static boolean_t sg_pager_haspage(vm_object_t, vm_pindex_t, int *,
+static bool sg_pager_haspage(vm_object_t, vm_pindex_t, int *,
 		int *);
 
 const struct pagerops sgpagerops = {
@@ -215,7 +215,7 @@ sg_pager_putpages(vm_object_t object, vm_page_t *m, int count,
 	panic("sg_pager_putpage called");
 }
 
-static boolean_t
+static bool
 sg_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *before,
     int *after)
 {
