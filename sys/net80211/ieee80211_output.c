@@ -90,7 +90,7 @@ static	void ieee80211_tx_mgt_cb(struct ieee80211_node *, void *, int);
  * of the less interesting frames that come frequently
  * (e.g. beacons).
  */
-static __inline int
+static inline int
 doprint(struct ieee80211vap *vap, int subtype)
 {
 	switch (subtype) {
@@ -1428,7 +1428,7 @@ ieee80211_mbuf_adjust(struct ieee80211vap *vap, int hdrsize,
  * If a unicast key is set we use that.  When no unicast key is set
  * we fall back to the default transmit key.
  */ 
-static __inline struct ieee80211_key *
+static inline struct ieee80211_key *
 ieee80211_crypto_getucastkey(struct ieee80211vap *vap,
 	struct ieee80211_node *ni)
 {
@@ -1447,7 +1447,7 @@ ieee80211_crypto_getucastkey(struct ieee80211vap *vap,
  * Multicast traffic always uses the group key which is installed as
  * the default tx key.
  */ 
-static __inline struct ieee80211_key *
+static inline struct ieee80211_key *
 ieee80211_crypto_getmcastkey(struct ieee80211vap *vap,
 	struct ieee80211_node *ni)
 {
@@ -2165,14 +2165,14 @@ ieee80211_add_cfparms(uint8_t *frm, struct ieee80211com *ic)
 #undef ADDSHORT
 }
 
-static __inline uint8_t *
+static inline uint8_t *
 add_appie(uint8_t *frm, const struct ieee80211_appie *ie)
 {
 	memcpy(frm, ie->ie_data, ie->ie_len);
 	return frm + ie->ie_len;
 }
 
-static __inline uint8_t *
+static inline uint8_t *
 add_ie(uint8_t *frm, const uint8_t *ie)
 {
 	memcpy(frm, ie, 2 + ie[1]);

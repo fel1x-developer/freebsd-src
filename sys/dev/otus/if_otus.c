@@ -2741,7 +2741,7 @@ otus_program_phy(struct otus_softc *sc, struct ieee80211_channel *c)
 	return otus_write_barrier(sc);
 }
 
-static __inline uint8_t
+static inline uint8_t
 otus_reverse_bits(uint8_t v)
 {
 	v = ((v >> 1) & 0x55) | ((v & 0x55) << 1);

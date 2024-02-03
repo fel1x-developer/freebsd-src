@@ -158,14 +158,14 @@ void uart_tty_intr(void *arg);
 /*
  * Receive buffer operations.
  */
-static __inline int
+static inline int
 uart_rx_empty(struct uart_softc *sc)
 {
 
 	return ((sc->sc_rxget == sc->sc_rxput) ? 1 : 0);
 }
 
-static __inline int
+static inline int
 uart_rx_full(struct uart_softc *sc)
 {
 
@@ -173,7 +173,7 @@ uart_rx_full(struct uart_softc *sc)
 	    (sc->sc_rxput + 1 == sc->sc_rxget) : (sc->sc_rxget == 0));
 }
 
-static __inline int
+static inline int
 uart_rx_get(struct uart_softc *sc)
 {
 	int ptr, xc;
@@ -186,7 +186,7 @@ uart_rx_get(struct uart_softc *sc)
 	return (xc);
 }
 
-static __inline int
+static inline int
 uart_rx_next(struct uart_softc *sc)
 {
 	int ptr;
@@ -199,7 +199,7 @@ uart_rx_next(struct uart_softc *sc)
 	return (0);
 }
 
-static __inline int
+static inline int
 uart_rx_peek(struct uart_softc *sc)
 {
 	int ptr;
@@ -208,7 +208,7 @@ uart_rx_peek(struct uart_softc *sc)
 	return ((ptr == sc->sc_rxput) ? -1 : sc->sc_rxbuf[ptr]);
 }
 
-static __inline int
+static inline int
 uart_rx_put(struct uart_softc *sc, int xc)
 {
 	int ptr;

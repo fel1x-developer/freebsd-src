@@ -77,7 +77,7 @@ a compiler does not support explicit inlining, this macro should be defined
 to be `static'.
 -------------------------------------------------------------------------------
 */
-#define INLINE static __inline
+#define INLINE static inline
 
 /*
 -------------------------------------------------------------------------------

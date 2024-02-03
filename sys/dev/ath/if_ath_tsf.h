@@ -35,7 +35,7 @@
  * Extend 15-bit time stamp from rx descriptor to
  * a full 64-bit TSF using the specified TSF.
  */
-static __inline u_int64_t
+static inline u_int64_t
 ath_extend_tsf15(u_int32_t rstamp, u_int64_t tsf)
 {
 	if ((tsf & 0x7fff) < rstamp)
@@ -48,7 +48,7 @@ ath_extend_tsf15(u_int32_t rstamp, u_int64_t tsf)
  * Extend 32-bit time stamp from rx descriptor to
  * a full 64-bit TSF using the specified TSF.
  */
-static __inline u_int64_t
+static inline u_int64_t
 ath_extend_tsf32(u_int32_t rstamp, u_int64_t tsf)
 {
 	u_int32_t tsf_low = tsf & 0xffffffff;
@@ -69,7 +69,7 @@ ath_extend_tsf32(u_int32_t rstamp, u_int64_t tsf)
  * TSF into the RX descriptor; later versions (AR5416 and up)
  * include the 32 bit TSF value.
  */
-static __inline u_int64_t
+static inline u_int64_t
 ath_extend_tsf(struct ath_softc *sc, u_int32_t rstamp, u_int64_t tsf)
 {
 	if (sc->sc_rxtsf32)

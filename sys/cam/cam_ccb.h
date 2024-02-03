@@ -776,7 +776,7 @@ struct ccb_scsiio {
 #endif
 };
 
-static __inline uint8_t *
+static inline uint8_t *
 scsiio_cdb_ptr(struct ccb_scsiio *ccb)
 {
 	return ((ccb->ccb_h.flags & CAM_CDB_POINTER) ?
@@ -824,7 +824,7 @@ struct ccb_accept_tio {
 	struct     scsi_sense_data sense_data;
 };
 
-static __inline uint8_t *
+static inline uint8_t *
 atio_cdb_ptr(struct ccb_accept_tio *ccb)
 {
 	return ((ccb->ccb_h.flags & CAM_CDB_POINTER) ?
@@ -1383,7 +1383,7 @@ union ccb {
 	    sizeof(*(ccbp)) - sizeof((ccbp)->ccb_h))
 
 __BEGIN_DECLS
-static __inline void
+static inline void
 cam_fill_csio(struct ccb_scsiio *csio, uint32_t retries,
 	      void (*cbfcnp)(struct cam_periph *, union ccb *),
 	      uint32_t flags, uint8_t tag_action,
@@ -1408,7 +1408,7 @@ cam_fill_csio(struct ccb_scsiio *csio, uint32_t retries,
 #endif
 }
 
-static __inline void
+static inline void
 cam_fill_ctio(struct ccb_scsiio *csio, uint32_t retries,
 	      void (*cbfcnp)(struct cam_periph *, union ccb *),
 	      uint32_t flags, u_int tag_action, u_int tag_id,
@@ -1430,7 +1430,7 @@ cam_fill_ctio(struct ccb_scsiio *csio, uint32_t retries,
 	csio->init_id = init_id;
 }
 
-static __inline void
+static inline void
 cam_fill_ataio(struct ccb_ataio *ataio, uint32_t retries,
 	      void (*cbfcnp)(struct cam_periph *, union ccb *),
 	      uint32_t flags, u_int tag_action __unused,
@@ -1447,7 +1447,7 @@ cam_fill_ataio(struct ccb_ataio *ataio, uint32_t retries,
 	ataio->ata_flags = 0;
 }
 
-static __inline void
+static inline void
 cam_fill_smpio(struct ccb_smpio *smpio, uint32_t retries,
 	       void (*cbfcnp)(struct cam_periph *, union ccb *), uint32_t flags,
 	       uint8_t *smp_request, int smp_request_len,
@@ -1473,7 +1473,7 @@ cam_fill_smpio(struct ccb_smpio *smpio, uint32_t retries,
 	smpio->smp_response_len = smp_response_len;
 }
 
-static __inline void
+static inline void
 cam_fill_mmcio(struct ccb_mmcio *mmcio, uint32_t retries,
 	       void (*cbfcnp)(struct cam_periph *, union ccb *), uint32_t flags,
 	       uint32_t mmc_opcode, uint32_t mmc_arg, uint32_t mmc_flags,
@@ -1501,14 +1501,14 @@ cam_fill_mmcio(struct ccb_mmcio *mmcio, uint32_t retries,
 	mmcio->cmd.resp[3] = 0;
 }
 
-static __inline void
+static inline void
 cam_set_ccbstatus(union ccb *ccb, cam_status status)
 {
 	ccb->ccb_h.status &= ~CAM_STATUS_MASK;
 	ccb->ccb_h.status |= status;
 }
 
-static __inline cam_status
+static inline cam_status
 cam_ccb_status(union ccb *ccb)
 {
 	return ((cam_status)(ccb->ccb_h.status & CAM_STATUS_MASK));
@@ -1522,7 +1522,7 @@ cam_ccb_success(union ccb *ccb)
 
 void cam_calc_geometry(struct ccb_calc_geometry *ccg, int extended);
 
-static __inline void
+static inline void
 cam_fill_nvmeio(struct ccb_nvmeio *nvmeio, uint32_t retries,
 	      void (*cbfcnp)(struct cam_periph *, union ccb *),
 	      uint32_t flags, uint8_t *data_ptr, uint32_t dxfer_len,
@@ -1537,7 +1537,7 @@ cam_fill_nvmeio(struct ccb_nvmeio *nvmeio, uint32_t retries,
 	nvmeio->dxfer_len = dxfer_len;
 }
 
-static __inline void
+static inline void
 cam_fill_nvmeadmin(struct ccb_nvmeio *nvmeio, uint32_t retries,
 	      void (*cbfcnp)(struct cam_periph *, union ccb *),
 	      uint32_t flags, uint8_t *data_ptr, uint32_t dxfer_len,

@@ -295,7 +295,7 @@ xics_attach(device_t dev)
 	return (0);
 }
 
-static __inline struct xicp_intvec *
+static inline struct xicp_intvec *
 xicp_setup_priv(struct xicp_softc *sc, u_int irq, void **priv)
 {
 	if (*priv == NULL) {

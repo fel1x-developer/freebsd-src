@@ -135,7 +135,7 @@ static void jme_link_task(void *, int);
 static int jme_intr(void *);
 static void jme_int_task(void *, int);
 static void jme_txeof(struct jme_softc *);
-static __inline void jme_discard_rxbuf(struct jme_softc *, int);
+static inline void jme_discard_rxbuf(struct jme_softc *, int);
 static void jme_rxeof(struct jme_softc *);
 static int jme_rxintr(struct jme_softc *, int);
 static void jme_tick(void *);
@@ -2489,7 +2489,7 @@ jme_txeof(struct jme_softc *sc)
 	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 }
 
-static __inline void
+static inline void
 jme_discard_rxbuf(struct jme_softc *sc, int cons)
 {
 	struct jme_desc *desc;

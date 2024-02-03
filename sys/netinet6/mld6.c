@@ -270,7 +270,7 @@ static struct mld_raopt mld_ra = {
 };
 static struct ip6_pktopts mld_po;
 
-static __inline void
+static inline void
 mld_save_context(struct mbuf *m, struct ifnet *ifp)
 {
 
@@ -281,7 +281,7 @@ mld_save_context(struct mbuf *m, struct ifnet *ifp)
 	m->m_pkthdr.flowid = ifp->if_index;
 }
 
-static __inline void
+static inline void
 mld_scrub_context(struct mbuf *m)
 {
 
@@ -296,7 +296,7 @@ mld_scrub_context(struct mbuf *m)
  * VIMAGE: The assertion is there to make sure that we
  * actually called CURVNET_SET() with what's in the mbuf chain.
  */
-static __inline uint32_t
+static inline uint32_t
 mld_restore_context(struct mbuf *m)
 {
 
@@ -440,7 +440,7 @@ mld_dispatch_queue(struct mbufq *mq, int limit)
  * Return zero if the given group is one for which MLD reports
  * should be suppressed, or non-zero if reports should be issued.
  */
-static __inline int
+static inline int
 mld_is_addr_reported(const struct in6_addr *addr)
 {
 

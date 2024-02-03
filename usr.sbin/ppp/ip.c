@@ -146,7 +146,7 @@ dns_Qtype2Txt(u_short qtype)
   return HexStr(qtype, failure, sizeof failure);
 }
 
-static __inline int
+static inline int
 PortMatch(int op, u_short pport, u_short rport)
 {
   switch (op) {

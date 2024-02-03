@@ -34,7 +34,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
-static __inline void
+static inline void
 addrconf_addr_solict_mult(struct in6_addr *ia6, struct in6_addr *sol)
 {
 

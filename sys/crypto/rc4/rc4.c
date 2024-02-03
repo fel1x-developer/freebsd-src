@@ -40,7 +40,7 @@
 #include <sys/types.h>
 #include <crypto/rc4/rc4.h>
 
-static __inline void
+static inline void
 swap_bytes(u_char *a, u_char *b)
 {
 	u_char temp;

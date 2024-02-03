@@ -48,7 +48,7 @@ int dbg_remove_watchpoint(db_expr_t, db_expr_t);
 void dbg_resume_dbreg(void);
 
 #else /* DDB */
-static __inline void
+static inline void
 dbg_monitor_init(void)
 {
 }

@@ -500,7 +500,7 @@ ipmi_ioctl(struct cdev *cdev, u_long cmd, caddr_t data,
  * Request management.
  */
 
-__inline void
+inline void
 ipmi_init_request(struct ipmi_request *req, struct ipmi_device *dev, long msgid,
     uint8_t addr, uint8_t command, size_t requestlen, size_t replylen)
 {

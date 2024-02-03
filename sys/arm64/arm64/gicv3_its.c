@@ -1764,7 +1764,7 @@ gicv3_iommu_deinit(device_t dev, device_t child)
  * Commands handling.
  */
 
-static __inline void
+static inline void
 cmd_format_command(struct its_cmd *cmd, uint8_t cmd_type)
 {
 	/* Command field: DW0 [7:0] */
@@ -1772,7 +1772,7 @@ cmd_format_command(struct its_cmd *cmd, uint8_t cmd_type)
 	cmd->cmd_dword[0] |= htole64(cmd_type);
 }
 
-static __inline void
+static inline void
 cmd_format_devid(struct its_cmd *cmd, uint32_t devid)
 {
 	/* Device ID field: DW0 [63:32] */
@@ -1780,7 +1780,7 @@ cmd_format_devid(struct its_cmd *cmd, uint32_t devid)
 	cmd->cmd_dword[0] |= htole64((uint64_t)devid << CMD_DEVID_SHIFT);
 }
 
-static __inline void
+static inline void
 cmd_format_size(struct its_cmd *cmd, uint16_t size)
 {
 	/* Size field: DW1 [4:0] */
@@ -1788,7 +1788,7 @@ cmd_format_size(struct its_cmd *cmd, uint16_t size)
 	cmd->cmd_dword[1] |= htole64((size & CMD_SIZE_MASK));
 }
 
-static __inline void
+static inline void
 cmd_format_id(struct its_cmd *cmd, uint32_t id)
 {
 	/* ID field: DW1 [31:0] */
@@ -1796,7 +1796,7 @@ cmd_format_id(struct its_cmd *cmd, uint32_t id)
 	cmd->cmd_dword[1] |= htole64(id);
 }
 
-static __inline void
+static inline void
 cmd_format_pid(struct its_cmd *cmd, uint32_t pid)
 {
 	/* Physical ID field: DW1 [63:32] */
@@ -1804,7 +1804,7 @@ cmd_format_pid(struct its_cmd *cmd, uint32_t pid)
 	cmd->cmd_dword[1] |= htole64((uint64_t)pid << CMD_PID_SHIFT);
 }
 
-static __inline void
+static inline void
 cmd_format_col(struct its_cmd *cmd, uint16_t col_id)
 {
 	/* Collection field: DW2 [16:0] */
@@ -1812,7 +1812,7 @@ cmd_format_col(struct its_cmd *cmd, uint16_t col_id)
 	cmd->cmd_dword[2] |= htole64(col_id);
 }
 
-static __inline void
+static inline void
 cmd_format_target(struct its_cmd *cmd, uint64_t target)
 {
 	/* Target Address field: DW2 [47:16] */
@@ -1820,7 +1820,7 @@ cmd_format_target(struct its_cmd *cmd, uint64_t target)
 	cmd->cmd_dword[2] |= htole64(target & CMD_TARGET_MASK);
 }
 
-static __inline void
+static inline void
 cmd_format_itt(struct its_cmd *cmd, uint64_t itt)
 {
 	/* ITT Address field: DW2 [47:8] */
@@ -1828,7 +1828,7 @@ cmd_format_itt(struct its_cmd *cmd, uint64_t itt)
 	cmd->cmd_dword[2] |= htole64(itt & CMD_ITT_MASK);
 }
 
-static __inline void
+static inline void
 cmd_format_valid(struct its_cmd *cmd, uint8_t valid)
 {
 	/* Valid field: DW2 [63] */

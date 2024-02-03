@@ -188,28 +188,28 @@ static const struct {							\
 }
 
 #define G711_DECLARE_OP(t)						\
-static __inline intpcm_t						\
+static inline intpcm_t						\
 pcm_read_ulaw(uint8_t v)						\
 {									\
 									\
 	return (_G711_TO_INTPCM((t).ulaw_to_u8, v));			\
 }									\
 									\
-static __inline intpcm_t						\
+static inline intpcm_t						\
 pcm_read_alaw(uint8_t v)						\
 {									\
 									\
 	return (_G711_TO_INTPCM((t).alaw_to_u8, v));			\
 }									\
 									\
-static __inline void							\
+static inline void							\
 pcm_write_ulaw(uint8_t *dst, intpcm_t v)				\
 {									\
 									\
 	*dst = _INTPCM_TO_G711((t).u8_to_ulaw, v);			\
 }									\
 									\
-static __inline void							\
+static inline void							\
 pcm_write_alaw(uint8_t *dst, intpcm_t v)				\
 {									\
 									\

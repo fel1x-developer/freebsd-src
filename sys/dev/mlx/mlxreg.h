@@ -499,7 +499,7 @@ struct mlx_bbtable_entry
 /*
  * Inlines to build various command structures
  */
-static __inline void
+static inline void
 mlx_make_type1(struct mlx_command *mc,
 	       u_int8_t code, 
 	       u_int16_t f1,
@@ -522,7 +522,7 @@ mlx_make_type1(struct mlx_command *mc,
     mc->mc_mailbox[0xc] = f5;
 }
 
-static __inline void
+static inline void
 mlx_make_type2(struct mlx_command *mc,
 	       u_int8_t code, 
 	       u_int8_t f1,
@@ -548,7 +548,7 @@ mlx_make_type2(struct mlx_command *mc,
     mc->mc_mailbox[0xc] = f8;
 }
 
-static __inline void
+static inline void
 mlx_make_type3(struct mlx_command *mc,
 	       u_int8_t code, 
 	       u_int8_t f1,
@@ -573,7 +573,7 @@ mlx_make_type3(struct mlx_command *mc,
     mc->mc_mailbox[0xc] = f7;
 }
 
-static __inline void
+static inline void
 mlx_make_type4(struct mlx_command *mc,
 	       u_int8_t code, 
 	       u_int16_t f1,
@@ -595,7 +595,7 @@ mlx_make_type4(struct mlx_command *mc,
     mc->mc_mailbox[0xc] = f4;
 }
 
-static __inline void
+static inline void
 mlx_make_type5(struct mlx_command *mc,
 	       u_int8_t code, 
 	       u_int8_t f1,

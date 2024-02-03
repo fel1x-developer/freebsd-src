@@ -296,7 +296,7 @@ int fgetvp_write(struct thread *td, int fd, cap_rights_t *rightsp,
 int fgetvp_lookup_smr(struct nameidata *ndp, struct vnode **vpp, bool *fsearch);
 int fgetvp_lookup(struct nameidata *ndp, struct vnode **vpp);
 
-static __inline __result_use_check bool
+static inline __result_use_check bool
 fhold(struct file *fp)
 {
 	return (refcount_acquire_checked(&fp->f_count));
@@ -324,19 +324,19 @@ fhold(struct file *fp)
 	_error;							\
 })
 
-static __inline fo_rdwr_t	fo_read;
-static __inline fo_rdwr_t	fo_write;
-static __inline fo_truncate_t	fo_truncate;
-static __inline fo_ioctl_t	fo_ioctl;
-static __inline fo_poll_t	fo_poll;
-static __inline fo_kqfilter_t	fo_kqfilter;
-static __inline fo_stat_t	fo_stat;
-static __inline fo_close_t	fo_close;
-static __inline fo_chmod_t	fo_chmod;
-static __inline fo_chown_t	fo_chown;
-static __inline fo_sendfile_t	fo_sendfile;
+static inline fo_rdwr_t	fo_read;
+static inline fo_rdwr_t	fo_write;
+static inline fo_truncate_t	fo_truncate;
+static inline fo_ioctl_t	fo_ioctl;
+static inline fo_poll_t	fo_poll;
+static inline fo_kqfilter_t	fo_kqfilter;
+static inline fo_stat_t	fo_stat;
+static inline fo_close_t	fo_close;
+static inline fo_chmod_t	fo_chmod;
+static inline fo_chown_t	fo_chown;
+static inline fo_sendfile_t	fo_sendfile;
 
-static __inline int
+static inline int
 fo_read(struct file *fp, struct uio *uio, struct ucred *active_cred,
     int flags, struct thread *td)
 {
@@ -344,7 +344,7 @@ fo_read(struct file *fp, struct uio *uio, struct ucred *active_cred,
 	return ((*fp->f_ops->fo_read)(fp, uio, active_cred, flags, td));
 }
 
-static __inline int
+static inline int
 fo_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
     int flags, struct thread *td)
 {
@@ -352,7 +352,7 @@ fo_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 	return ((*fp->f_ops->fo_write)(fp, uio, active_cred, flags, td));
 }
 
-static __inline int
+static inline int
 fo_truncate(struct file *fp, off_t length, struct ucred *active_cred,
     struct thread *td)
 {
@@ -360,7 +360,7 @@ fo_truncate(struct file *fp, off_t length, struct ucred *active_cred,
 	return ((*fp->f_ops->fo_truncate)(fp, length, active_cred, td));
 }
 
-static __inline int
+static inline int
 fo_ioctl(struct file *fp, u_long com, void *data, struct ucred *active_cred,
     struct thread *td)
 {
@@ -368,7 +368,7 @@ fo_ioctl(struct file *fp, u_long com, void *data, struct ucred *active_cred,
 	return ((*fp->f_ops->fo_ioctl)(fp, com, data, active_cred, td));
 }
 
-static __inline int
+static inline int
 fo_poll(struct file *fp, int events, struct ucred *active_cred,
     struct thread *td)
 {
@@ -376,28 +376,28 @@ fo_poll(struct file *fp, int events, struct ucred *active_cred,
 	return ((*fp->f_ops->fo_poll)(fp, events, active_cred, td));
 }
 
-static __inline int
+static inline int
 fo_stat(struct file *fp, struct stat *sb, struct ucred *active_cred)
 {
 
 	return ((*fp->f_ops->fo_stat)(fp, sb, active_cred));
 }
 
-static __inline int
+static inline int
 fo_close(struct file *fp, struct thread *td)
 {
 
 	return ((*fp->f_ops->fo_close)(fp, td));
 }
 
-static __inline int
+static inline int
 fo_kqfilter(struct file *fp, struct knote *kn)
 {
 
 	return ((*fp->f_ops->fo_kqfilter)(fp, kn));
 }
 
-static __inline int
+static inline int
 fo_chmod(struct file *fp, mode_t mode, struct ucred *active_cred,
     struct thread *td)
 {
@@ -405,7 +405,7 @@ fo_chmod(struct file *fp, mode_t mode, struct ucred *active_cred,
 	return ((*fp->f_ops->fo_chmod)(fp, mode, active_cred, td));
 }
 
-static __inline int
+static inline int
 fo_chown(struct file *fp, uid_t uid, gid_t gid, struct ucred *active_cred,
     struct thread *td)
 {
@@ -413,7 +413,7 @@ fo_chown(struct file *fp, uid_t uid, gid_t gid, struct ucred *active_cred,
 	return ((*fp->f_ops->fo_chown)(fp, uid, gid, active_cred, td));
 }
 
-static __inline int
+static inline int
 fo_sendfile(struct file *fp, int sockfd, struct uio *hdr_uio,
     struct uio *trl_uio, off_t offset, size_t nbytes, off_t *sent, int flags,
     struct thread *td)
@@ -423,21 +423,21 @@ fo_sendfile(struct file *fp, int sockfd, struct uio *hdr_uio,
 	    nbytes, sent, flags, td));
 }
 
-static __inline int
+static inline int
 fo_seek(struct file *fp, off_t offset, int whence, struct thread *td)
 {
 
 	return ((*fp->f_ops->fo_seek)(fp, offset, whence, td));
 }
 
-static __inline int
+static inline int
 fo_fill_kinfo(struct file *fp, struct kinfo_file *kif, struct filedesc *fdp)
 {
 
 	return ((*fp->f_ops->fo_fill_kinfo)(fp, kif, fdp));
 }
 
-static __inline int
+static inline int
 fo_mmap(struct file *fp, vm_map_t map, vm_offset_t *addr, vm_size_t size,
     vm_prot_t prot, vm_prot_t cap_maxprot, int flags, vm_ooffset_t foff,
     struct thread *td)
@@ -449,14 +449,14 @@ fo_mmap(struct file *fp, vm_map_t map, vm_offset_t *addr, vm_size_t size,
 	    flags, foff, td));
 }
 
-static __inline int
+static inline int
 fo_aio_queue(struct file *fp, struct kaiocb *job)
 {
 
 	return ((*fp->f_ops->fo_aio_queue)(fp, job));
 }
 
-static __inline int
+static inline int
 fo_add_seals(struct file *fp, int seals)
 {
 
@@ -465,7 +465,7 @@ fo_add_seals(struct file *fp, int seals)
 	return ((*fp->f_ops->fo_add_seals)(fp, seals));
 }
 
-static __inline int
+static inline int
 fo_get_seals(struct file *fp, int *seals)
 {
 
@@ -474,7 +474,7 @@ fo_get_seals(struct file *fp, int *seals)
 	return ((*fp->f_ops->fo_get_seals)(fp, seals));
 }
 
-static __inline int
+static inline int
 fo_fallocate(struct file *fp, off_t offset, off_t len, struct thread *td)
 {
 
@@ -483,7 +483,7 @@ fo_fallocate(struct file *fp, off_t offset, off_t len, struct thread *td)
 	return ((*fp->f_ops->fo_fallocate)(fp, offset, len, td));
 }
 
-static __inline int
+static inline int
 fo_fspacectl(struct file *fp, int cmd, off_t *offset, off_t *length,
     int flags, struct ucred *active_cred, struct thread *td)
 {
@@ -494,7 +494,7 @@ fo_fspacectl(struct file *fp, int cmd, off_t *offset, off_t *length,
 	    active_cred, td));
 }
 
-static __inline int
+static inline int
 fo_cmp(struct file *fp1, struct file *fp2, struct thread *td)
 {
 

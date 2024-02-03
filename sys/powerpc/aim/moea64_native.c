@@ -153,7 +153,7 @@ static bool moea64_need_lock;
  * 2.03 and prior, and a newer one used by PowerISA 2.06 and later.
  * We need to support both.
  */
-static __inline void
+static inline void
 TLBIE(uint64_t vpn, uint64_t oldptehi)
 {
 #ifndef __powerpc64__

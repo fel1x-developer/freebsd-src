@@ -39,7 +39,7 @@ struct list_head {
 
 #define list_entry(ptr, type, member) container_of(ptr,type,member)
 
-static __inline__ void
+static inline__ void
 INIT_LIST_HEAD(struct list_head *head) {
 	(head)->next = head;
 	(head)->prev = head;
@@ -50,12 +50,12 @@ INIT_LIST_HEAD(struct list_head *head) {
 #define DRM_LIST_HEAD(name) \
 	struct list_head name = LIST_HEAD_INIT(name)
 
-static __inline__ int
+static inline__ int
 list_empty(const struct list_head *head) {
 	return (head)->next == head;
 }
 
-static __inline__ void
+static inline__ void
 list_add(struct list_head *new, struct list_head *head) {
         (head)->next->prev = new;
         (new)->next = (head)->next;
@@ -63,7 +63,7 @@ list_add(struct list_head *new, struct list_head *head) {
         (head)->next = new;
 }
 
-static __inline__ void
+static inline__ void
 list_add_tail(struct list_head *entry, struct list_head *head) {
 	(entry)->prev = (head)->prev;
 	(entry)->next = head;
@@ -71,7 +71,7 @@ list_add_tail(struct list_head *entry, struct list_head *head) {
 	(head)->prev = entry;
 }
 
-static __inline__ void
+static inline__ void
 list_del(struct list_head *entry) {
 	(entry)->next->prev = (entry)->prev;
 	(entry)->prev->next = (entry)->next;
@@ -99,7 +99,7 @@ static inline void list_move_tail(struct list_head *list,
 	list_add_tail(list, head);
 }
 
-static __inline__ void
+static inline__ void
 list_del_init(struct list_head *entry) {
 	(entry)->next->prev = (entry)->prev;
 	(entry)->prev->next = (entry)->next;

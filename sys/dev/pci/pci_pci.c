@@ -2730,7 +2730,7 @@ pcib_alloc_resource(device_t dev, device_t child, int type, int *rid,
  * to the non-ARI slot/function.  The downstream port will convert it back in
  * hardware.  If ARI is not enabled slot and func are not modified.
  */
-static __inline void
+static inline void
 pcib_xlate_ari(device_t pcib, int bus, int *slot, int *func)
 {
 	struct pcib_softc *sc;

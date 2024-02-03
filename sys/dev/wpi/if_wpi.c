@@ -792,13 +792,13 @@ wpi_nic_lock(struct wpi_softc *sc)
 /*
  * Release lock on NIC memory.
  */
-static __inline void
+static inline void
 wpi_nic_unlock(struct wpi_softc *sc)
 {
 	WPI_CLRBITS(sc, WPI_GP_CNTRL, WPI_GP_CNTRL_MAC_ACCESS_REQ);
 }
 
-static __inline uint32_t
+static inline uint32_t
 wpi_prph_read(struct wpi_softc *sc, uint32_t addr)
 {
 	WPI_WRITE(sc, WPI_PRPH_RADDR, WPI_PRPH_DWORD | addr);
@@ -806,7 +806,7 @@ wpi_prph_read(struct wpi_softc *sc, uint32_t addr)
 	return WPI_READ(sc, WPI_PRPH_RDATA);
 }
 
-static __inline void
+static inline void
 wpi_prph_write(struct wpi_softc *sc, uint32_t addr, uint32_t data)
 {
 	WPI_WRITE(sc, WPI_PRPH_WADDR, WPI_PRPH_DWORD | addr);
@@ -814,19 +814,19 @@ wpi_prph_write(struct wpi_softc *sc, uint32_t addr, uint32_t data)
 	WPI_WRITE(sc, WPI_PRPH_WDATA, data);
 }
 
-static __inline void
+static inline void
 wpi_prph_setbits(struct wpi_softc *sc, uint32_t addr, uint32_t mask)
 {
 	wpi_prph_write(sc, addr, wpi_prph_read(sc, addr) | mask);
 }
 
-static __inline void
+static inline void
 wpi_prph_clrbits(struct wpi_softc *sc, uint32_t addr, uint32_t mask)
 {
 	wpi_prph_write(sc, addr, wpi_prph_read(sc, addr) & ~mask);
 }
 
-static __inline void
+static inline void
 wpi_prph_write_region_4(struct wpi_softc *sc, uint32_t addr,
     const uint32_t *data, uint32_t count)
 {
@@ -834,7 +834,7 @@ wpi_prph_write_region_4(struct wpi_softc *sc, uint32_t addr,
 		wpi_prph_write(sc, addr, *data);
 }
 
-static __inline uint32_t
+static inline uint32_t
 wpi_mem_read(struct wpi_softc *sc, uint32_t addr)
 {
 	WPI_WRITE(sc, WPI_MEM_RADDR, addr);
@@ -842,7 +842,7 @@ wpi_mem_read(struct wpi_softc *sc, uint32_t addr)
 	return WPI_READ(sc, WPI_MEM_RDATA);
 }
 
-static __inline void
+static inline void
 wpi_mem_read_region_4(struct wpi_softc *sc, uint32_t addr, uint32_t *data,
     int count)
 {
@@ -1572,7 +1572,7 @@ wpi_read_eeprom_group(struct wpi_softc *sc, uint8_t n)
 	return 0;
 }
 
-static __inline uint8_t
+static inline uint8_t
 wpi_add_node_entry_adhoc(struct wpi_softc *sc)
 {
 	uint8_t newid = WPI_ID_IBSS_MIN;
@@ -1587,7 +1587,7 @@ wpi_add_node_entry_adhoc(struct wpi_softc *sc)
 	return WPI_ID_UNDEFINED;
 }
 
-static __inline uint8_t
+static inline uint8_t
 wpi_add_node_entry_sta(struct wpi_softc *sc)
 {
 	sc->nodesmsk |= 1 << WPI_ID_BSS;
@@ -1595,7 +1595,7 @@ wpi_add_node_entry_sta(struct wpi_softc *sc)
 	return WPI_ID_BSS;
 }
 
-static __inline int
+static inline int
 wpi_check_node_entry(struct wpi_softc *sc, uint8_t id)
 {
 	if (id == WPI_ID_UNDEFINED)
@@ -1604,13 +1604,13 @@ wpi_check_node_entry(struct wpi_softc *sc, uint8_t id)
 	return (sc->nodesmsk >> id) & 1;
 }
 
-static __inline void
+static inline void
 wpi_clear_node_table(struct wpi_softc *sc)
 {
 	sc->nodesmsk = 0;
 }
 
-static __inline void
+static inline void
 wpi_del_node_entry(struct wpi_softc *sc, uint8_t id)
 {
 	sc->nodesmsk &= ~(1 << id);
@@ -1650,7 +1650,7 @@ wpi_node_free(struct ieee80211_node *ni)
 	sc->sc_node_free(ni);
 }
 
-static __inline int
+static inline int
 wpi_check_bss_filter(struct wpi_softc *sc)
 {
 	return (sc->rxon.filter & htole32(WPI_FILTER_BSS)) != 0;
@@ -1859,7 +1859,7 @@ wpi_calib_timeout(void *arg)
 	callout_reset(&sc->calib_to, 60*hz, wpi_calib_timeout, sc);
 }
 
-static __inline uint8_t
+static inline uint8_t
 rate2plcp(const uint8_t rate)
 {
 	switch (rate) {
@@ -1879,7 +1879,7 @@ rate2plcp(const uint8_t rate)
 	}
 }
 
-static __inline uint8_t
+static inline uint8_t
 plcp2rate(const uint8_t plcp)
 {
 	switch (plcp) {
@@ -3051,7 +3051,7 @@ wpi_tx_data_raw(struct wpi_softc *sc, struct mbuf *m,
 	return wpi_cmd2(sc, &tx_data);
 }
 
-static __inline int
+static inline int
 wpi_tx_ring_free_space(struct wpi_softc *sc, uint16_t ac)
 {
 	struct wpi_tx_ring *ring = &sc->txq[ac];

@@ -34,7 +34,7 @@
 #ifndef _LINUX_LIST_H
 
 #ifndef HPT_INLINE
-#define HPT_INLINE __inline
+#define HPT_INLINE inline
 #endif
 
 struct list_head {

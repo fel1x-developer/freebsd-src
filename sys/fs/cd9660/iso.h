@@ -303,63 +303,63 @@ u_short sgetrune(const char *, size_t, char const **, int, void *);
  *   y -> 1 = little-endian, 2 = big-endian, 3 = both (le then be)
  */
 
-static __inline uint8_t
+static inline uint8_t
 isonum_711(const unsigned char *p)
 {
 
 	return (p[0]);
 }
 
-static __inline int8_t
+static inline int8_t
 isonum_712(const unsigned char *p)
 {
 
 	return ((signed char)p[0]);
 }
 
-static __inline uint8_t
+static inline uint8_t
 isonum_713(const unsigned char *p)
 {
 
 	return (p[0]);
 }
 
-static __inline uint16_t
+static inline uint16_t
 isonum_721(const unsigned char *p)
 {
 
 	return (p[0] | p[1] << 8);
 }
 
-static __inline uint16_t
+static inline uint16_t
 isonum_722(const unsigned char *p)
 {
 
 	return (p[1] | p[0] << 8);
 }
 
-static __inline uint16_t
+static inline uint16_t
 isonum_723(const unsigned char *p)
 {
 
 	return (p[0] | p[1] << 8);
 }
 
-static __inline uint32_t
+static inline uint32_t
 isonum_731(const unsigned char *p)
 {
 
 	return (p[0] | p[1] << 8 | p[2] << 16 | p[3] << 24);
 }
 
-static __inline uint32_t
+static inline uint32_t
 isonum_732(const unsigned char *p)
 {
 
 	return (p[3] | p[2] << 8 | p[1] << 16 | p[0] << 24);
 }
 
-static __inline uint32_t
+static inline uint32_t
 isonum_733(const unsigned char *p)
 {
 

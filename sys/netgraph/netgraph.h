@@ -169,29 +169,29 @@ void ng_unref_hook(hook_p hook); /* don't move this */
 #ifdef	NETGRAPH_DEBUG /*----------------------------------------------*/
 #define _NN_ __FILE__,__LINE__
 void	dumphook (hook_p hook, char *file, int line);
-static __inline void	_chkhook(hook_p hook, char *file, int line);
-static __inline void	_ng_hook_ref(hook_p hook, char * file, int line);
-static __inline char *	_ng_hook_name(hook_p hook, char * file, int line);
-static __inline void	_ng_hook_unref(hook_p hook, char * file, int line);
-static __inline void	_ng_hook_set_private(hook_p hook,
+static inline void	_chkhook(hook_p hook, char *file, int line);
+static inline void	_ng_hook_ref(hook_p hook, char * file, int line);
+static inline char *	_ng_hook_name(hook_p hook, char * file, int line);
+static inline void	_ng_hook_unref(hook_p hook, char * file, int line);
+static inline void	_ng_hook_set_private(hook_p hook,
 				void * val, char * file, int line);
-static __inline void	_ng_hook_set_rcvmsg(hook_p hook,
+static inline void	_ng_hook_set_rcvmsg(hook_p hook,
 				ng_rcvmsg_t *val, char * file, int line);
-static __inline void	_ng_hook_set_rcvdata(hook_p hook,
+static inline void	_ng_hook_set_rcvdata(hook_p hook,
 				ng_rcvdata_t *val, char * file, int line);
-static __inline void *	_ng_hook_private(hook_p hook, char * file, int line);
-static __inline int	_ng_hook_not_valid(hook_p hook, char * file, int line);
-static __inline int	_ng_hook_is_valid(hook_p hook, char * file, int line);
-static __inline node_p	_ng_hook_node(hook_p hook, char * file, int line);
-static __inline hook_p	_ng_hook_peer(hook_p hook, char * file, int line);
-static __inline void	_ng_hook_force_writer(hook_p hook, char * file,
+static inline void *	_ng_hook_private(hook_p hook, char * file, int line);
+static inline int	_ng_hook_not_valid(hook_p hook, char * file, int line);
+static inline int	_ng_hook_is_valid(hook_p hook, char * file, int line);
+static inline node_p	_ng_hook_node(hook_p hook, char * file, int line);
+static inline hook_p	_ng_hook_peer(hook_p hook, char * file, int line);
+static inline void	_ng_hook_force_writer(hook_p hook, char * file,
 				int line);
-static __inline void	_ng_hook_force_queue(hook_p hook, char * file,
+static inline void	_ng_hook_force_queue(hook_p hook, char * file,
 				int line);
-static __inline void	_ng_hook_set_to_inbound(hook_p hook, char * file,
+static inline void	_ng_hook_set_to_inbound(hook_p hook, char * file,
 				int line);
 
-static __inline void
+static inline void
 _chkhook(hook_p hook, char *file, int line)
 {
 	if (hook->hk_magic != HK_MAGIC) {
@@ -202,105 +202,105 @@ _chkhook(hook_p hook, char *file, int line)
 	hook->lastfile = file;
 }
 
-static __inline void
+static inline void
 _ng_hook_ref(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_REF(hook);
 }
 
-static __inline char *
+static inline char *
 _ng_hook_name(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	return (_NG_HOOK_NAME(hook));
 }
 
-static __inline void
+static inline void
 _ng_hook_unref(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_UNREF(hook);
 }
 
-static __inline void
+static inline void
 _ng_hook_set_private(hook_p hook, void *val, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_SET_PRIVATE(hook, val);
 }
 
-static __inline void
+static inline void
 _ng_hook_set_rcvmsg(hook_p hook, ng_rcvmsg_t *val, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_SET_RCVMSG(hook, val);
 }
 
-static __inline void
+static inline void
 _ng_hook_set_rcvdata(hook_p hook, ng_rcvdata_t *val, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_SET_RCVDATA(hook, val);
 }
 
-static __inline void *
+static inline void *
 _ng_hook_private(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	return (_NG_HOOK_PRIVATE(hook));
 }
 
-static __inline int
+static inline int
 _ng_hook_not_valid(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	return (_NG_HOOK_NOT_VALID(hook));
 }
 
-static __inline int
+static inline int
 _ng_hook_is_valid(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	return (_NG_HOOK_IS_VALID(hook));
 }
 
-static __inline node_p
+static inline node_p
 _ng_hook_node(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	return (_NG_HOOK_NODE(hook));
 }
 
-static __inline hook_p
+static inline hook_p
 _ng_hook_peer(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	return (_NG_HOOK_PEER(hook));
 }
 
-static __inline void
+static inline void
 _ng_hook_force_writer(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_FORCE_WRITER(hook);
 }
 
-static __inline void
+static inline void
 _ng_hook_force_queue(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_FORCE_QUEUE(hook);
 }
 
-static __inline void
+static inline void
 _ng_hook_set_to_inbound(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_SET_TO_INBOUND(hook);
 }
 
-static __inline void
+static inline void
 _ng_hook_hi_stack(hook_p hook, char * file, int line)
 {
 	_chkhook(hook, file, line);
@@ -439,24 +439,24 @@ typedef	int	ng_fn_eachhook(hook_p hook, void* arg);
 
 #ifdef	NETGRAPH_DEBUG /*----------------------------------------------*/
 void	dumpnode(node_p node, char *file, int line);
-static __inline void _chknode(node_p node, char *file, int line);
-static __inline char * _ng_node_name(node_p node, char *file, int line);
-static __inline int _ng_node_has_name(node_p node, char *file, int line);
-static __inline ng_ID_t _ng_node_id(node_p node, char *file, int line);
-static __inline void _ng_node_ref(node_p node, char *file, int line);
-static __inline void _ng_node_unref(node_p node, char *file, int line);
-static __inline void _ng_node_set_private(node_p node, void * val,
+static inline void _chknode(node_p node, char *file, int line);
+static inline char * _ng_node_name(node_p node, char *file, int line);
+static inline int _ng_node_has_name(node_p node, char *file, int line);
+static inline ng_ID_t _ng_node_id(node_p node, char *file, int line);
+static inline void _ng_node_ref(node_p node, char *file, int line);
+static inline void _ng_node_unref(node_p node, char *file, int line);
+static inline void _ng_node_set_private(node_p node, void * val,
 							char *file, int line);
-static __inline void * _ng_node_private(node_p node, char *file, int line);
-static __inline int _ng_node_is_valid(node_p node, char *file, int line);
-static __inline int _ng_node_not_valid(node_p node, char *file, int line);
-static __inline int _ng_node_numhooks(node_p node, char *file, int line);
-static __inline void _ng_node_force_writer(node_p node, char *file, int line);
-static __inline void _ng_node_foreach_hook(node_p node,
+static inline void * _ng_node_private(node_p node, char *file, int line);
+static inline int _ng_node_is_valid(node_p node, char *file, int line);
+static inline int _ng_node_not_valid(node_p node, char *file, int line);
+static inline int _ng_node_numhooks(node_p node, char *file, int line);
+static inline void _ng_node_force_writer(node_p node, char *file, int line);
+static inline void _ng_node_foreach_hook(node_p node,
 			ng_fn_eachhook *fn, void *arg, char *file, int line);
-static __inline void _ng_node_revive(node_p node, char *file, int line);
+static inline void _ng_node_revive(node_p node, char *file, int line);
 
-static __inline void
+static inline void
 _chknode(node_p node, char *file, int line)
 {
 	if (node->nd_magic != ND_MAGIC) {
@@ -467,105 +467,105 @@ _chknode(node_p node, char *file, int line)
 	node->lastfile = file;
 }
 
-static __inline char *
+static inline char *
 _ng_node_name(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	return(_NG_NODE_NAME(node));
 }
 
-static __inline int
+static inline int
 _ng_node_has_name(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	return(_NG_NODE_HAS_NAME(node));
 }
 
-static __inline ng_ID_t
+static inline ng_ID_t
 _ng_node_id(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	return(_NG_NODE_ID(node));
 }
 
-static __inline void
+static inline void
 _ng_node_ref(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	_NG_NODE_REF(node);
 }
 
-static __inline void
+static inline void
 _ng_node_unref(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	_NG_NODE_UNREF(node);
 }
 
-static __inline void
+static inline void
 _ng_node_set_private(node_p node, void * val, char *file, int line)
 {
 	_chknode(node, file, line);
 	_NG_NODE_SET_PRIVATE(node, val);
 }
 
-static __inline void *
+static inline void *
 _ng_node_private(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	return (_NG_NODE_PRIVATE(node));
 }
 
-static __inline int
+static inline int
 _ng_node_is_valid(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	return(_NG_NODE_IS_VALID(node));
 }
 
-static __inline int
+static inline int
 _ng_node_not_valid(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	return(_NG_NODE_NOT_VALID(node));
 }
 
-static __inline int
+static inline int
 _ng_node_numhooks(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	return(_NG_NODE_NUMHOOKS(node));
 }
 
-static __inline void
+static inline void
 _ng_node_force_writer(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	_NG_NODE_FORCE_WRITER(node);
 }
 
-static __inline void
+static inline void
 _ng_node_hi_stack(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	_NG_NODE_HI_STACK(node);
 }
 
-static __inline void
+static inline void
 _ng_node_really_die(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	_NG_NODE_REALLY_DIE(node);
 }
 
-static __inline void
+static inline void
 _ng_node_revive(node_p node, char *file, int line)
 {
 	_chknode(node, file, line);
 	_NG_NODE_REVIVE(node);
 }
 
-static __inline void
+static inline void
 _ng_node_foreach_hook(node_p node, ng_fn_eachhook *fn, void *arg,
 						char *file, int line)
 {
@@ -709,81 +709,81 @@ struct ng_item {
 
 #ifdef NETGRAPH_DEBUG /*----------------------------------------------*/
 void				dumpitem(item_p item, char *file, int line);
-static __inline void		_ngi_check(item_p item, char *file, int line) ;
-static __inline struct mbuf **	_ngi_m(item_p item, char *file, int line) ;
-static __inline ng_ID_t *	_ngi_retaddr(item_p item, char *file, int line);
-static __inline struct ng_mesg ** _ngi_msg(item_p item, char *file, int line) ;
-static __inline ng_item_fn **	_ngi_fn(item_p item, char *file, int line) ;
-static __inline ng_item_fn2 **	_ngi_fn2(item_p item, char *file, int line) ;
-static __inline void **		_ngi_arg1(item_p item, char *file, int line) ;
-static __inline int *		_ngi_arg2(item_p item, char *file, int line) ;
-static __inline node_p		_ngi_node(item_p item, char *file, int line);
-static __inline hook_p		_ngi_hook(item_p item, char *file, int line);
+static inline void		_ngi_check(item_p item, char *file, int line) ;
+static inline struct mbuf **	_ngi_m(item_p item, char *file, int line) ;
+static inline ng_ID_t *	_ngi_retaddr(item_p item, char *file, int line);
+static inline struct ng_mesg ** _ngi_msg(item_p item, char *file, int line) ;
+static inline ng_item_fn **	_ngi_fn(item_p item, char *file, int line) ;
+static inline ng_item_fn2 **	_ngi_fn2(item_p item, char *file, int line) ;
+static inline void **		_ngi_arg1(item_p item, char *file, int line) ;
+static inline int *		_ngi_arg2(item_p item, char *file, int line) ;
+static inline node_p		_ngi_node(item_p item, char *file, int line);
+static inline hook_p		_ngi_hook(item_p item, char *file, int line);
 
-static __inline void
+static inline void
 _ngi_check(item_p item, char *file, int line)
 {
 	(item)->lastline = line;
 	(item)->lastfile = file;
 }
 
-static __inline struct mbuf **
+static inline struct mbuf **
 _ngi_m(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);
 	return (&_NGI_M(item));
 }
 
-static __inline struct ng_mesg **
+static inline struct ng_mesg **
 _ngi_msg(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);
 	return (&_NGI_MSG(item));
 }
 
-static __inline ng_ID_t *
+static inline ng_ID_t *
 _ngi_retaddr(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);
 	return (&_NGI_RETADDR(item));
 }
 
-static __inline ng_item_fn **
+static inline ng_item_fn **
 _ngi_fn(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);
 	return (&_NGI_FN(item));
 }
 
-static __inline ng_item_fn2 **
+static inline ng_item_fn2 **
 _ngi_fn2(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);
 	return (&_NGI_FN2(item));
 }
 
-static __inline void **
+static inline void **
 _ngi_arg1(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);
 	return (&_NGI_ARG1(item));
 }
 
-static __inline int *
+static inline int *
 _ngi_arg2(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);
 	return (&_NGI_ARG2(item));
 }
 
-static __inline node_p
+static inline node_p
 _ngi_node(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);
 	return (_NGI_NODE(item));
 }
 
-static __inline hook_p
+static inline hook_p
 _ngi_hook(item_p item, char *file, int line)
 {
 	_ngi_check(item, file, line);

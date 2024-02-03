@@ -115,37 +115,37 @@ typedef struct {
 	} u;
 } td_notify_t;
 
-static __inline void
+static inline void
 td_event_addset(td_thr_events_t *es, td_thr_events_e e)
 {
 	*es |= e;
 }
 
-static __inline void
+static inline void
 td_event_delset(td_thr_events_t *es, td_thr_events_e e)
 {
 	*es &= ~e;
 }
 
-static __inline void
+static inline void
 td_event_emptyset(td_thr_events_t *es)
 {
 	*es = TD_EVENT_NONE;
 }
 
-static __inline void
+static inline void
 td_event_fillset(td_thr_events_t *es)
 {
 	*es = TD_ALL_EVENTS;
 }
 
-static __inline int
+static inline int
 td_eventisempty(td_thr_events_t *es)
 {
 	return ((*es == TD_EVENT_NONE) ? 1 : 0);
 }
 
-static __inline int
+static inline int
 td_eventismember(td_thr_events_t *es, td_thr_events_e e)
 {
 	return ((*es & e) ? 1 : 0);

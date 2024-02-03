@@ -131,7 +131,7 @@ struct taskqueue;
 typedef void	(*vmbus_chan_callback_t)(struct vmbus_channel *, void *);
 typedef int	(*vmbus_br_copy_callback_t)(void *, int, void *);
 
-static __inline struct vmbus_channel *
+static inline struct vmbus_channel *
 vmbus_get_channel(device_t dev)
 {
 	return device_get_ivars(dev);

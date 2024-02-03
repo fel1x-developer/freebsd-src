@@ -178,7 +178,7 @@ ptbl_init(void)
 }
 
 /* Get a pointer to a PTE in a page table. */
-static __inline pte_t *
+static inline pte_t *
 pte_find(pmap_t pmap, vm_offset_t va)
 {
 	pte_t        ***pdir_l1;
@@ -199,7 +199,7 @@ pte_find(pmap_t pmap, vm_offset_t va)
 }
 
 /* Get a pointer to a PTE in a page table, or the next closest (greater) one. */
-static __inline pte_t *
+static inline pte_t *
 pte_find_next(pmap_t pmap, vm_offset_t *pva)
 {
 	vm_offset_t	va;

@@ -1529,7 +1529,7 @@ run_eeprom_read_2(struct run_softc *sc, uint16_t addr, uint16_t *val)
 	return (error);
 }
 
-static __inline int
+static inline int
 run_srom_read(struct run_softc *sc, uint16_t addr, uint16_t *val)
 {
 	/* either eFUSE ROM or EEPROM */
@@ -1684,7 +1684,7 @@ run_mcu_cmd(struct run_softc *sc, uint8_t cmd, uint16_t arg)
  * Add `delta' (signed) to each 4-bit sub-word of a 32-bit word.
  * Used to adjust per-rate Tx power registers.
  */
-static __inline uint32_t
+static inline uint32_t
 b4inc(uint32_t b32, int8_t delta)
 {
 	int8_t i, b4;
@@ -2820,7 +2820,7 @@ run_newassoc(struct ieee80211_node *ni, int isnew)
 /*
  * Return the Rx chain with the highest RSSI for a given frame.
  */
-static __inline uint8_t
+static inline uint8_t
 run_maxrssi_chain(struct run_softc *sc, const struct rt2860_rxwi *rxwi)
 {
 	uint8_t rxchain = 0;

@@ -20,7 +20,7 @@
 #include "math.h"
 #include "math_private.h"
 
-static __inline float pzerof(float), qzerof(float);
+static inline float pzerof(float), qzerof(float);
 
 static const volatile float vone = 1,  vzero = 0;
 
@@ -224,7 +224,7 @@ static const float pS2[5] = {
   1.4657617569e+01, /* 0x416a859a */
 };
 
-static __inline float
+static inline float
 pzerof(float x)
 {
 	const float *p,*q;
@@ -320,7 +320,7 @@ static const float qS2[6] = {
  -5.3109550476e+00, /* 0xc0a9f358 */
 };
 
-static __inline float
+static inline float
 qzerof(float x)
 {
 	static const float eighth = 0.125;

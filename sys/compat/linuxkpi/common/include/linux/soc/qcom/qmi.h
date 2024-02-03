@@ -121,7 +121,7 @@ qmi_handle_init(struct qmi_handle *handle, size_t resp_len_max,
 	return (0);
 }
 
-static __inline int
+static inline int
 qmi_add_lookup(struct qmi_handle *handle, uint32_t service, uint32_t version,
     uint32_t service_ins_id)
 {
@@ -130,14 +130,14 @@ qmi_add_lookup(struct qmi_handle *handle, uint32_t service, uint32_t version,
 	return (0);
 }
 
-static __inline void
+static inline void
 qmi_handle_release(struct qmi_handle *handle)
 {
 
 	/* XXX TODO */
 }
 
-static __inline int
+static inline int
 qmi_send_request(struct qmi_handle *handle, void *x, struct qmi_txn *txn,
     uint32_t msd_id, size_t len, const struct qmi_elem_info *ei, void *req)
 {
@@ -146,14 +146,14 @@ qmi_send_request(struct qmi_handle *handle, void *x, struct qmi_txn *txn,
 	return (-ENXIO);
 }
 
-static __inline void
+static inline void
 qmi_txn_cancel(struct qmi_txn *txn)
 {
 
 	/* XXX TODO */
 }
 
-static __inline int
+static inline int
 qmi_txn_init(struct qmi_handle *handle, struct qmi_txn *txn,
     const struct qmi_elem_info *ei, void *resp)
 {
@@ -162,7 +162,7 @@ qmi_txn_init(struct qmi_handle *handle, struct qmi_txn *txn,
 	return (-ENXIO);
 }
 
-static __inline int
+static inline int
 qmi_txn_wait(struct qmi_txn *txn, uint64_t jiffies)
 {
 

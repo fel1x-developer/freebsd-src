@@ -574,7 +574,7 @@ hpt_get_info(IAL_ADAPTER_T *pAdapter, HPT_GET_INFO *pinfo)
 	return 0;
 }
 
-static __inline int
+static inline int
 hpt_proc_in(SYSCTL_HANDLER_ARGS, int *len)
 {
 	int i, error=0;

@@ -127,7 +127,7 @@ struct ofw_gpiobus_devinfo {
 	struct ofw_bus_devinfo	opd_obdinfo;
 };
 
-static __inline int
+static inline int
 gpio_map_gpios(device_t bus, phandle_t dev, phandle_t gparent, int gcells,
     pcell_t *gpios, uint32_t *pin, uint32_t *flags)
 {

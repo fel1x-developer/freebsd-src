@@ -35,7 +35,7 @@
 #ifndef _MACHINE_CPUFUNC_H_
 #define	_MACHINE_CPUFUNC_H_
 
-static __inline void
+static inline void
 breakpoint(void)
 {
 
@@ -46,7 +46,7 @@ breakpoint(void)
 
 #include <machine/riscvreg.h>
 
-static __inline register_t
+static inline register_t
 intr_disable(void)
 {
 	uint64_t ret;
@@ -59,7 +59,7 @@ intr_disable(void)
 	return (ret & (SSTATUS_SIE));
 }
 
-static __inline void
+static inline void
 intr_restore(register_t s)
 {
 
@@ -69,7 +69,7 @@ intr_restore(register_t s)
 	);
 }
 
-static __inline void
+static inline void
 intr_enable(void)
 {
 
@@ -81,21 +81,21 @@ intr_enable(void)
 
 /* NB: fence() is defined as a macro in <machine/atomic.h>. */
 
-static __inline void
+static inline void
 fence_i(void)
 {
 
 	__asm __volatile("fence.i" ::: "memory");
 }
 
-static __inline void
+static inline void
 sfence_vma(void)
 {
 
 	__asm __volatile("sfence.vma" ::: "memory");
 }
 
-static __inline void
+static inline void
 sfence_vma_page(uintptr_t addr)
 {
 

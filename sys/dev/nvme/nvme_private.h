@@ -454,7 +454,7 @@ int	nvme_detach(device_t dev);
  * vast majority of these without waiting for a tick plus scheduling delays. Since
  * these are on startup, this drastically reduces startup time.
  */
-static __inline
+static inline
 void
 nvme_completion_poll(struct nvme_completion_poll_status *status)
 {
@@ -469,7 +469,7 @@ nvme_completion_poll(struct nvme_completion_poll_status *status)
 	}
 }
 
-static __inline void
+static inline void
 nvme_single_map(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 {
 	uint64_t *bus_addr = (uint64_t *)arg;
@@ -480,7 +480,7 @@ nvme_single_map(void *arg, bus_dma_segment_t *seg, int nseg, int error)
 	*bus_addr = seg[0].ds_addr;
 }
 
-static __inline struct nvme_request *
+static inline struct nvme_request *
 _nvme_allocate_request(nvme_cb_fn_t cb_fn, void *cb_arg)
 {
 	struct nvme_request *req;
@@ -494,7 +494,7 @@ _nvme_allocate_request(nvme_cb_fn_t cb_fn, void *cb_arg)
 	return (req);
 }
 
-static __inline struct nvme_request *
+static inline struct nvme_request *
 nvme_allocate_request_vaddr(void *payload, uint32_t payload_size,
     nvme_cb_fn_t cb_fn, void *cb_arg)
 {
@@ -508,7 +508,7 @@ nvme_allocate_request_vaddr(void *payload, uint32_t payload_size,
 	return (req);
 }
 
-static __inline struct nvme_request *
+static inline struct nvme_request *
 nvme_allocate_request_null(nvme_cb_fn_t cb_fn, void *cb_arg)
 {
 	struct nvme_request *req;
@@ -517,7 +517,7 @@ nvme_allocate_request_null(nvme_cb_fn_t cb_fn, void *cb_arg)
 	return (req);
 }
 
-static __inline struct nvme_request *
+static inline struct nvme_request *
 nvme_allocate_request_bio(struct bio *bio, nvme_cb_fn_t cb_fn, void *cb_arg)
 {
 	struct nvme_request *req;
@@ -530,7 +530,7 @@ nvme_allocate_request_bio(struct bio *bio, nvme_cb_fn_t cb_fn, void *cb_arg)
 	return (req);
 }
 
-static __inline struct nvme_request *
+static inline struct nvme_request *
 nvme_allocate_request_ccb(union ccb *ccb, nvme_cb_fn_t cb_fn, void *cb_arg)
 {
 	struct nvme_request *req;

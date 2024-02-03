@@ -311,11 +311,11 @@ function handle_method (static, doc)
 	# Print out the method itself
 	printh(doc);
 	if (0) {		# haven't chosen the format yet
-		printh("static __inline " ret " " umname "(" varname_list ")");
+		printh("static inline " ret " " umname "(" varname_list ")");
 		printh("\t" join(";\n\t", arguments, num_arguments) ";");
 	}
 	else {
-		prototype = "static __inline " ret " " umname "(";
+		prototype = "static inline " ret " " umname "(";
 		printh(format_line(prototype argument_list ")",
 		    line_width, length(prototype)));
 	}

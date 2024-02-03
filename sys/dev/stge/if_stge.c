@@ -153,13 +153,13 @@ static void	stge_set_multi(struct stge_softc *);
 
 static void	stge_link_task(void *, int);
 static void	stge_intr(void *);
-static __inline int stge_tx_error(struct stge_softc *);
+static inline int stge_tx_error(struct stge_softc *);
 static void	stge_txeof(struct stge_softc *);
 static int	stge_rxeof(struct stge_softc *);
-static __inline void stge_discard_rxbuf(struct stge_softc *, int);
+static inline void stge_discard_rxbuf(struct stge_softc *, int);
 static int	stge_newbuf(struct stge_softc *, int);
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline struct mbuf *stge_fixup_rx(struct stge_softc *, struct mbuf *);
+static inline struct mbuf *stge_fixup_rx(struct stge_softc *, struct mbuf *);
 #endif
 
 static int	stge_miibus_readreg(device_t, int, int);
@@ -1406,7 +1406,7 @@ stge_link_task(void *arg, int pending)
 	STGE_UNLOCK(sc);
 }
 
-static __inline int
+static inline int
 stge_tx_error(struct stge_softc *sc)
 {
 	uint32_t txstat;
@@ -1575,7 +1575,7 @@ stge_txeof(struct stge_softc *sc)
 	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 }
 
-static __inline void
+static inline void
 stge_discard_rxbuf(struct stge_softc *sc, int idx)
 {
 	struct stge_rfd *rfd;
@@ -1596,7 +1596,7 @@ stge_discard_rxbuf(struct stge_softc *sc, int idx)
  * mbuf and copy ethernet header to the new mbuf. The new mbuf is
  * prepended into the existing mbuf chain.
  */
-static __inline struct mbuf *
+static inline struct mbuf *
 stge_fixup_rx(struct stge_softc *sc, struct mbuf *m)
 {
 	struct mbuf *n;

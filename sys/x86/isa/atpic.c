@@ -174,7 +174,7 @@ static struct atpic_intsrc atintrs[] = {
 
 CTASSERT(nitems(atintrs) == NUM_ISA_IRQS);
 
-static __inline void
+static inline void
 _atpic_eoi_master(struct intsrc *isrc)
 {
 
@@ -189,7 +189,7 @@ _atpic_eoi_master(struct intsrc *isrc)
  * The data sheet says no auto-EOI on slave, but it sometimes works.
  * So, if AUTO_EOI_2 is enabled, we use it.
  */
-static __inline void
+static inline void
 _atpic_eoi_slave(struct intsrc *isrc)
 {
 

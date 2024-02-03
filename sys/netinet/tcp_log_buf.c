@@ -319,7 +319,7 @@ enum tree_lock_state {
 };
 
 /* Do we want to select this session for auto-logging? */
-static __inline bool
+static inline bool
 tcp_log_selectauto(void)
 {
 
@@ -335,7 +335,7 @@ tcp_log_selectauto(void)
 	return (false);
 }
 
-static __inline int
+static inline int
 tcp_log_id_cmp(struct tcp_log_id_bucket *a, struct tcp_log_id_bucket *b)
 {
 	KASSERT(a != NULL, ("tcp_log_id_cmp: argument a is unexpectedly NULL"));
@@ -345,7 +345,7 @@ tcp_log_id_cmp(struct tcp_log_id_bucket *a, struct tcp_log_id_bucket *b)
 
 RB_GENERATE_STATIC(tcp_log_id_tree, tcp_log_id_bucket, tlb_rb, tcp_log_id_cmp)
 
-static __inline void
+static inline void
 tcp_log_id_validate_tree_lock(int tree_locked)
 {
 
@@ -367,7 +367,7 @@ tcp_log_id_validate_tree_lock(int tree_locked)
 #endif
 }
 
-static __inline void
+static inline void
 tcp_log_remove_bucket(struct tcp_log_id_bucket *tlb)
 {
 

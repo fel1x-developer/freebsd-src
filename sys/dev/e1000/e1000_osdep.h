@@ -137,7 +137,7 @@ typedef int8_t		s8;
 #endif
 
 #if defined(__i386__) || defined(__amd64__)
-static __inline
+static inline
 void prefetch(void *x)
 {
 	__asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));

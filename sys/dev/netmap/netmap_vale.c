@@ -578,7 +578,7 @@ do {                                                                    \
 } while (/*CONSTCOND*/0)
 
 
-static __inline uint32_t
+static inline uint32_t
 nm_vale_rthash(const uint8_t *addr)
 {
 	uint32_t a = 0x9e3779b9, b = 0x9e3779b9, c = 0; // hash key

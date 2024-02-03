@@ -58,7 +58,7 @@ void		bwi_nrssi_write(struct bwi_mac *, uint16_t, int16_t);
 uint16_t	bwi_phy_read(struct bwi_mac *, uint16_t);
 void		bwi_phy_write(struct bwi_mac *, uint16_t, uint16_t);
 
-static __inline void
+static inline void
 bwi_phy_init(struct bwi_mac *_mac)
 {
 	_mac->mac_phy.phy_init(_mac);

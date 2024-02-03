@@ -137,14 +137,14 @@ static int hpt_attach(device_t dev)
  * Maybe we'd better to use the bus_dmamem_alloc to alloc DMA memory,
  * but there are some problems currently (alignment, etc).
  */
-static __inline void *__get_free_pages(int order)
+static inline void *__get_free_pages(int order)
 {
 	/* don't use low memory - other devices may get starved */
 	return contigmalloc(PAGE_SIZE<<order, 
 			M_DEVBUF, M_WAITOK, BUS_SPACE_MAXADDR_24BIT, BUS_SPACE_MAXADDR, PAGE_SIZE, 0);
 }
 
-static __inline void free_pages(void *p, int order)
+static inline void free_pages(void *p, int order)
 {
 	contigfree(p, PAGE_SIZE<<order, M_DEVBUF);
 }
@@ -410,7 +410,7 @@ static void hpt_poll(struct cam_sim *sim);
 static void hpt_async(void * callback_arg, u_int32_t code, struct cam_path * path, void * arg);
 static void hpt_pci_intr(void *arg);
 
-static __inline POS_CMDEXT cmdext_get(PVBUS_EXT vbus_ext)
+static inline POS_CMDEXT cmdext_get(PVBUS_EXT vbus_ext)
 {
 	POS_CMDEXT p = vbus_ext->cmdext_list;
 	if (p)
@@ -418,7 +418,7 @@ static __inline POS_CMDEXT cmdext_get(PVBUS_EXT vbus_ext)
 	return p;
 }
 
-static __inline void cmdext_put(POS_CMDEXT p)
+static inline void cmdext_put(POS_CMDEXT p)
 {
 	p->next = p->vbus_ext->cmdext_list;
 	p->vbus_ext->cmdext_list = p;

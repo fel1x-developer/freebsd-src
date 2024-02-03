@@ -187,7 +187,7 @@ char *		bt_devremote_name(char const *devname, const bdaddr_t *remote,
 int		bt_devinfo (struct bt_devinfo *di);
 int		bt_devenum (bt_devenum_cb_t cb, void *arg);
 
-static __inline char *
+static inline char *
 bt_devremote_name_gen(char const *btooth_devname, const bdaddr_t *remote)
 {
 	return (bt_devremote_name(btooth_devname, remote, 0, 0x0000,
@@ -198,7 +198,7 @@ bt_devremote_name_gen(char const *btooth_devname, const bdaddr_t *remote)
  * bdaddr utility functions (from NetBSD)
  */
 
-static __inline int
+static inline int
 bdaddr_same(const bdaddr_t *a, const bdaddr_t *b)
 {
 	return (a->b[0] == b->b[0] && a->b[1] == b->b[1] &&
@@ -206,14 +206,14 @@ bdaddr_same(const bdaddr_t *a, const bdaddr_t *b)
 		a->b[4] == b->b[4] && a->b[5] == b->b[5]);
 }
 
-static __inline int
+static inline int
 bdaddr_any(const bdaddr_t *a)
 {
 	return (a->b[0] == 0 && a->b[1] == 0 && a->b[2] == 0 &&
 		a->b[3] == 0 && a->b[4] == 0 && a->b[5] == 0);
 }
 
-static __inline void
+static inline void
 bdaddr_copy(bdaddr_t *d, const bdaddr_t *s)
 {
 	d->b[0] = s->b[0];

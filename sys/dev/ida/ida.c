@@ -130,7 +130,7 @@ ida_dma_map_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 	*baddr = segs->ds_addr;
 }
 
-static __inline struct ida_qcb *
+static inline struct ida_qcb *
 ida_get_qcb(struct ida_softc *ida)
 {
 	struct ida_qcb *qcb;
@@ -142,7 +142,7 @@ ida_get_qcb(struct ida_softc *ida)
 	return (qcb);
 }
 
-static __inline void
+static inline void
 ida_free_qcb(struct ida_softc *ida, struct ida_qcb *qcb)
 {
 
@@ -152,14 +152,14 @@ ida_free_qcb(struct ida_softc *ida, struct ida_qcb *qcb)
 	SLIST_INSERT_HEAD(&ida->free_qcbs, qcb, link.sle);
 }
 
-static __inline bus_addr_t
+static inline bus_addr_t
 idahwqcbvtop(struct ida_softc *ida, struct ida_hardware_qcb *hwqcb)
 {
 	return (ida->hwqcb_busaddr +
 	    ((bus_addr_t)hwqcb - (bus_addr_t)ida->hwqcbs));
 }
 
-static __inline struct ida_qcb *
+static inline struct ida_qcb *
 idahwqcbptov(struct ida_softc *ida, bus_addr_t hwqcb_addr)
 {
 	struct ida_hardware_qcb *hwqcb;

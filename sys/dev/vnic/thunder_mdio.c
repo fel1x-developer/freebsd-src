@@ -186,7 +186,7 @@ thunder_mdio_detach(device_t dev)
 	return (0);
 }
 
-static __inline void
+static inline void
 thunder_mdio_set_mode(struct thunder_mdio_softc *sc,
     enum thunder_mdio_mode mode)
 {
@@ -361,7 +361,7 @@ thunder_ifmedia_status_stub(if_t ifp __unused, struct ifmediareq
 	/* Will never be called by if_media */
 }
 
-static __inline struct phy_desc *
+static inline struct phy_desc *
 get_phy_desc(struct thunder_mdio_softc *sc, int lmacid)
 {
 	struct phy_desc *pd = NULL;

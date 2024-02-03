@@ -130,13 +130,13 @@ struct apei_pcie_error {
 };
 
 #ifdef __i386__
-static __inline uint64_t
+static inline uint64_t
 apei_bus_read_8(struct resource *res, bus_size_t offset)
 {
 	return (bus_read_4(res, offset) |
 	    ((uint64_t)bus_read_4(res, offset + 4)) << 32);
 }
-static __inline void
+static inline void
 apei_bus_write_8(struct resource *res, bus_size_t offset, uint64_t val)
 {
 	bus_write_4(res, offset, val);

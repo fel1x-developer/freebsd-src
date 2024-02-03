@@ -63,7 +63,7 @@ static struct basl_table *rsdt;
 static struct basl_table *xsdt;
 static bool load_into_memory;
 
-static __inline uint64_t
+static inline uint64_t
 basl_le_dec(void *pp, size_t len)
 {
 	assert(len <= 8);
@@ -82,7 +82,7 @@ basl_le_dec(void *pp, size_t len)
 	return 0;
 }
 
-static __inline void
+static inline void
 basl_le_enc(void *pp, uint64_t val, size_t len)
 {
 	char buf[8];

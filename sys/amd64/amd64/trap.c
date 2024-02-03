@@ -1113,7 +1113,7 @@ amd64_syscall_ret_flush_l1d_check(int error)
 	}
 }
 
-static void __inline
+static void inline
 amd64_syscall_ret_flush_l1d_check_inline(int error)
 {
 

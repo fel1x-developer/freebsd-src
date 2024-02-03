@@ -389,7 +389,7 @@ static struct pmap_funcs moea_methods = {
 
 MMU_DEF(oea_mmu, MMU_TYPE_OEA, moea_methods);
 
-static __inline uint32_t
+static inline uint32_t
 moea_calc_wimg(vm_paddr_t pa, vm_memattr_t ma)
 {
 	uint32_t pte_lo;
@@ -429,7 +429,7 @@ moea_calc_wimg(vm_paddr_t pa, vm_memattr_t ma)
 /*
  * Translate OFW translations into VM attributes.
  */
-static __inline vm_memattr_t
+static inline vm_memattr_t
 moea_bootstrap_convert_wimg(uint32_t mode)
 {
 
@@ -476,13 +476,13 @@ tlbia(void)
 	powerpc_sync();
 }
 
-static __inline int
+static inline int
 va_to_sr(u_int *sr, vm_offset_t va)
 {
 	return (sr[(uintptr_t)va >> ADDR_SR_SHFT]);
 }
 
-static __inline u_int
+static inline u_int
 va_to_pteg(u_int sr, vm_offset_t addr)
 {
 	u_int hash;
@@ -492,14 +492,14 @@ va_to_pteg(u_int sr, vm_offset_t addr)
 	return (hash & moea_pteg_mask);
 }
 
-static __inline struct pvo_head *
+static inline struct pvo_head *
 vm_page_to_pvoh(vm_page_t m)
 {
 
 	return (&m->md.mdpg_pvoh);
 }
 
-static __inline void
+static inline void
 moea_attr_clear(vm_page_t m, int ptebit)
 {
 
@@ -507,14 +507,14 @@ moea_attr_clear(vm_page_t m, int ptebit)
 	m->md.mdpg_attrs &= ~ptebit;
 }
 
-static __inline int
+static inline int
 moea_attr_fetch(vm_page_t m)
 {
 
 	return (m->md.mdpg_attrs);
 }
 
-static __inline void
+static inline void
 moea_attr_save(vm_page_t m, int ptebit)
 {
 
@@ -522,7 +522,7 @@ moea_attr_save(vm_page_t m, int ptebit)
 	m->md.mdpg_attrs |= ptebit;
 }
 
-static __inline int
+static inline int
 moea_pte_compare(const struct pte *pt, const struct pte *pvo_pt)
 {
 	if (pt->pte_hi == pvo_pt->pte_hi)
@@ -531,7 +531,7 @@ moea_pte_compare(const struct pte *pt, const struct pte *pvo_pt)
 	return (0);
 }
 
-static __inline int
+static inline int
 moea_pte_match(struct pte *pt, u_int sr, vm_offset_t va, int which)
 {
 	return (pt->pte_hi & ~PTE_VALID) ==
@@ -539,7 +539,7 @@ moea_pte_match(struct pte *pt, u_int sr, vm_offset_t va, int which)
 	    ((va >> ADDR_API_SHFT) & PTE_API) | which);
 }
 
-static __inline void
+static inline void
 moea_pte_create(struct pte *pt, u_int sr, vm_offset_t va, u_int pte_lo)
 {
 
@@ -556,7 +556,7 @@ moea_pte_create(struct pte *pt, u_int sr, vm_offset_t va, u_int pte_lo)
 	pt->pte_lo = pte_lo;
 }
 
-static __inline void
+static inline void
 moea_pte_synch(struct pte *pt, struct pte *pvo_pt)
 {
 
@@ -564,7 +564,7 @@ moea_pte_synch(struct pte *pt, struct pte *pvo_pt)
 	pvo_pt->pte_lo |= pt->pte_lo & (PTE_REF | PTE_CHG);
 }
 
-static __inline void
+static inline void
 moea_pte_clear(struct pte *pt, vm_offset_t va, int ptebit)
 {
 
@@ -577,7 +577,7 @@ moea_pte_clear(struct pte *pt, vm_offset_t va, int ptebit)
 	tlbie(va);
 }
 
-static __inline void
+static inline void
 moea_pte_set(struct pte *pt, struct pte *pvo_pt)
 {
 
@@ -596,7 +596,7 @@ moea_pte_set(struct pte *pt, struct pte *pvo_pt)
 	moea_pte_valid++;
 }
 
-static __inline void
+static inline void
 moea_pte_unset(struct pte *pt, struct pte *pvo_pt, vm_offset_t va)
 {
 
@@ -622,7 +622,7 @@ moea_pte_unset(struct pte *pt, struct pte *pvo_pt, vm_offset_t va)
 	moea_pte_valid--;
 }
 
-static __inline void
+static inline void
 moea_pte_change(struct pte *pt, struct pte *pvo_pt, vm_offset_t va)
 {
 
@@ -2207,7 +2207,7 @@ moea_pvo_remove(struct pvo_entry *pvo, int pteidx)
 	moea_pvo_remove_calls++;
 }
 
-static __inline int
+static inline int
 moea_pvo_pte_index(const struct pvo_entry *pvo, int ptegidx)
 {
 	int	pteidx;
@@ -2420,7 +2420,7 @@ moea_pte_spill(vm_offset_t addr)
 	return (1);
 }
 
-static __inline struct pvo_entry *
+static inline struct pvo_entry *
 moea_pte_spillable_ident(u_int ptegidx)
 {
 	struct	pte *pt;

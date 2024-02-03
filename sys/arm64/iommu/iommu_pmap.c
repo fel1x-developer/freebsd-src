@@ -100,14 +100,14 @@ static void _smmu_pmap_unwire_l3(struct smmu_pmap *pmap, vm_offset_t va,
 /* Inline functions */
 /********************/
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 smmu_pmap_l0(struct smmu_pmap *pmap, vm_offset_t va)
 {
 
 	return (&pmap->sp_l0[smmu_l0_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 smmu_pmap_l0_to_l1(pd_entry_t *l0, vm_offset_t va)
 {
 	pd_entry_t *l1;
@@ -116,7 +116,7 @@ smmu_pmap_l0_to_l1(pd_entry_t *l0, vm_offset_t va)
 	return (&l1[smmu_l1_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 smmu_pmap_l1(struct smmu_pmap *pmap, vm_offset_t va)
 {
 	pd_entry_t *l0;
@@ -128,7 +128,7 @@ smmu_pmap_l1(struct smmu_pmap *pmap, vm_offset_t va)
 	return (smmu_pmap_l0_to_l1(l0, va));
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 smmu_pmap_l1_to_l2(pd_entry_t *l1p, vm_offset_t va)
 {
 	pd_entry_t l1, *l2p;
@@ -147,7 +147,7 @@ smmu_pmap_l1_to_l2(pd_entry_t *l1p, vm_offset_t va)
 	return (&l2p[smmu_l2_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 smmu_pmap_l2(struct smmu_pmap *pmap, vm_offset_t va)
 {
 	pd_entry_t *l1;
@@ -159,7 +159,7 @@ smmu_pmap_l2(struct smmu_pmap *pmap, vm_offset_t va)
 	return (smmu_pmap_l1_to_l2(l1, va));
 }
 
-static __inline pt_entry_t *
+static inline pt_entry_t *
 smmu_pmap_l2_to_l3(pd_entry_t *l2p, vm_offset_t va)
 {
 	pd_entry_t l2;
@@ -183,7 +183,7 @@ smmu_pmap_l2_to_l3(pd_entry_t *l2p, vm_offset_t va)
  * Returns the lowest valid pde for a given virtual address.
  * The next level may or may not point to a valid page or block.
  */
-static __inline pd_entry_t *
+static inline pd_entry_t *
 smmu_pmap_pde(struct smmu_pmap *pmap, vm_offset_t va, int *level)
 {
 	pd_entry_t *l0, *l1, *l2, desc;
@@ -218,7 +218,7 @@ smmu_pmap_pde(struct smmu_pmap *pmap, vm_offset_t va, int *level)
  * address. If there are no valid entries return NULL and set the level to
  * the first invalid level.
  */
-static __inline pt_entry_t *
+static inline pt_entry_t *
 smmu_pmap_pte(struct smmu_pmap *pmap, vm_offset_t va, int *level)
 {
 	pd_entry_t *l1, *l2, desc;
@@ -260,7 +260,7 @@ smmu_pmap_pte(struct smmu_pmap *pmap, vm_offset_t va, int *level)
 	return (l3);
 }
 
-static __inline int
+static inline int
 smmu_pmap_l3_valid(pt_entry_t l3)
 {
 
@@ -270,7 +270,7 @@ smmu_pmap_l3_valid(pt_entry_t l3)
 CTASSERT(IOMMU_L1_BLOCK == IOMMU_L2_BLOCK);
 
 #ifdef INVARIANTS
-static __inline void
+static inline void
 smmu_pmap_resident_count_inc(struct smmu_pmap *pmap, int count)
 {
 
@@ -278,7 +278,7 @@ smmu_pmap_resident_count_inc(struct smmu_pmap *pmap, int count)
 	pmap->sp_resident_count += count;
 }
 
-static __inline void
+static inline void
 smmu_pmap_resident_count_dec(struct smmu_pmap *pmap, int count)
 {
 
@@ -289,12 +289,12 @@ smmu_pmap_resident_count_dec(struct smmu_pmap *pmap, int count)
 	pmap->sp_resident_count -= count;
 }
 #else
-static __inline void
+static inline void
 smmu_pmap_resident_count_inc(struct smmu_pmap *pmap, int count)
 {
 }
 
-static __inline void
+static inline void
 smmu_pmap_resident_count_dec(struct smmu_pmap *pmap, int count)
 {
 }
@@ -308,7 +308,7 @@ smmu_pmap_resident_count_dec(struct smmu_pmap *pmap, int count)
  * add the page to the specified list of pages that will be released to the
  * physical memory manager after the TLB has been updated.
  */
-static __inline void
+static inline void
 smmu_pmap_add_delayed_free_list(vm_page_t m, struct spglist *free,
     boolean_t set_PG_ZERO)
 {

@@ -35,24 +35,24 @@
 int kdb_cpu_set_watchpoint(vm_offset_t addr, vm_size_t size, int access);
 int kdb_cpu_clr_watchpoint(vm_offset_t addr, vm_size_t size);
 
-static __inline void
+static inline void
 kdb_cpu_clear_singlestep(void)
 {
 	kdb_frame->tf_rflags &= ~PSL_T;
 }
 
-static __inline void
+static inline void
 kdb_cpu_set_singlestep(void)
 {
 	kdb_frame->tf_rflags |= PSL_T;
 }
 
-static __inline void
+static inline void
 kdb_cpu_sync_icache(unsigned char *addr, size_t size)
 {
 }
 
-static __inline void
+static inline void
 kdb_cpu_trap(int type, int code)
 {
 }

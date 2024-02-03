@@ -1600,7 +1600,7 @@ mvneta_tx_queue_enable(if_t ifp, int q)
 	return (0);
 }
 
-STATIC __inline void
+STATIC inline void
 mvneta_rx_lockq(struct mvneta_softc *sc, int q)
 {
 
@@ -1609,7 +1609,7 @@ mvneta_rx_lockq(struct mvneta_softc *sc, int q)
 	mtx_lock(&sc->rx_ring[q].ring_mtx);
 }
 
-STATIC __inline void
+STATIC inline void
 mvneta_rx_unlockq(struct mvneta_softc *sc, int q)
 {
 
@@ -1618,7 +1618,7 @@ mvneta_rx_unlockq(struct mvneta_softc *sc, int q)
 	mtx_unlock(&sc->rx_ring[q].ring_mtx);
 }
 
-STATIC __inline int __unused
+STATIC inline int __unused
 mvneta_tx_trylockq(struct mvneta_softc *sc, int q)
 {
 
@@ -1627,7 +1627,7 @@ mvneta_tx_trylockq(struct mvneta_softc *sc, int q)
 	return (mtx_trylock(&sc->tx_ring[q].ring_mtx));
 }
 
-STATIC __inline void
+STATIC inline void
 mvneta_tx_lockq(struct mvneta_softc *sc, int q)
 {
 
@@ -1636,7 +1636,7 @@ mvneta_tx_lockq(struct mvneta_softc *sc, int q)
 	mtx_lock(&sc->tx_ring[q].ring_mtx);
 }
 
-STATIC __inline void
+STATIC inline void
 mvneta_tx_unlockq(struct mvneta_softc *sc, int q)
 {
 
@@ -2976,7 +2976,7 @@ out:
  * Helper routine for updating PRXSU register of a given queue.
  * Handles number of processed descriptors bigger than maximum acceptable value.
  */
-STATIC __inline void
+STATIC inline void
 mvneta_prxsu_update(struct mvneta_softc *sc, int q, int processed)
 {
 	uint32_t prxsu;
@@ -2990,7 +2990,7 @@ mvneta_prxsu_update(struct mvneta_softc *sc, int q, int processed)
 	MVNETA_WRITE(sc, MVNETA_PRXSU(q), prxsu);
 }
 
-static __inline void
+static inline void
 mvneta_prefetch(void *p)
 {
 
@@ -3205,7 +3205,7 @@ mvneta_rx_queue_refill(struct mvneta_softc *sc, int q)
 	}
 }
 
-STATIC __inline void
+STATIC inline void
 mvneta_rx_set_csumflag(if_t ifp,
     struct mvneta_rx_desc *r, struct mbuf *m)
 {

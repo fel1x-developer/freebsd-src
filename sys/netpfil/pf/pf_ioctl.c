@@ -141,7 +141,7 @@ static int		 pf_import_kaltq(struct pfioc_altq_v1 *,
 
 VNET_DEFINE(struct pf_krule,	pf_default_rule);
 
-static __inline int             pf_krule_compare(struct pf_krule *,
+static inline int             pf_krule_compare(struct pf_krule *,
 				    struct pf_krule *);
 
 RB_GENERATE(pf_krule_global, pf_krule, entry_global, pf_krule_compare);

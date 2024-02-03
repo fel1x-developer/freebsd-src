@@ -58,7 +58,7 @@ int		bwi_rf_tssi2dbm(struct bwi_mac *, int8_t, int8_t *);
 void		bwi_rf_write(struct bwi_mac *, uint16_t, uint16_t);
 uint16_t	bwi_rf_read(struct bwi_mac *, uint16_t);
 
-static __inline void
+static inline void
 bwi_rf_off(struct bwi_mac *_mac)
 {
 	_mac->mac_rf.rf_off(_mac);
@@ -67,7 +67,7 @@ bwi_rf_off(struct bwi_mac *_mac)
 	_mac->mac_rf.rf_flags &= ~BWI_RF_F_ON;
 }
 
-static __inline void
+static inline void
 bwi_rf_on(struct bwi_mac *_mac)
 {
 	if (_mac->mac_rf.rf_flags & BWI_RF_F_ON)
@@ -79,31 +79,31 @@ bwi_rf_on(struct bwi_mac *_mac)
 	_mac->mac_rf.rf_flags |= BWI_RF_F_ON;
 }
 
-static __inline void
+static inline void
 bwi_rf_calc_nrssi_slope(struct bwi_mac *_mac)
 {
 	_mac->mac_rf.rf_calc_nrssi_slope(_mac);
 }
 
-static __inline void
+static inline void
 bwi_rf_set_nrssi_thr(struct bwi_mac *_mac)
 {
 	_mac->mac_rf.rf_set_nrssi_thr(_mac);
 }
 
-static __inline int
+static inline int
 bwi_rf_calc_rssi(struct bwi_mac *_mac, const struct bwi_rxbuf_hdr *_hdr)
 {
 	return _mac->mac_rf.rf_calc_rssi(_mac, _hdr);
 }
 
-static __inline int
+static inline int
 bwi_rf_calc_noise(struct bwi_mac *_mac)
 {
 	return _mac->mac_rf.rf_calc_noise(_mac);
 }
 
-static __inline void
+static inline void
 bwi_rf_lo_update(struct bwi_mac *_mac)
 {
 	return _mac->mac_rf.rf_lo_update(_mac);

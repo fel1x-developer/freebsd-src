@@ -104,7 +104,7 @@ struct escape_t {
 #define ESC(escape)	((escape)->ch)
 #define INIT(escape)	(TAILQ_FIRST(SET(escape)))
 
-static __inline escape_t *
+static inline escape_t *
 find_escape(escape_list *set, int ch)
 {
 	escape_t *escape;
@@ -145,7 +145,7 @@ typedef struct {
 #define _ENCODING_IS_STATE_DEPENDENT		1
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	((_ps_)->inuse == NULL)
 
-static __inline void
+static inline void
 _citrus_HZ_init_state(_HZEncodingInfo * __restrict ei,
     _HZState * __restrict psenc)
 {
@@ -155,7 +155,7 @@ _citrus_HZ_init_state(_HZEncodingInfo * __restrict ei,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_HZ_pack_state(_HZEncodingInfo * __restrict ei __unused,
     void *__restrict pspriv, const _HZState * __restrict psenc)
@@ -164,7 +164,7 @@ _citrus_HZ_pack_state(_HZEncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)psenc, sizeof(*psenc));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_HZ_unpack_state(_HZEncodingInfo * __restrict ei __unused,
     _HZState * __restrict psenc, const void * __restrict pspriv)
@@ -393,7 +393,7 @@ ilseq:
 	return (EILSEQ);
 }
 
-static __inline int
+static inline int
 _citrus_HZ_put_state_reset(_HZEncodingInfo * __restrict ei,
     char * __restrict s, size_t n, _HZState * __restrict psenc,
     size_t * __restrict nresult)
@@ -420,7 +420,7 @@ _citrus_HZ_put_state_reset(_HZEncodingInfo * __restrict ei,
 	return (0);
 }
 
-static __inline int
+static inline int
 _citrus_HZ_stdenc_get_state_desc_generic(_HZEncodingInfo * __restrict ei,
     _HZState * __restrict psenc, int * __restrict rstate)
 {
@@ -438,7 +438,7 @@ _citrus_HZ_stdenc_get_state_desc_generic(_HZEncodingInfo * __restrict ei,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_HZ_stdenc_wctocs(_HZEncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -464,7 +464,7 @@ _citrus_HZ_stdenc_wctocs(_HZEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_HZ_stdenc_cstowc(_HZEncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)

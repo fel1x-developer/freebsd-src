@@ -112,7 +112,7 @@ static MALLOC_DEFINE(M_BUSDMA, "busdma", "busdma metadata");
  * Returns true if the address falls within the tag's exclusion window, or
  * fails to meet its alignment requirements.
  */
-static __inline bool
+static inline bool
 must_bounce(bus_dma_tag_t dmat, bus_addr_t paddr)
 {
 

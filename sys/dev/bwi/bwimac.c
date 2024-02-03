@@ -827,7 +827,7 @@ bwi_mac_detach(struct bwi_mac *mac)
 	bwi_mac_fw_free(mac);
 }
 
-static __inline int
+static inline int
 bwi_fwimage_is_valid(struct bwi_softc *sc, const struct firmware *fw,
 		     uint8_t fw_type)
 {
@@ -1682,7 +1682,7 @@ bwi_mac_attach(struct bwi_softc *sc, int id, uint8_t rev)
 	return 0;
 }
 
-static __inline void
+static inline void
 bwi_mac_balance_atten(int *bbp_atten0, int *rf_atten0)
 {
 	int bbp_atten, rf_atten, rf_atten_lim = -1;

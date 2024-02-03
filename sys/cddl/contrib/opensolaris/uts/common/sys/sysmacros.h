@@ -389,7 +389,7 @@ extern unsigned char bcd_to_byte[256];
  *      Returns bit number + 1 of highest bit that is set, otherwise returns 0.
  * High order bit is 31 (or 63 in _LP64 kernel).
  */
-static __inline int
+static inline int
 highbit(unsigned long i)
 {
 #if defined(__FreeBSD__) && defined(_KERNEL)
@@ -427,7 +427,7 @@ highbit(unsigned long i)
  * Find highest one bit set.
  *	Returns bit number + 1 of highest bit that is set, otherwise returns 0.
  */
-static __inline int
+static inline int
 highbit64(uint64_t i)
 {
 #if defined(__FreeBSD__) && defined(_KERNEL)

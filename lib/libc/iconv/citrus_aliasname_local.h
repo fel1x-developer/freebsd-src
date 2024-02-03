@@ -31,7 +31,7 @@
 #ifndef _CITRUS_ALIASNAME_LOCAL_H_
 #define _CITRUS_ALIASNAME_LOCAL_H_
 
-static __inline const char *
+static inline const char *
 __unaliasname(const char *dbname, const char *alias,
     void *buf, size_t bufsize)
 {
@@ -40,7 +40,7 @@ __unaliasname(const char *dbname, const char *alias,
 	    buf, bufsize, _LOOKUP_CASE_SENSITIVE));
 }
 
-static __inline int
+static inline int
 __isforcemapping(const char *name)
 {
 

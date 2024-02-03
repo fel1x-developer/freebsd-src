@@ -400,13 +400,13 @@ PCI_ACCESSOR(lattimer,		LATTIMER,	uint8_t)
 /*
  * Operations on configuration space.
  */
-static __inline uint32_t
+static inline uint32_t
 pci_read_config(device_t dev, int reg, int width)
 {
     return PCI_READ_CONFIG(device_get_parent(dev), dev, reg, width);
 }
 
-static __inline void
+static inline void
 pci_write_config(device_t dev, int reg, uint32_t val, int width)
 {
     PCI_WRITE_CONFIG(device_get_parent(dev), dev, reg, val, width);
@@ -444,37 +444,37 @@ PCIB_ACCESSOR(bus,		BUS,		uint32_t)
  * These should be used in preference to manually manipulating
  * configuration space.
  */
-static __inline int
+static inline int
 pci_enable_busmaster(device_t dev)
 {
     return(PCI_ENABLE_BUSMASTER(device_get_parent(dev), dev));
 }
 
-static __inline int
+static inline int
 pci_disable_busmaster(device_t dev)
 {
     return(PCI_DISABLE_BUSMASTER(device_get_parent(dev), dev));
 }
 
-static __inline int
+static inline int
 pci_enable_io(device_t dev, int space)
 {
     return(PCI_ENABLE_IO(device_get_parent(dev), dev, space));
 }
 
-static __inline int
+static inline int
 pci_disable_io(device_t dev, int space)
 {
     return(PCI_DISABLE_IO(device_get_parent(dev), dev, space));
 }
 
-static __inline int
+static inline int
 pci_get_vpd_ident(device_t dev, const char **identptr)
 {
     return(PCI_GET_VPD_IDENT(device_get_parent(dev), dev, identptr));
 }
 
-static __inline int
+static inline int
 pci_get_vpd_readonly(device_t dev, const char *kw, const char **vptr)
 {
     return(PCI_GET_VPD_READONLY(device_get_parent(dev), dev, kw, vptr));
@@ -483,7 +483,7 @@ pci_get_vpd_readonly(device_t dev, const char *kw, const char **vptr)
 /*
  * Check if the address range falls within the VGA defined address range(s)
  */
-static __inline int
+static inline int
 pci_is_vga_ioport_range(rman_res_t start, rman_res_t end)
 {
 
@@ -491,7 +491,7 @@ pci_is_vga_ioport_range(rman_res_t start, rman_res_t end)
 	    (start >= 0x3c0 && end <= 0x3df)) ? 1 : 0);
 }
 
-static __inline int
+static inline int
 pci_is_vga_memory_range(rman_res_t start, rman_res_t end)
 {
 
@@ -519,124 +519,124 @@ pci_is_vga_memory_range(rman_res_t start, rman_res_t end)
 #define	PCI_POWERSTATE_D3	3
 #define	PCI_POWERSTATE_UNKNOWN	-1
 
-static __inline int
+static inline int
 pci_set_powerstate(device_t dev, int state)
 {
     return PCI_SET_POWERSTATE(device_get_parent(dev), dev, state);
 }
 
-static __inline int
+static inline int
 pci_get_powerstate(device_t dev)
 {
     return PCI_GET_POWERSTATE(device_get_parent(dev), dev);
 }
 
-static __inline int
+static inline int
 pci_find_cap(device_t dev, int capability, int *capreg)
 {
     return (PCI_FIND_CAP(device_get_parent(dev), dev, capability, capreg));
 }
 
-static __inline int
+static inline int
 pci_find_next_cap(device_t dev, int capability, int start, int *capreg)
 {
     return (PCI_FIND_NEXT_CAP(device_get_parent(dev), dev, capability, start,
         capreg));
 }
 
-static __inline int
+static inline int
 pci_find_extcap(device_t dev, int capability, int *capreg)
 {
     return (PCI_FIND_EXTCAP(device_get_parent(dev), dev, capability, capreg));
 }
 
-static __inline int
+static inline int
 pci_find_next_extcap(device_t dev, int capability, int start, int *capreg)
 {
     return (PCI_FIND_NEXT_EXTCAP(device_get_parent(dev), dev, capability,
         start, capreg));
 }
 
-static __inline int
+static inline int
 pci_find_htcap(device_t dev, int capability, int *capreg)
 {
     return (PCI_FIND_HTCAP(device_get_parent(dev), dev, capability, capreg));
 }
 
-static __inline int
+static inline int
 pci_find_next_htcap(device_t dev, int capability, int start, int *capreg)
 {
     return (PCI_FIND_NEXT_HTCAP(device_get_parent(dev), dev, capability,
         start, capreg));
 }
 
-static __inline int
+static inline int
 pci_alloc_msi(device_t dev, int *count)
 {
     return (PCI_ALLOC_MSI(device_get_parent(dev), dev, count));
 }
 
-static __inline int
+static inline int
 pci_alloc_msix(device_t dev, int *count)
 {
     return (PCI_ALLOC_MSIX(device_get_parent(dev), dev, count));
 }
 
-static __inline void
+static inline void
 pci_enable_msi(device_t dev, uint64_t address, uint16_t data)
 {
     PCI_ENABLE_MSI(device_get_parent(dev), dev, address, data);
 }
 
-static __inline void
+static inline void
 pci_enable_msix(device_t dev, u_int index, uint64_t address, uint32_t data)
 {
     PCI_ENABLE_MSIX(device_get_parent(dev), dev, index, address, data);
 }
 
-static __inline void
+static inline void
 pci_disable_msi(device_t dev)
 {
     PCI_DISABLE_MSI(device_get_parent(dev), dev);
 }
 
-static __inline int
+static inline int
 pci_remap_msix(device_t dev, int count, const u_int *vectors)
 {
     return (PCI_REMAP_MSIX(device_get_parent(dev), dev, count, vectors));
 }
 
-static __inline int
+static inline int
 pci_release_msi(device_t dev)
 {
     return (PCI_RELEASE_MSI(device_get_parent(dev), dev));
 }
 
-static __inline int
+static inline int
 pci_msi_count(device_t dev)
 {
     return (PCI_MSI_COUNT(device_get_parent(dev), dev));
 }
 
-static __inline int
+static inline int
 pci_msix_count(device_t dev)
 {
     return (PCI_MSIX_COUNT(device_get_parent(dev), dev));
 }
 
-static __inline int
+static inline int
 pci_msix_pba_bar(device_t dev)
 {
     return (PCI_MSIX_PBA_BAR(device_get_parent(dev), dev));
 }
 
-static __inline int
+static inline int
 pci_msix_table_bar(device_t dev)
 {
     return (PCI_MSIX_TABLE_BAR(device_get_parent(dev), dev));
 }
 
-static __inline int
+static inline int
 pci_get_id(device_t dev, enum pci_id_type type, uintptr_t *id)
 {
     return (PCI_GET_ID(device_get_parent(dev), dev, type, id));
@@ -647,7 +647,7 @@ pci_get_id(device_t dev, enum pci_id_type type, uintptr_t *id)
  * between a failure and a valid value that happens to be the same as the
  * failure value.
  */
-static __inline uint16_t
+static inline uint16_t
 pci_get_rid(device_t dev)
 {
     uintptr_t rid;
@@ -658,7 +658,7 @@ pci_get_rid(device_t dev)
     return (rid);
 }
 
-static __inline void
+static inline void
 pci_child_added(device_t dev)
 {
 

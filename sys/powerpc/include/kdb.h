@@ -38,26 +38,26 @@
 void kdb_cpu_clear_singlestep(void);
 void kdb_cpu_set_singlestep(void);
 
-static __inline void
+static inline void
 kdb_cpu_sync_icache(unsigned char *addr, size_t size)
 {
 
 	__syncicache(addr, size);
 }
 
-static __inline void
+static inline void
 kdb_cpu_trap(int vector, int _)
 {
 }
 
-static __inline int
+static inline int
 kdb_cpu_set_watchpoint(vm_offset_t addr, vm_size_t size, int access)
 {
 
 	return (ENXIO);
 }
 
-static __inline int
+static inline int
 kdb_cpu_clr_watchpoint(vm_offset_t addr, vm_size_t size)
 {
 

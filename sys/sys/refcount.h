@@ -46,7 +46,7 @@
  * destruction of the containing object and instead leads to a less harmful
  * memory leak.
  */
-static __inline void
+static inline void
 _refcount_update_saturated(volatile u_int *count)
 {
 #ifdef INVARIANTS
@@ -56,7 +56,7 @@ _refcount_update_saturated(volatile u_int *count)
 #endif
 }
 
-static __inline void
+static inline void
 refcount_init(volatile u_int *count, u_int value)
 {
 	KASSERT(!REFCOUNT_SATURATED(value),
@@ -64,13 +64,13 @@ refcount_init(volatile u_int *count, u_int value)
 	atomic_store_int(count, value);
 }
 
-static __inline u_int
+static inline u_int
 refcount_load(volatile u_int *count)
 {
 	return (atomic_load_int(count));
 }
 
-static __inline u_int
+static inline u_int
 refcount_acquire(volatile u_int *count)
 {
 	u_int old;
@@ -82,7 +82,7 @@ refcount_acquire(volatile u_int *count)
 	return (old);
 }
 
-static __inline u_int
+static inline u_int
 refcount_acquiren(volatile u_int *count, u_int n)
 {
 	u_int old;
@@ -96,7 +96,7 @@ refcount_acquiren(volatile u_int *count, u_int n)
 	return (old);
 }
 
-static __inline __result_use_check bool
+static inline __result_use_check bool
 refcount_acquire_checked(volatile u_int *count)
 {
 	u_int old;
@@ -115,7 +115,7 @@ refcount_acquire_checked(volatile u_int *count)
  * This functions returns non-zero if the refcount was
  * incremented. Else zero is returned.
  */
-static __inline __result_use_check bool
+static inline __result_use_check bool
 refcount_acquire_if_gt(volatile u_int *count, u_int n)
 {
 	u_int old;
@@ -131,14 +131,14 @@ refcount_acquire_if_gt(volatile u_int *count, u_int n)
 	}
 }
 
-static __inline __result_use_check bool
+static inline __result_use_check bool
 refcount_acquire_if_not_zero(volatile u_int *count)
 {
 
 	return (refcount_acquire_if_gt(count, 0));
 }
 
-static __inline bool
+static inline bool
 refcount_releasen(volatile u_int *count, u_int n)
 {
 	u_int old;
@@ -165,7 +165,7 @@ refcount_releasen(volatile u_int *count, u_int n)
 	return (true);
 }
 
-static __inline bool
+static inline bool
 refcount_release(volatile u_int *count)
 {
 
@@ -173,7 +173,7 @@ refcount_release(volatile u_int *count)
 }
 
 #define	_refcount_release_if_cond(cond, name)				\
-static __inline __result_use_check bool					\
+static inline __result_use_check bool					\
 _refcount_release_if_##name(volatile u_int *count, u_int n)		\
 {									\
 	u_int old;							\
@@ -192,14 +192,14 @@ _refcount_release_if_##name(volatile u_int *count, u_int n)		\
 _refcount_release_if_cond(old > n, gt)
 _refcount_release_if_cond(old == n, eq)
 
-static __inline __result_use_check bool
+static inline __result_use_check bool
 refcount_release_if_gt(volatile u_int *count, u_int n)
 {
 
 	return (_refcount_release_if_gt(count, n));
 }
 
-static __inline __result_use_check bool
+static inline __result_use_check bool
 refcount_release_if_last(volatile u_int *count)
 {
 
@@ -211,7 +211,7 @@ refcount_release_if_last(volatile u_int *count)
 	return (false);
 }
 
-static __inline __result_use_check bool
+static inline __result_use_check bool
 refcount_release_if_not_last(volatile u_int *count)
 {
 

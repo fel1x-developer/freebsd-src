@@ -49,7 +49,7 @@
 #define	ioat_write_chanctrl(ioat, value) \
 	ioat_write_2((ioat), IOAT_CHANCTRL_OFFSET, (value))
 
-static __inline uint64_t
+static inline uint64_t
 ioat_bus_space_read_8_lower_first(bus_space_tag_t tag,
     bus_space_handle_t handle, bus_size_t offset)
 {
@@ -57,7 +57,7 @@ ioat_bus_space_read_8_lower_first(bus_space_tag_t tag,
 	    ((uint64_t)bus_space_read_4(tag, handle, offset + 4)) << 32);
 }
 
-static __inline void
+static inline void
 ioat_bus_space_write_8_lower_first(bus_space_tag_t tag,
     bus_space_handle_t handle, bus_size_t offset, uint64_t val)
 {

@@ -133,7 +133,7 @@ hn_nvs_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact,
 	return (hdr);
 }
 
-static __inline int
+static inline int
 hn_nvs_req_send(struct hn_softc *sc, void *req, int reqlen)
 {
 

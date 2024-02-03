@@ -532,7 +532,7 @@ struct uma_zone {
 
 #ifdef _KERNEL
 /* Internal prototypes */
-static __inline uma_slab_t hash_sfind(struct uma_hash *hash, uint8_t *data);
+static inline uma_slab_t hash_sfind(struct uma_hash *hash, uint8_t *data);
 
 /* Lock Macros */
 
@@ -600,7 +600,7 @@ static __inline uma_slab_t hash_sfind(struct uma_hash *hash, uint8_t *data);
  * Returns:
  *	A pointer to a slab if successful, else NULL.
  */
-static __inline uma_slab_t
+static inline uma_slab_t
 hash_sfind(struct uma_hash *hash, uint8_t *data)
 {
         uma_hash_slab_t slab;
@@ -615,7 +615,7 @@ hash_sfind(struct uma_hash *hash, uint8_t *data)
         return (NULL);
 }
 
-static __inline uma_slab_t
+static inline uma_slab_t
 vtoslab(vm_offset_t va)
 {
 	vm_page_t p;
@@ -624,7 +624,7 @@ vtoslab(vm_offset_t va)
 	return (p->plinks.uma.slab);
 }
 
-static __inline void
+static inline void
 vtozoneslab(vm_offset_t va, uma_zone_t *zone, uma_slab_t *slab)
 {
 	vm_page_t p;
@@ -634,7 +634,7 @@ vtozoneslab(vm_offset_t va, uma_zone_t *zone, uma_slab_t *slab)
 	*zone = p->plinks.uma.zone;
 }
 
-static __inline void
+static inline void
 vsetzoneslab(vm_offset_t va, uma_zone_t zone, uma_slab_t slab)
 {
 	vm_page_t p;

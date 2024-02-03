@@ -753,7 +753,7 @@ enforce_lkflags(struct mount *mp, int lkflags)
 	return (lkflags);
 }
 
-static __inline int
+static inline int
 needs_exclusive_leaf(struct mount *mp, int flags)
 {
 

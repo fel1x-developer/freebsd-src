@@ -279,14 +279,14 @@ struct prison_racct {
  *     the FOREACH_PRISON_DESCENDANT_LOCKED macro which can't handle them in
  *     non-function form as currently defined.
  */
-static __inline void
+static inline void
 prison_lock(struct prison *pr)
 {
 
 	mtx_lock(&pr->pr_mtx);
 }
 
-static __inline void
+static inline void
 prison_unlock(struct prison *pr)
 {
 

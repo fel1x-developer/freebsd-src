@@ -509,7 +509,7 @@ int ips_adapter_free(ips_softc_t *sc)
         return 0;
 }
 
-static __inline int ips_morpheus_check_intr(ips_softc_t *sc)
+static inline int ips_morpheus_check_intr(ips_softc_t *sc)
 {
 	int cmdnumber;
 	ips_cmd_status_t status;

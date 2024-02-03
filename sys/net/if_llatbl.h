@@ -271,7 +271,7 @@ void lltable_delete_conditional(struct lltable *llt, llt_match_cb_t *func,
 /*
  * Generic link layer address lookup function.
  */
-static __inline struct llentry *
+static inline struct llentry *
 lla_lookup(struct lltable *llt, u_int flags, const struct sockaddr *l3addr)
 {
 
@@ -286,7 +286,7 @@ int llentry_get_upper_family(const struct llentry *lle, int default_family);
 /*
  * Notify the LLE code that the entry was used by datapath.
  */
-static __inline void
+static inline void
 llentry_provide_feedback(struct llentry *lle)
 {
 

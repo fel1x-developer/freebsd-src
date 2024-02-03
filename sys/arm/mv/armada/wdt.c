@@ -187,21 +187,21 @@ mv_wdt_attach(device_t dev)
 	return (0);
 }
 
-static __inline uint32_t
+static inline uint32_t
 mv_get_timer_control(void)
 {
 
 	return (bus_read_4(wdt_softc->wdt_res, CPU_TIMER_CONTROL));
 }
 
-static __inline void
+static inline void
 mv_set_timer_control(uint32_t val)
 {
 
 	bus_write_4(wdt_softc->wdt_res, CPU_TIMER_CONTROL, val);
 }
 
-static __inline void
+static inline void
 mv_set_timer(uint32_t timer, uint32_t val)
 {
 
@@ -300,7 +300,7 @@ mv_wdt_disable_armv5(void)
 	write_cpu_ctrl(BRIDGE_IRQ_CAUSE, irq_cause);
 }
 
-static __inline void
+static inline void
 mv_wdt_disable_armada_38x_xp_helper(void)
 {
 	uint32_t val;

@@ -87,20 +87,20 @@ void	ttyinq_unputchar(struct ttyinq *ti);
 void	ttyinq_reprintpos_set(struct ttyinq *ti);
 void	ttyinq_reprintpos_reset(struct ttyinq *ti);
 
-static __inline size_t
+static inline size_t
 ttyinq_getsize(struct ttyinq *ti)
 {
 	return (ti->ti_nblocks * TTYINQ_DATASIZE);
 }
 
-static __inline size_t
+static inline size_t
 ttyinq_getallocatedsize(struct ttyinq *ti)
 {
 
 	return (ti->ti_quota * TTYINQ_DATASIZE);
 }
 
-static __inline size_t
+static inline size_t
 ttyinq_bytesleft(struct ttyinq *ti)
 {
 	size_t len;
@@ -112,7 +112,7 @@ ttyinq_bytesleft(struct ttyinq *ti)
 	return (len - ti->ti_end);
 }
 
-static __inline size_t
+static inline size_t
 ttyinq_bytescanonicalized(struct ttyinq *ti)
 {
 	MPASS(ti->ti_begin <= ti->ti_linestart);
@@ -120,7 +120,7 @@ ttyinq_bytescanonicalized(struct ttyinq *ti)
 	return (ti->ti_linestart - ti->ti_begin);
 }
 
-static __inline size_t
+static inline size_t
 ttyinq_bytesline(struct ttyinq *ti)
 {
 	MPASS(ti->ti_linestart <= ti->ti_end);
@@ -144,20 +144,20 @@ int	ttyoutq_read_uio(struct ttyoutq *to, struct tty *tp, struct uio *uio);
 size_t	ttyoutq_write(struct ttyoutq *to, const void *buf, size_t len);
 int	ttyoutq_write_nofrag(struct ttyoutq *to, const void *buf, size_t len);
 
-static __inline size_t
+static inline size_t
 ttyoutq_getsize(struct ttyoutq *to)
 {
 	return (to->to_nblocks * TTYOUTQ_DATASIZE);
 }
 
-static __inline size_t
+static inline size_t
 ttyoutq_getallocatedsize(struct ttyoutq *to)
 {
 
 	return (to->to_quota * TTYOUTQ_DATASIZE);
 }
 
-static __inline size_t
+static inline size_t
 ttyoutq_bytesleft(struct ttyoutq *to)
 {
 	size_t len;
@@ -169,7 +169,7 @@ ttyoutq_bytesleft(struct ttyoutq *to)
 	return (len - to->to_end);
 }
 
-static __inline size_t
+static inline size_t
 ttyoutq_bytesused(struct ttyoutq *to)
 {
 	return (to->to_end - to->to_begin);

@@ -156,7 +156,7 @@ SYSCTL_NODE(_net_inet_ip, OID_AUTO, alias, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
 
 #endif
 
-static __inline int
+static inline int
 twowords(void *p)
 {
 	uint8_t *c = p;

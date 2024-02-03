@@ -478,7 +478,7 @@ struct cryptop {
 
 TAILQ_HEAD(cryptopq, cryptop);
 
-static __inline void
+static inline void
 _crypto_use_buf(struct crypto_buffer *cb, void *buf, int len)
 {
 	cb->cb_buf = buf;
@@ -486,21 +486,21 @@ _crypto_use_buf(struct crypto_buffer *cb, void *buf, int len)
 	cb->cb_type = CRYPTO_BUF_CONTIG;
 }
 
-static __inline void
+static inline void
 _crypto_use_mbuf(struct crypto_buffer *cb, struct mbuf *m)
 {
 	cb->cb_mbuf = m;
 	cb->cb_type = CRYPTO_BUF_MBUF;
 }
 
-static __inline void
+static inline void
 _crypto_use_single_mbuf(struct crypto_buffer *cb, struct mbuf *m)
 {
 	cb->cb_mbuf = m;
 	cb->cb_type = CRYPTO_BUF_SINGLE_MBUF;
 }
 
-static __inline void
+static inline void
 _crypto_use_vmpage(struct crypto_buffer *cb, vm_page_t *pages, int len,
     int offset)
 {
@@ -510,69 +510,69 @@ _crypto_use_vmpage(struct crypto_buffer *cb, vm_page_t *pages, int len,
 	cb->cb_type = CRYPTO_BUF_VMPAGE;
 }
 
-static __inline void
+static inline void
 _crypto_use_uio(struct crypto_buffer *cb, struct uio *uio)
 {
 	cb->cb_uio = uio;
 	cb->cb_type = CRYPTO_BUF_UIO;
 }
 
-static __inline void
+static inline void
 crypto_use_buf(struct cryptop *crp, void *buf, int len)
 {
 	_crypto_use_buf(&crp->crp_buf, buf, len);
 }
 
-static __inline void
+static inline void
 crypto_use_mbuf(struct cryptop *crp, struct mbuf *m)
 {
 	_crypto_use_mbuf(&crp->crp_buf, m);
 }
 
-static __inline void
+static inline void
 crypto_use_single_mbuf(struct cryptop *crp, struct mbuf *m)
 {
 	_crypto_use_single_mbuf(&crp->crp_buf, m);
 }
 
-static __inline void
+static inline void
 crypto_use_vmpage(struct cryptop *crp, vm_page_t *pages, int len, int offset)
 {
 	_crypto_use_vmpage(&crp->crp_buf, pages, len, offset);
 }
 
-static __inline void
+static inline void
 crypto_use_uio(struct cryptop *crp, struct uio *uio)
 {
 	_crypto_use_uio(&crp->crp_buf, uio);
 }
 
-static __inline void
+static inline void
 crypto_use_output_buf(struct cryptop *crp, void *buf, int len)
 {
 	_crypto_use_buf(&crp->crp_obuf, buf, len);
 }
 
-static __inline void
+static inline void
 crypto_use_output_mbuf(struct cryptop *crp, struct mbuf *m)
 {
 	_crypto_use_mbuf(&crp->crp_obuf, m);
 }
 
-static __inline void
+static inline void
 crypto_use_output_single_mbuf(struct cryptop *crp, struct mbuf *m)
 {
 	_crypto_use_single_mbuf(&crp->crp_obuf, m);
 }
 
-static __inline void
+static inline void
 crypto_use_output_vmpage(struct cryptop *crp, vm_page_t *pages, int len,
     int offset)
 {
 	_crypto_use_vmpage(&crp->crp_obuf, pages, len, offset);
 }
 
-static __inline void
+static inline void
 crypto_use_output_uio(struct cryptop *crp, struct uio *uio)
 {
 	_crypto_use_uio(&crp->crp_obuf, uio);
@@ -684,14 +684,14 @@ void	crypto_cursor_copydata(struct crypto_buffer_cursor *cc, int size,
 void	crypto_cursor_copydata_noadv(struct crypto_buffer_cursor *cc, int size,
 	    void *vdst);
 
-static __inline void
+static inline void
 crypto_cursor_copy(const struct crypto_buffer_cursor *fromc,
     struct crypto_buffer_cursor *toc)
 {
 	memcpy(toc, fromc, sizeof(*toc));
 }
 
-static __inline void
+static inline void
 crypto_read_iv(struct cryptop *crp, void *iv)
 {
 	const struct crypto_session_params *csp;
@@ -703,7 +703,7 @@ crypto_read_iv(struct cryptop *crp, void *iv)
 		crypto_copydata(crp, crp->crp_iv_start, csp->csp_ivlen, iv);
 }
 
-static __inline size_t
+static inline size_t
 ccm_max_payload_length(const struct crypto_session_params *csp)
 {
 	/* RFC 3160 */

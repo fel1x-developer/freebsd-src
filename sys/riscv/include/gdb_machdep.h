@@ -49,33 +49,33 @@
 #define	GDB_REG_STVAL		(GDB_REG_CSR_BASE + 0x143)
 _Static_assert(GDB_BUFSZ >= (GDB_NREGS * 8), "buffer fits 'g' regs");
 
-static __inline size_t
+static inline size_t
 gdb_cpu_regsz(int regnum __unused)
 {
 
 	return (8);
 }
 
-static __inline int
+static inline int
 gdb_cpu_query(void)
 {
 	return (0);
 }
 
-static __inline void *
+static inline void *
 gdb_begin_write(void)
 {
 
 	return (NULL);
 }
 
-static __inline void
+static inline void
 gdb_end_write(void *arg __unused)
 {
 
 }
 
-static __inline void
+static inline void
 gdb_cpu_stop_reason(int type __unused, int code __unused)
 {
 

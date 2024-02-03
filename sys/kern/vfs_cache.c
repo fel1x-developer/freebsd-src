@@ -3544,7 +3544,7 @@ vn_fullpath_dir(struct vnode *vp, struct vnode *rdir, char *buf, char **retbuf,
  * - namecache is not mandatory, meaning names are not guaranteed to be added
  *   (in which case resolving fails)
  */
-static void __inline
+static void inline
 cache_rev_failed_impl(int *reason, int line)
 {
 

@@ -693,7 +693,7 @@ hn_txpkt_chim(struct hn_tx_ring *txr, struct hn_txdesc *txd)
 	    &rndis, sizeof(rndis), &txd->send_ctx));
 }
 
-static __inline uint32_t
+static inline uint32_t
 hn_chim_alloc(struct hn_softc *sc)
 {
 	int i, bmap_cnt = sc->hn_chim_bmap_cnt;
@@ -720,7 +720,7 @@ hn_chim_alloc(struct hn_softc *sc)
 	return (ret);
 }
 
-static __inline void
+static inline void
 hn_chim_free(struct hn_softc *sc, uint32_t chim_idx)
 {
 	u_long mask;
@@ -753,7 +753,7 @@ do {							\
 /*
  * NOTE: If this function failed, the m_head would be freed.
  */
-static __inline struct mbuf *
+static inline struct mbuf *
 hn_tso_fixup(struct mbuf *m_head)
 {
 	struct ether_vlan_header *evl;
@@ -817,7 +817,7 @@ hn_tso_fixup(struct mbuf *m_head)
 /*
  * NOTE: If this function failed, the m_head would be freed.
  */
-static __inline struct mbuf *
+static inline struct mbuf *
 hn_set_hlen(struct mbuf *m_head)
 {
 	const struct ether_vlan_header *evl;
@@ -886,7 +886,7 @@ hn_set_hlen(struct mbuf *m_head)
 /*
  * NOTE: If this function failed, the m_head would be freed.
  */
-static __inline struct mbuf *
+static inline struct mbuf *
 hn_check_tcpsyn(struct mbuf *m_head, int *tcpsyn)
 {
 	const struct tcphdr *th;
@@ -2648,7 +2648,7 @@ hn_change_network(struct hn_softc *sc)
 		taskqueue_enqueue(sc->hn_mgmt_taskq, &sc->hn_netchg_init);
 }
 
-static __inline int
+static inline int
 hn_txdesc_dmamap_load(struct hn_tx_ring *txr, struct hn_txdesc *txd,
     struct mbuf **m_head, bus_dma_segment_t *segs, int *nsegs)
 {
@@ -2680,7 +2680,7 @@ hn_txdesc_dmamap_load(struct hn_tx_ring *txr, struct hn_txdesc *txd,
 	return error;
 }
 
-static __inline int
+static inline int
 hn_txdesc_put(struct hn_tx_ring *txr, struct hn_txdesc *txd)
 {
 
@@ -2757,7 +2757,7 @@ hn_txdesc_put(struct hn_tx_ring *txr, struct hn_txdesc *txd)
 	return 1;
 }
 
-static __inline struct hn_txdesc *
+static inline struct hn_txdesc *
 hn_txdesc_get(struct hn_tx_ring *txr)
 {
 	struct hn_txdesc *txd;
@@ -2795,7 +2795,7 @@ hn_txdesc_get(struct hn_tx_ring *txr)
 	return txd;
 }
 
-static __inline void
+static inline void
 hn_txdesc_hold(struct hn_txdesc *txd)
 {
 
@@ -2804,7 +2804,7 @@ hn_txdesc_hold(struct hn_txdesc *txd)
 	atomic_add_int(&txd->refs, 1);
 }
 
-static __inline void
+static inline void
 hn_txdesc_agg(struct hn_txdesc *agg_txd, struct hn_txdesc *txd)
 {
 
@@ -2837,7 +2837,7 @@ hn_tx_ring_pending(struct hn_tx_ring *txr)
 	return (pending);
 }
 
-static __inline void
+static inline void
 hn_txeof(struct hn_tx_ring *txr)
 {
 	txr->hn_has_txeof = 0;
@@ -2890,7 +2890,7 @@ hn_chan_rollup(struct hn_rx_ring *rxr, struct hn_tx_ring *txr)
 	hn_txeof(txr);
 }
 
-static __inline uint32_t
+static inline uint32_t
 hn_rndis_pktmsg_offset(uint32_t ofs)
 {
 
@@ -2899,7 +2899,7 @@ hn_rndis_pktmsg_offset(uint32_t ofs)
 	return (ofs - __offsetof(struct rndis_packet_msg, rm_dataoffset));
 }
 
-static __inline void *
+static inline void *
 hn_rndis_pktinfo_append(struct rndis_packet_msg *pkt, size_t pktsize,
     size_t pi_dlen, uint32_t pi_type)
 {
@@ -2930,7 +2930,7 @@ hn_rndis_pktinfo_append(struct rndis_packet_msg *pkt, size_t pktsize,
 	return (pi->rm_data);
 }
 
-static __inline int
+static inline int
 hn_flush_txagg(if_t ifp, struct hn_tx_ring *txr)
 {
 	struct hn_txdesc *txd;
@@ -3401,7 +3401,7 @@ hv_m_append(struct mbuf *m0, int len, c_caddr_t cp)
 }
 
 #if defined(INET) || defined(INET6)
-static __inline int
+static inline int
 hn_lro_rx(struct lro_ctrl *lc, struct mbuf *m)
 {
 	if (hn_lro_mbufq_depth) {
@@ -7130,7 +7130,7 @@ next:
 	return (0);
 }
 
-static __inline bool
+static inline bool
 hn_rndis_check_overlap(int off, int len, int check_off, int check_len)
 {
 
@@ -7144,7 +7144,7 @@ hn_rndis_check_overlap(int off, int len, int check_off, int check_len)
 	return (true);
 }
 
-static __inline void
+static inline void
 hn_rsc_add_data(struct hn_rx_ring *rxr, const void *data,
 		uint32_t len, struct hn_rxinfo *info)
 {
@@ -7366,7 +7366,7 @@ drop:
 	return;
 }
 
-static __inline void
+static inline void
 hn_rndis_rxpkt(struct hn_rx_ring *rxr, const void *data, int dlen)
 {
 	const struct rndis_msghdr *hdr;

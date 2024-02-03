@@ -67,7 +67,7 @@ typedef struct {
 #define _ENCODING_IS_STATE_DEPENDENT		0
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UES_init_state(_UESEncodingInfo * __restrict ei __unused,
     _UESState * __restrict psenc)
@@ -77,7 +77,7 @@ _citrus_UES_init_state(_UESEncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UES_pack_state(_UESEncodingInfo * __restrict ei __unused,
     void *__restrict pspriv, const _UESState * __restrict psenc)
@@ -86,7 +86,7 @@ _citrus_UES_pack_state(_UESEncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)psenc, sizeof(*psenc));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UES_unpack_state(_UESEncodingInfo * __restrict ei __unused,
     _UESState * __restrict psenc, const void * __restrict pspriv)
@@ -96,7 +96,7 @@ _citrus_UES_unpack_state(_UESEncodingInfo * __restrict ei __unused,
 }
 #endif
 
-static __inline int
+static inline int
 to_int(int ch)
 {
 
@@ -121,7 +121,7 @@ to_int(int ch)
 
 static const char *xdig = "0123456789abcdef";
 
-static __inline int
+static inline int
 to_str(char *s, wchar_t wc, int bit)
 {
 	char *p;
@@ -144,21 +144,21 @@ to_str(char *s, wchar_t wc, int bit)
 	return (p - s);
 }
 
-static __inline bool
+static inline bool
 is_hi_surrogate(wchar_t wc)
 {
 
 	return (wc >= 0xD800 && wc <= 0xDBFF);
 }
 
-static __inline bool
+static inline bool
 is_lo_surrogate(wchar_t wc)
 {
 
 	return (wc >= 0xDC00 && wc <= 0xDFFF);
 }
 
-static __inline wchar_t
+static inline wchar_t
 surrogate_to_ucs(wchar_t hi, wchar_t lo)
 {
 
@@ -167,7 +167,7 @@ surrogate_to_ucs(wchar_t hi, wchar_t lo)
 	return ((hi << 10 | lo) + 0x10000);
 }
 
-static __inline void
+static inline void
 ucs_to_surrogate(wchar_t wc, wchar_t * __restrict hi, wchar_t * __restrict lo)
 {
 
@@ -176,7 +176,7 @@ ucs_to_surrogate(wchar_t wc, wchar_t * __restrict hi, wchar_t * __restrict lo)
 	*lo = (wc & 0x3FF) + 0xDC00;
 }
 
-static __inline bool
+static inline bool
 is_basic(wchar_t wc)
 {
 
@@ -350,7 +350,7 @@ _citrus_UES_stdenc_wctocs(_UESEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_UES_stdenc_cstowc(_UESEncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -363,7 +363,7 @@ _citrus_UES_stdenc_cstowc(_UESEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_UES_stdenc_get_state_desc_generic(_UESEncodingInfo * __restrict ei __unused,
     _UESState * __restrict psenc, int * __restrict rstate)

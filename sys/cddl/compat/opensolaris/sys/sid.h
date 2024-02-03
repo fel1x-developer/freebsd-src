@@ -33,7 +33,7 @@ typedef struct ksiddomain {
 } ksiddomain_t;
 typedef void	ksid_t;
 
-static __inline ksiddomain_t *
+static inline ksiddomain_t *
 ksid_lookupdomain(const char *domain)
 {
 	ksiddomain_t *kd;
@@ -47,7 +47,7 @@ ksid_lookupdomain(const char *domain)
 	return (kd);
 }
 
-static __inline void
+static inline void
 ksiddomain_rele(ksiddomain_t *kd)
 {
 
@@ -55,21 +55,21 @@ ksiddomain_rele(ksiddomain_t *kd)
 	kmem_free(kd, sizeof(*kd));
 }
 
-static __inline uint_t
+static inline uint_t
 ksid_getid(ksid_t *ks)
 {
 
 	panic("%s has been unexpectedly called", __func__);
 }
 
-static __inline const char *
+static inline const char *
 ksid_getdomain(ksid_t *ks)
 {
 
 	panic("%s has been unexpectedly called", __func__);
 }
 
-static __inline uint_t
+static inline uint_t
 ksid_getrid(ksid_t *ks)
 {
 

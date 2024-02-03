@@ -52,7 +52,7 @@
 /*
  * Call the requested boottrace sysctl with provided va-formatted message.
  */
-static __inline void
+static inline void
 _boottrace(const char *sysctlname, const char *fmt, ...)
 {
 	va_list ap;

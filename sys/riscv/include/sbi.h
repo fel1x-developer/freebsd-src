@@ -134,7 +134,7 @@ struct sbi_ret {
 	long value;
 };
 
-static __inline struct sbi_ret
+static inline struct sbi_ret
 sbi_call(uint64_t arg7, uint64_t arg6, uint64_t arg0, uint64_t arg1,
     uint64_t arg2, uint64_t arg3, uint64_t arg4)
 {
@@ -160,7 +160,7 @@ sbi_call(uint64_t arg7, uint64_t arg6, uint64_t arg0, uint64_t arg1,
 }
 
 /* Base extension functions. */
-static __inline long
+static inline long
 sbi_probe_extension(long id)
 {
 	return (SBI_CALL1(SBI_EXT_ID_BASE, SBI_BASE_PROBE_EXTENSION, id).value);
@@ -215,14 +215,14 @@ int sbi_hsm_hart_status(u_long hart);
 void sbi_system_reset(u_long reset_type, u_long reset_reason);
 
 /* Legacy extension functions. */
-static __inline void
+static inline void
 sbi_console_putchar(int ch)
 {
 
 	(void)SBI_CALL1(SBI_CONSOLE_PUTCHAR, 0, ch);
 }
 
-static __inline int
+static inline int
 sbi_console_getchar(void)
 {
 

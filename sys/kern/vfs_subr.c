@@ -1528,7 +1528,7 @@ vfs_freevnodes_rollup(int8_t *lfreevnodes)
 	critical_exit();
 }
 
-static __inline void
+static inline void
 vfs_freevnodes_inc(void)
 {
 	int8_t *lfreevnodes;
@@ -1542,7 +1542,7 @@ vfs_freevnodes_inc(void)
 		critical_exit();
 }
 
-static __inline void
+static inline void
 vfs_freevnodes_dec(void)
 {
 	int8_t *lfreevnodes;

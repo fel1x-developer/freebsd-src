@@ -270,7 +270,7 @@ runq_init(struct runq *rq)
  * Clear the status bit of the queue corresponding to priority level pri,
  * indicating that it is empty.
  */
-static __inline void
+static inline void
 runq_clrbit(struct runq *rq, int pri)
 {
 	struct rqbits *rqb;
@@ -287,7 +287,7 @@ runq_clrbit(struct runq *rq, int pri)
  * Find the index of the first non-empty run queue.  This is done by
  * scanning the status bits, a set bit indicates a non-empty queue.
  */
-static __inline int
+static inline int
 runq_findbit(struct runq *rq)
 {
 	struct rqbits *rqb;
@@ -306,7 +306,7 @@ runq_findbit(struct runq *rq)
 	return (-1);
 }
 
-static __inline int
+static inline int
 runq_findbit_from(struct runq *rq, u_char pri)
 {
 	struct rqbits *rqb;
@@ -342,7 +342,7 @@ again:
  * Set the status bit of the queue corresponding to priority level pri,
  * indicating that it is non-empty.
  */
-static __inline void
+static inline void
 runq_setbit(struct runq *rq, int pri)
 {
 	struct rqbits *rqb;

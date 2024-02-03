@@ -55,7 +55,7 @@ struct bintime {
 	uint64_t frac;
 };
 
-static __inline void
+static inline void
 bintime_addx(struct bintime *_bt, uint64_t _x)
 {
 	uint64_t _u;
@@ -66,7 +66,7 @@ bintime_addx(struct bintime *_bt, uint64_t _x)
 		_bt->sec++;
 }
 
-static __inline void
+static inline void
 bintime_add(struct bintime *_bt, const struct bintime *_bt2)
 {
 	uint64_t _u;
@@ -78,7 +78,7 @@ bintime_add(struct bintime *_bt, const struct bintime *_bt2)
 	_bt->sec += _bt2->sec;
 }
 
-static __inline void
+static inline void
 bintime_sub(struct bintime *_bt, const struct bintime *_bt2)
 {
 	uint64_t _u;
@@ -90,7 +90,7 @@ bintime_sub(struct bintime *_bt, const struct bintime *_bt2)
 	_bt->sec -= _bt2->sec;
 }
 
-static __inline void
+static inline void
 bintime_mul(struct bintime *_bt, u_int _x)
 {
 	uint64_t _p1, _p2;
@@ -102,7 +102,7 @@ bintime_mul(struct bintime *_bt, u_int _x)
 	_bt->frac = (_p2 << 32) | (_p1 & 0xffffffffull);
 }
 
-static __inline void
+static inline void
 bintime_shift(struct bintime *_bt, int _exp)
 {
 
@@ -131,21 +131,21 @@ bintime_shift(struct bintime *_bt, int _exp)
 #define	SBT_1NS	(SBT_1S / 1000000000) /* beware rounding, see nstosbt() */
 #define	SBT_MAX	0x7fffffffffffffffLL
 
-static __inline int
+static inline int
 sbintime_getsec(sbintime_t _sbt)
 {
 
 	return (_sbt >> 32);
 }
 
-static __inline sbintime_t
+static inline sbintime_t
 bttosbt(const struct bintime _bt)
 {
 
 	return (((sbintime_t)_bt.sec << 32) + (_bt.frac >> 32));
 }
 
-static __inline struct bintime
+static inline struct bintime
 sbttobt(sbintime_t _sbt)
 {
 	struct bintime _bt;
@@ -160,7 +160,7 @@ sbttobt(sbintime_t _sbt)
  * 32-bit fraction:
  */
 
-static __inline int64_t
+static inline int64_t
 __stime64_scale32_ceil(int64_t x, int32_t factor, int32_t divisor)
 {
 	const int64_t rem = x % divisor;
@@ -168,7 +168,7 @@ __stime64_scale32_ceil(int64_t x, int32_t factor, int32_t divisor)
 	return (x / divisor * factor + (rem * factor + divisor - 1) / divisor);
 }
 
-static __inline int64_t
+static inline int64_t
 __stime64_scale32_floor(int64_t x, int32_t factor, int32_t divisor)
 {
 	const int64_t rem = x % divisor;
@@ -176,7 +176,7 @@ __stime64_scale32_floor(int64_t x, int32_t factor, int32_t divisor)
 	return (x / divisor * factor + (rem * factor) / divisor);
 }
 
-static __inline uint64_t
+static inline uint64_t
 __utime64_scale32_ceil(uint64_t x, uint32_t factor, uint32_t divisor)
 {
 	const uint64_t rem = x % divisor;
@@ -184,7 +184,7 @@ __utime64_scale32_ceil(uint64_t x, uint32_t factor, uint32_t divisor)
 	return (x / divisor * factor + (rem * factor + divisor - 1) / divisor);
 }
 
-static __inline uint64_t
+static inline uint64_t
 __utime64_scale32_floor(uint64_t x, uint32_t factor, uint32_t divisor)
 {
 	const uint64_t rem = x % divisor;
@@ -214,7 +214,7 @@ __utime64_scale32_floor(uint64_t x, uint32_t factor, uint32_t divisor)
  * reducable 64-bit fractions to 32-bit fractions:
  */
 
-static __inline int64_t
+static inline int64_t
 __stime64_scale64_ceil(int64_t x, int64_t factor, int64_t divisor)
 {
 	const int64_t gcd = __common_powers_of_two(factor, divisor);
@@ -222,7 +222,7 @@ __stime64_scale64_ceil(int64_t x, int64_t factor, int64_t divisor)
 	return (__stime64_scale32_ceil(x, factor / gcd, divisor / gcd));
 }
 
-static __inline int64_t
+static inline int64_t
 __stime64_scale64_floor(int64_t x, int64_t factor, int64_t divisor)
 {
 	const int64_t gcd = __common_powers_of_two(factor, divisor);
@@ -230,7 +230,7 @@ __stime64_scale64_floor(int64_t x, int64_t factor, int64_t divisor)
 	return (__stime64_scale32_floor(x, factor / gcd, divisor / gcd));
 }
 
-static __inline uint64_t
+static inline uint64_t
 __utime64_scale64_ceil(uint64_t x, uint64_t factor, uint64_t divisor)
 {
 	const uint64_t gcd = __common_powers_of_two(factor, divisor);
@@ -238,7 +238,7 @@ __utime64_scale64_ceil(uint64_t x, uint64_t factor, uint64_t divisor)
 	return (__utime64_scale32_ceil(x, factor / gcd, divisor / gcd));
 }
 
-static __inline uint64_t
+static inline uint64_t
 __utime64_scale64_floor(uint64_t x, uint64_t factor, uint64_t divisor)
 {
 	const uint64_t gcd = __common_powers_of_two(factor, divisor);
@@ -259,12 +259,12 @@ __utime64_scale64_floor(uint64_t x, uint64_t factor, uint64_t divisor)
  * The conversion functions can also handle negative values.
  */
 #define	SBT_DECLARE_CONVERSION_PAIR(name, units_per_second)	\
-static __inline int64_t \
+static inline int64_t \
 sbtto##name(sbintime_t sbt) \
 { \
 	return (__stime64_scale64_floor(sbt, units_per_second, SBT_1S)); \
 } \
-static __inline sbintime_t \
+static inline sbintime_t \
 name##tosbt(int64_t name) \
 { \
 	return (__stime64_scale64_ceil(name, SBT_1S, units_per_second)); \
@@ -288,7 +288,7 @@ SBT_DECLARE_CONVERSION_PAIR(ms, 1000)
  *   time_second ticks after N.999999999 not after N.4999999999
  */
 
-static __inline void
+static inline void
 bintime2timespec(const struct bintime *_bt, struct timespec *_ts)
 {
 
@@ -297,7 +297,7 @@ bintime2timespec(const struct bintime *_bt, struct timespec *_ts)
 	    _bt->frac, 1000000000, 1ULL << 32) >> 32;
 }
 
-static __inline uint64_t
+static inline uint64_t
 bintime2ns(const struct bintime *_bt)
 {
 	uint64_t ret;
@@ -308,7 +308,7 @@ bintime2ns(const struct bintime *_bt)
 	return (ret);
 }
 
-static __inline void
+static inline void
 timespec2bintime(const struct timespec *_ts, struct bintime *_bt)
 {
 
@@ -317,7 +317,7 @@ timespec2bintime(const struct timespec *_ts, struct bintime *_bt)
 	    (uint64_t)_ts->tv_nsec << 32, 1ULL << 32, 1000000000);
 }
 
-static __inline void
+static inline void
 bintime2timeval(const struct bintime *_bt, struct timeval *_tv)
 {
 
@@ -326,7 +326,7 @@ bintime2timeval(const struct bintime *_bt, struct timeval *_tv)
 	    _bt->frac, 1000000, 1ULL << 32) >> 32;
 }
 
-static __inline void
+static inline void
 timeval2bintime(const struct timeval *_tv, struct bintime *_bt)
 {
 
@@ -335,7 +335,7 @@ timeval2bintime(const struct timeval *_tv, struct bintime *_bt)
 	    (uint64_t)_tv->tv_usec << 32, 1ULL << 32, 1000000);
 }
 
-static __inline struct timespec
+static inline struct timespec
 sbttots(sbintime_t _sbt)
 {
 	struct timespec _ts;
@@ -345,14 +345,14 @@ sbttots(sbintime_t _sbt)
 	return (_ts);
 }
 
-static __inline sbintime_t
+static inline sbintime_t
 tstosbt(struct timespec _ts)
 {
 
 	return (((sbintime_t)_ts.tv_sec << 32) + nstosbt(_ts.tv_nsec));
 }
 
-static __inline struct timeval
+static inline struct timeval
 sbttotv(sbintime_t _sbt)
 {
 	struct timeval _tv;
@@ -362,7 +362,7 @@ sbttotv(sbintime_t _sbt)
 	return (_tv);
 }
 
-static __inline sbintime_t
+static inline sbintime_t
 tvtosbt(struct timeval _tv)
 {
 
@@ -539,7 +539,7 @@ void	binuptime(struct bintime *bt);
 void	nanouptime(struct timespec *tsp);
 void	microuptime(struct timeval *tvp);
 
-static __inline sbintime_t
+static inline sbintime_t
 sbinuptime(void)
 {
 	struct bintime _bt;
@@ -556,7 +556,7 @@ void	getbinuptime(struct bintime *bt);
 void	getnanouptime(struct timespec *tsp);
 void	getmicrouptime(struct timeval *tvp);
 
-static __inline sbintime_t
+static inline sbintime_t
 getsbinuptime(void)
 {
 	struct bintime _bt;

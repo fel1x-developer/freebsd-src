@@ -471,7 +471,7 @@ struct hpt_iop_srb {
 #define HPT_DO_IOCONTROL    _IOW('H', 0, struct hpt_iop_ioctl_param)
 #define HPT_SCAN_BUS        _IO('H', 1)
 
-static  __inline int hptiop_sleep(struct hpt_iop_hba *hba, void *ident,
+static  inline int hptiop_sleep(struct hpt_iop_hba *hba, void *ident,
 				int priority, const char *wmesg, int timo)
 {
 

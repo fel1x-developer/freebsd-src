@@ -339,14 +339,14 @@ static int pmap_change_attr_locked(vm_offset_t va, vm_size_t size, int mode);
 /* Inline functions */
 /********************/
 
-static __inline void
+static inline void
 pagecopy(void *s, void *d)
 {
 
 	memcpy(d, s, PAGE_SIZE);
 }
 
-static __inline void
+static inline void
 pagezero(void *p)
 {
 
@@ -363,7 +363,7 @@ pagezero(void *p)
 #define	L2PTE_TO_PHYS(l2) \
     ((((l2) & ~PTE_HI_MASK) >> PTE_PPN1_S) << L2_SHIFT)
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l0(pmap_t pmap, vm_offset_t va)
 {
 	KASSERT(pmap_mode != PMAP_MODE_SV39, ("%s: in SV39 mode", __func__));
@@ -372,7 +372,7 @@ pmap_l0(pmap_t pmap, vm_offset_t va)
 	return (&pmap->pm_top[pmap_l0_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l0_to_l1(pd_entry_t *l0, vm_offset_t va)
 {
 	vm_paddr_t phys;
@@ -385,7 +385,7 @@ pmap_l0_to_l1(pd_entry_t *l0, vm_offset_t va)
 	return (&l1[pmap_l1_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l1(pmap_t pmap, vm_offset_t va)
 {
 	pd_entry_t *l0;
@@ -404,7 +404,7 @@ pmap_l1(pmap_t pmap, vm_offset_t va)
 	}
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l1_to_l2(pd_entry_t *l1, vm_offset_t va)
 {
 	vm_paddr_t phys;
@@ -416,7 +416,7 @@ pmap_l1_to_l2(pd_entry_t *l1, vm_offset_t va)
 	return (&l2[pmap_l2_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l2(pmap_t pmap, vm_offset_t va)
 {
 	pd_entry_t *l1;
@@ -432,7 +432,7 @@ pmap_l2(pmap_t pmap, vm_offset_t va)
 	return (pmap_l1_to_l2(l1, va));
 }
 
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_l2_to_l3(pd_entry_t *l2, vm_offset_t va)
 {
 	vm_paddr_t phys;
@@ -444,7 +444,7 @@ pmap_l2_to_l3(pd_entry_t *l2, vm_offset_t va)
 	return (&l3[pmap_l3_index(va)]);
 }
 
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_l3(pmap_t pmap, vm_offset_t va)
 {
 	pd_entry_t *l2;
@@ -460,7 +460,7 @@ pmap_l3(pmap_t pmap, vm_offset_t va)
 	return (pmap_l2_to_l3(l2, va));
 }
 
-static __inline void
+static inline void
 pmap_resident_count_inc(pmap_t pmap, int count)
 {
 
@@ -468,7 +468,7 @@ pmap_resident_count_inc(pmap_t pmap, int count)
 	pmap->pm_stats.resident_count += count;
 }
 
-static __inline void
+static inline void
 pmap_resident_count_dec(pmap_t pmap, int count)
 {
 
@@ -866,14 +866,14 @@ pmap_invalidate_all(pmap_t pmap)
  * Normal, non-SMP, invalidation functions.
  * We inline these within pmap.c for speed.
  */
-static __inline void
+static inline void
 pmap_invalidate_page(pmap_t pmap, vm_offset_t va)
 {
 
 	sfence_vma_page(va);
 }
 
-static __inline void
+static inline void
 pmap_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva)
 {
 
@@ -884,7 +884,7 @@ pmap_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva)
 	sfence_vma();
 }
 
-static __inline void
+static inline void
 pmap_invalidate_all(pmap_t pmap)
 {
 
@@ -1174,7 +1174,7 @@ pmap_ps_enabled(pmap_t pmap __unused)
  * add the page to the specified list of pages that will be released to the
  * physical memory manager after the TLB has been updated.
  */
-static __inline void
+static inline void
 pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
 {
 
@@ -1202,7 +1202,7 @@ pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
  * valid mappings with identical attributes including PTE_A; "mpte"'s valid
  * field will be set to VM_PAGE_BITS_ALL.
  */
-static __inline int
+static inline int
 pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte, bool promoted,
     bool all_l3e_PTE_A_set)
 {
@@ -1220,7 +1220,7 @@ pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte, bool promoted,
  * Otherwise, returns NULL if there is no page table page corresponding to the
  * specified virtual address.
  */
-static __inline vm_page_t
+static inline vm_page_t
 pmap_remove_pt_page(pmap_t pmap, vm_offset_t va)
 {
 
@@ -1977,7 +1977,7 @@ retry:
  * otherwise.  This operation can be performed on pv lists for either 4KB or
  * 2MB page mappings.
  */
-static __inline pv_entry_t
+static inline pv_entry_t
 pmap_pvh_remove(struct md_page *pvh, pmap_t pmap, vm_offset_t va)
 {
 	pv_entry_t pv;

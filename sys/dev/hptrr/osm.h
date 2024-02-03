@@ -166,7 +166,7 @@ void os_stallexec(HPT_U32 microseconds);
 #define memcpy(dst, src, size) __builtin_memcpy((dst), (src), (size))
 #define memcmp(dst, src, size) __builtin_memcmp((dst), (src), (size))
 #define strcpy(dst, src) __builtin_strcpy((dst), (src))
-static __inline void * memset(void *dst, int c, unsigned long size)
+static inline void * memset(void *dst, int c, unsigned long size)
 {
 	char *p;
 	for (p=(char*)dst; size; size--,p++) *p = c;

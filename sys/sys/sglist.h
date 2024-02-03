@@ -57,7 +57,7 @@ struct bio;
 struct mbuf;
 struct uio;
 
-static __inline void
+static inline void
 sglist_init(struct sglist *sg, u_short maxsegs, struct sglist_seg *segs)
 {
 
@@ -67,14 +67,14 @@ sglist_init(struct sglist *sg, u_short maxsegs, struct sglist_seg *segs)
 	refcount_init(&sg->sg_refs, 1);
 }
 
-static __inline void
+static inline void
 sglist_reset(struct sglist *sg)
 {
 
 	sg->sg_nseg = 0;
 }
 
-static __inline struct sglist *
+static inline struct sglist *
 sglist_hold(struct sglist *sg)
 {
 

@@ -47,7 +47,7 @@ bool unwind_frame(struct thread *, struct unwind_state *);
 	(used) = td->td_kstack + (total) - (vm_offset_t)&td;		\
 } while (0)
 
-static __inline bool
+static inline bool
 kstack_contains(struct thread *td, vm_offset_t va, size_t len)
 {
 	return (va >= td->td_kstack && va + len >= va &&

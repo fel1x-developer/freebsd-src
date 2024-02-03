@@ -18,7 +18,7 @@
 	    (char *)&td;						\
 } while (0)
 
-static __inline bool
+static inline bool
 kstack_contains(struct thread *td, vm_offset_t va, size_t len)
 {
 	return (va >= td->td_kstack && va + len >= va &&

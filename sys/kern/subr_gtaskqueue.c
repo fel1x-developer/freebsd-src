@@ -111,7 +111,7 @@ gtask_dump(struct gtask *gtask)
 }
 #endif
 
-static __inline int
+static inline int
 TQ_SLEEP(struct gtaskqueue *tq, void *p, const char *wm)
 {
 	if (tq->tq_spin)

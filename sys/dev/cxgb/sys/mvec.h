@@ -36,7 +36,7 @@ int busdma_map_sg_collapse(bus_dma_tag_t tag, bus_dmamap_t map,
 void busdma_map_sg_vec(bus_dma_tag_t tag, bus_dmamap_t map,
     struct mbuf *m, bus_dma_segment_t *segs, int *nsegs);
 
-static __inline void
+static inline void
 m_freem_list(struct mbuf *m)
 {
 	struct mbuf *n; 

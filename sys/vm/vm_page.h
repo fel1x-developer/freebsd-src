@@ -878,7 +878,7 @@ vm_page_aflag_set(vm_page_t m, uint16_t bits)
  *
  *	See vm_page_clear_dirty_mask().
  */
-static __inline void
+static inline void
 vm_page_dirty(vm_page_t m)
 {
 
@@ -895,7 +895,7 @@ vm_page_dirty(vm_page_t m)
  *
  *	Set page to not be dirty.  Note: does not clear pmap modify bits
  */
-static __inline void
+static inline void
 vm_page_undirty(vm_page_t m)
 {
 

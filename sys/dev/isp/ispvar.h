@@ -912,7 +912,7 @@ void isp_async(ispsoftc_t *, ispasync_t, ...);
  *	ISP_DELAY(usecs)			microsecond spindelay function
  *	ISP_SLEEP(isp, usecs)			microsecond sleep function
  *
- *	ISP_INLINE				___inline or not- depending on how
+ *	ISP_INLINE				_inline or not- depending on how
  *						good your debugger is
  *	ISP_MIN					shorthand for ((a) < (b))? (a) : (b)
  *

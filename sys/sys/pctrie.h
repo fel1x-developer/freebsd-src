@@ -39,7 +39,7 @@
 #define	PCTRIE_DEFINE_SMR(name, type, field, allocfn, freefn, smr)	\
     PCTRIE_DEFINE(name, type, field, allocfn, freefn)			\
 									\
-static __inline struct type *						\
+static inline struct type *						\
 name##_PCTRIE_LOOKUP_UNLOCKED(struct pctrie *ptree, uint64_t key)	\
 {									\
 									\
@@ -56,7 +56,7 @@ CTASSERT(sizeof(((struct type *)0)->field) == sizeof(uint64_t));	\
  */									\
 CTASSERT((__offsetof(struct type, field) & (sizeof(uint32_t) - 1)) == 0); \
 									\
-static __inline struct type *						\
+static inline struct type *						\
 name##_PCTRIE_VAL2PTR(uint64_t *val)					\
 {									\
 									\
@@ -66,14 +66,14 @@ name##_PCTRIE_VAL2PTR(uint64_t *val)					\
 	    ((uintptr_t)val - __offsetof(struct type, field));		\
 }									\
 									\
-static __inline uint64_t *						\
+static inline uint64_t *						\
 name##_PCTRIE_PTR2VAL(struct type *ptr)					\
 {									\
 									\
 	return &ptr->field;						\
 }									\
 									\
-static __inline int							\
+static inline int							\
 name##_PCTRIE_INSERT(struct pctrie *ptree, struct type *ptr)		\
 {									\
 	struct pctrie_node *parent;					\
@@ -90,28 +90,28 @@ name##_PCTRIE_INSERT(struct pctrie *ptree, struct type *ptr)		\
 	return (0);							\
 }									\
 									\
-static __inline __unused struct type *					\
+static inline __unused struct type *					\
 name##_PCTRIE_LOOKUP(struct pctrie *ptree, uint64_t key)		\
 {									\
 									\
 	return name##_PCTRIE_VAL2PTR(pctrie_lookup(ptree, key));	\
 }									\
 									\
-static __inline __unused struct type *					\
+static inline __unused struct type *					\
 name##_PCTRIE_LOOKUP_LE(struct pctrie *ptree, uint64_t key)		\
 {									\
 									\
 	return name##_PCTRIE_VAL2PTR(pctrie_lookup_le(ptree, key));	\
 }									\
 									\
-static __inline __unused struct type *					\
+static inline __unused struct type *					\
 name##_PCTRIE_LOOKUP_GE(struct pctrie *ptree, uint64_t key)		\
 {									\
 									\
 	return name##_PCTRIE_VAL2PTR(pctrie_lookup_ge(ptree, key));	\
 }									\
 									\
-static __inline __unused void						\
+static inline __unused void						\
 name##_PCTRIE_RECLAIM(struct pctrie *ptree)				\
 {									\
 	struct pctrie_node *freenode, *node;				\
@@ -122,7 +122,7 @@ name##_PCTRIE_RECLAIM(struct pctrie *ptree)				\
 		freefn(ptree, freenode);				\
 }									\
 									\
-static __inline __unused struct type *					\
+static inline __unused struct type *					\
 name##_PCTRIE_REPLACE(struct pctrie *ptree, struct type *ptr)		\
 {									\
 									\
@@ -130,7 +130,7 @@ name##_PCTRIE_REPLACE(struct pctrie *ptree, struct type *ptr)		\
 	    pctrie_replace(ptree, name##_PCTRIE_PTR2VAL(ptr)));		\
 }									\
 									\
-static __inline __unused void						\
+static inline __unused void						\
 name##_PCTRIE_REMOVE(struct pctrie *ptree, uint64_t key)		\
 {									\
 	uint64_t *val;							\
@@ -143,7 +143,7 @@ name##_PCTRIE_REMOVE(struct pctrie *ptree, uint64_t key)		\
 		freefn(ptree, freenode);				\
 }									\
 									\
-static __inline __unused struct type *					\
+static inline __unused struct type *					\
 name##_PCTRIE_REMOVE_LOOKUP(struct pctrie *ptree, uint64_t key)		\
 {									\
 	uint64_t *val;							\
@@ -180,13 +180,13 @@ int		pctrie_zone_init(void *mem, int size, int flags);
 #define	PCTRIE_ISLEAF	0x1
 #define PCTRIE_NULL (struct pctrie_node *)PCTRIE_ISLEAF
 
-static __inline void
+static inline void
 pctrie_init(struct pctrie *ptree)
 {
 	ptree->pt_root = PCTRIE_NULL;
 }
 
-static __inline bool
+static inline bool
 pctrie_is_empty(struct pctrie *ptree)
 {
 	return (ptree->pt_root == PCTRIE_NULL);

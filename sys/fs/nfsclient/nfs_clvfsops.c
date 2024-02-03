@@ -2156,7 +2156,7 @@ nfs_getnlminfo(struct vnode *vp, uint8_t *fhp, size_t *fhlenp,
  * This function prints out an option name, based on the conditional
  * argument.
  */
-static __inline void nfscl_printopt(struct nfsmount *nmp, int testval,
+static inline void nfscl_printopt(struct nfsmount *nmp, int testval,
     char *opt, char **buf, size_t *blen)
 {
 	int len;
@@ -2173,7 +2173,7 @@ static __inline void nfscl_printopt(struct nfsmount *nmp, int testval,
 /*
  * This function printf out an options integer value.
  */
-static __inline void nfscl_printoptval(struct nfsmount *nmp, int optval,
+static inline void nfscl_printoptval(struct nfsmount *nmp, int optval,
     char *opt, char **buf, size_t *blen)
 {
 	int len;

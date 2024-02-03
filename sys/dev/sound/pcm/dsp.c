@@ -813,7 +813,7 @@ dsp_close(struct cdev *i_dev, int flags, int mode, struct thread *td)
 	return (0);
 }
 
-static __inline int
+static inline int
 dsp_io_ops(struct cdev *i_dev, struct uio *buf)
 {
 	struct snddev_info *d;

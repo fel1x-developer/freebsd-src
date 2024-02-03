@@ -146,7 +146,7 @@ struct pvo_entry;
 
 #define pcpup	(get_pcpu())
 
-static __inline __pure2 struct thread *
+static inline __pure2 struct thread *
 __curthread(void)
 {
 	struct thread *td;

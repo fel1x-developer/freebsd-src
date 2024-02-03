@@ -114,7 +114,7 @@ static int rtc_flag_broken_time = 1;
 SYSCTL_INT(_hw_vmm_vrtc, OID_AUTO, flag_broken_time, CTLFLAG_RDTUN,
     &rtc_flag_broken_time, 0, "Stop guest when invalid RTC time is detected");
 
-static __inline bool
+static inline bool
 divider_enabled(int reg_a)
 {
 	/*
@@ -123,7 +123,7 @@ divider_enabled(int reg_a)
 	return ((reg_a & 0x70) == 0x20);
 }
 
-static __inline bool
+static inline bool
 update_enabled(struct vrtc *vrtc)
 {
 	/*
@@ -166,7 +166,7 @@ vrtc_curtime(struct vrtc *vrtc, sbintime_t *basetime)
 	return (t);
 }
 
-static __inline uint8_t
+static inline uint8_t
 rtcset(struct rtcdev *rtc, int val)
 {
 
@@ -575,7 +575,7 @@ done:
 	VRTC_UNLOCK(vrtc);
 }
 
-static __inline void
+static inline void
 vrtc_callout_check(struct vrtc *vrtc, sbintime_t freq)
 {
 	int active __diagused;

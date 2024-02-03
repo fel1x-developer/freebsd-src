@@ -222,7 +222,7 @@ mac_proc_vm_revoke(struct thread *td)
 	crfree(cred);
 }
 
-static __inline const char *
+static inline const char *
 prot2str(vm_prot_t prot)
 {
 

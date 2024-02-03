@@ -44,7 +44,7 @@ _Static_assert(sizeof(struct pcpu) == UMA_PCPU_ALLOC_SIZE, "fix pcpu size");
 
 extern struct pcpu __pcpu[];
 
-static __inline __pure2 struct thread *
+static inline __pure2 struct thread *
 __curthread(void)
 {
 	struct thread *td;
@@ -55,7 +55,7 @@ __curthread(void)
 }
 #define	curthread		(__curthread())
 
-static __inline __pure2 struct pcb *
+static inline __pure2 struct pcb *
 __curpcb(void)
 {
 	struct pcb *pcb;

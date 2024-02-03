@@ -72,7 +72,7 @@ typedef struct {
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_JOHAB_init_state(_JOHABEncodingInfo * __restrict ei __unused,
     _JOHABState * __restrict psenc)
@@ -82,7 +82,7 @@ _citrus_JOHAB_init_state(_JOHABEncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_JOHAB_pack_state(_JOHABEncodingInfo * __restrict ei __unused,
     void * __restrict pspriv, const _JOHABState * __restrict psenc)
@@ -91,7 +91,7 @@ _citrus_JOHAB_pack_state(_JOHABEncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)psenc, sizeof(*psenc));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_JOHAB_unpack_state(_JOHABEncodingInfo * __restrict ei __unused,
     _JOHABState * __restrict psenc, const void * __restrict pspriv)
@@ -119,7 +119,7 @@ _citrus_JOHAB_encoding_module_init(_JOHABEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline bool
+static inline bool
 ishangul(int l, int t)
 {
 
@@ -127,7 +127,7 @@ ishangul(int l, int t)
 	    ((t >= 0x41 && t <= 0x7E) || (t >= 0x81 && t <= 0xFE)));
 }
 
-static __inline bool
+static inline bool
 isuda(int l, int t)
 {
 
@@ -135,7 +135,7 @@ isuda(int l, int t)
 	    ((t >= 0x31 && t <= 0x7E) || (t >= 0x91 && t <= 0xFE)));
 }
 
-static __inline bool
+static inline bool
 ishanja(int l, int t)
 {
 
@@ -238,7 +238,7 @@ ilseq:
 
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_JOHAB_stdenc_wctocs(_JOHABEncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -281,7 +281,7 @@ _citrus_JOHAB_stdenc_wctocs(_JOHABEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_JOHAB_stdenc_cstowc(_JOHABEncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -315,7 +315,7 @@ _citrus_JOHAB_stdenc_cstowc(_JOHABEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_JOHAB_stdenc_get_state_desc_generic(_JOHABEncodingInfo * __restrict ei __unused,
     _JOHABState * __restrict psenc, int * __restrict rstate)

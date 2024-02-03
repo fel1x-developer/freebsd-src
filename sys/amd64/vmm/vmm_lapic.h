@@ -49,14 +49,14 @@ int	lapic_set_intr(struct vcpu *vcpu, int vector, bool trig);
 
 #define	LAPIC_TRIG_LEVEL	true
 #define	LAPIC_TRIG_EDGE		false
-static __inline int
+static inline int
 lapic_intr_level(struct vcpu *vcpu, int vector)
 {
 
 	return (lapic_set_intr(vcpu, vector, LAPIC_TRIG_LEVEL));
 }
 
-static __inline int
+static inline int
 lapic_intr_edge(struct vcpu *vcpu, int vector)
 {
 

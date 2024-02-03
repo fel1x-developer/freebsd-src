@@ -34,7 +34,7 @@
 
 #include "dtrace_xoroshiro128_plus.h"
 
-static __inline uint64_t
+static inline uint64_t
 rotl(const uint64_t x, int k)
 {
 	return (x << k) | (x >> (64 - k));

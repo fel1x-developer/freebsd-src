@@ -238,7 +238,7 @@ out:
 		__bsd___iconv_free_list(list, sz);
 }
 
-__inline const char *
+inline const char *
 __bsd_iconv_canonicalize(const char *name)
 {
 

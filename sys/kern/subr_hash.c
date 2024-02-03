@@ -38,7 +38,7 @@
 #include <sys/systm.h>
 #include <sys/malloc.h>
 
-static __inline int
+static inline int
 hash_mflags(int flags)
 {
 

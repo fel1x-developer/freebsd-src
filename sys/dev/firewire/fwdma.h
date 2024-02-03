@@ -55,7 +55,7 @@ struct fwdma_alloc_multi {
 	struct fwdma_seg seg[0];
 };
 
-static __inline void *
+static inline void *
 fwdma_v_addr(struct fwdma_alloc_multi *am, int index)
 {
 	bus_size_t ssize = am->ssize;
@@ -64,7 +64,7 @@ fwdma_v_addr(struct fwdma_alloc_multi *am, int index)
 	return ((caddr_t)am->seg[offset / ssize].v_addr + (offset % ssize));
 }
 
-static __inline bus_addr_t
+static inline bus_addr_t
 fwdma_bus_addr(struct fwdma_alloc_multi *am, int index)
 {
 	bus_size_t ssize = am->ssize;
@@ -73,13 +73,13 @@ fwdma_bus_addr(struct fwdma_alloc_multi *am, int index)
 	return (am->seg[offset / ssize].bus_addr + (offset % ssize));
 }
 
-static __inline void
+static inline void
 fwdma_sync(struct fwdma_alloc *dma, bus_dmasync_op_t op)
 {
 	bus_dmamap_sync(dma->dma_tag, dma->dma_map, op);
 }
 
-static __inline void
+static inline void
 fwdma_sync_multiseg(struct fwdma_alloc_multi *am,
     int start, int end, bus_dmasync_op_t op)
 {
@@ -91,7 +91,7 @@ fwdma_sync_multiseg(struct fwdma_alloc_multi *am,
 		bus_dmamap_sync(am->dma_tag, seg->dma_map, op);
 }
 
-static __inline void
+static inline void
 fwdma_sync_multiseg_all(struct fwdma_alloc_multi *am, bus_dmasync_op_t op)
 {
 	struct fwdma_seg *seg;

@@ -13362,7 +13362,7 @@ dtrace_dof_copyin_proc(struct proc *p, uintptr_t uarg, int *errp)
 	return (dof);
 }
 
-static __inline uchar_t
+static inline uchar_t
 dtrace_dof_char(char c)
 {
 

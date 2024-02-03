@@ -210,7 +210,7 @@ tty_drain(struct tty *tp, int leaving)
  * deallocated.
  */
 
-static __inline int
+static inline int
 ttydev_enter(struct tty *tp)
 {
 
@@ -409,7 +409,7 @@ ttydev_close(struct cdev *dev, int fflag, int devtype __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 tty_is_ctty(struct tty *tp, struct proc *p)
 {
 

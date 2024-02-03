@@ -40,7 +40,7 @@
 #define	rdtsc __builtin_readcyclecounter
 #else /* !clang */
 #if defined(__amd64__) || defined(__i386__)
-static __inline uint64_t
+static inline uint64_t
 rdtsc(void)
 {
 	uint32_t low, high;
@@ -53,7 +53,7 @@ rdtsc(void)
 #endif /* __amd64__ || __i386__ */
 #endif /* !clang */
 
-static __inline uint64_t
+static inline uint64_t
 get_cyclecount(void)
 {
 

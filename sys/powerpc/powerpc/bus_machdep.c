@@ -61,7 +61,7 @@ static int earlyboot_map_idx = 0;
 
 void bs_remap_earlyboot(void);
 
-static __inline void *
+static inline void *
 __ppc_ba(bus_space_handle_t bsh, bus_size_t ofs)
 {
 	return ((void *)(bsh + ofs));

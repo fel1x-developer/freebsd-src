@@ -135,14 +135,14 @@ static const struct sis_type sis_devs[] = {
 };
 
 static int sis_detach(device_t);
-static __inline void sis_discard_rxbuf(struct sis_rxdesc *);
+static inline void sis_discard_rxbuf(struct sis_rxdesc *);
 static int sis_dma_alloc(struct sis_softc *);
 static void sis_dma_free(struct sis_softc *);
 static int sis_dma_ring_alloc(struct sis_softc *, bus_size_t, bus_size_t,
     bus_dma_tag_t *, uint8_t **, bus_dmamap_t *, bus_addr_t *, const char *);
 static void sis_dmamap_cb(void *, bus_dma_segment_t *, int, int);
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void sis_fixup_rx(struct mbuf *);
+static inline void sis_fixup_rx(struct mbuf *);
 #endif
 static void sis_ifmedia_sts(if_t, struct ifmediareq *);
 static int sis_ifmedia_upd(if_t);
@@ -1450,7 +1450,7 @@ sis_newbuf(struct sis_softc *sc, struct sis_rxdesc *rxd)
 	return (0);
 }
 
-static __inline void
+static inline void
 sis_discard_rxbuf(struct sis_rxdesc *rxd)
 {
 
@@ -1458,7 +1458,7 @@ sis_discard_rxbuf(struct sis_rxdesc *rxd)
 }
 
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void
+static inline void
 sis_fixup_rx(struct mbuf *m)
 {
 	uint16_t		*src, *dst;

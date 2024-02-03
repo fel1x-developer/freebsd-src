@@ -68,7 +68,7 @@ size_t	ttydisc_getc_poll(struct tty *tp);
 #define	TRE_OVERRUN	0x04
 #define	TRE_BREAK	0x08
 
-static __inline size_t
+static inline size_t
 ttydisc_read_poll(struct tty *tp)
 {
 
@@ -77,7 +77,7 @@ ttydisc_read_poll(struct tty *tp)
 	return ttyinq_bytescanonicalized(&tp->t_inq);
 }
 
-static __inline size_t
+static inline size_t
 ttydisc_write_poll(struct tty *tp)
 {
 

@@ -35,42 +35,42 @@
 
 #include "ofw_bus_if.h"
 
-static __inline const char *
+static inline const char *
 ofw_bus_get_compat(device_t dev)
 {
 
 	return (OFW_BUS_GET_COMPAT(device_get_parent(dev), dev));
 }
 
-static __inline const char *
+static inline const char *
 ofw_bus_get_model(device_t dev)
 {
 
 	return (OFW_BUS_GET_MODEL(device_get_parent(dev), dev));
 }
 
-static __inline const char *
+static inline const char *
 ofw_bus_get_name(device_t dev)
 {
 
 	return (OFW_BUS_GET_NAME(device_get_parent(dev), dev));
 }
 
-static __inline phandle_t
+static inline phandle_t
 ofw_bus_get_node(device_t dev)
 {
 
 	return (OFW_BUS_GET_NODE(device_get_parent(dev), dev));
 }
 
-static __inline const char *
+static inline const char *
 ofw_bus_get_type(device_t dev)
 {
 
 	return (OFW_BUS_GET_TYPE(device_get_parent(dev), dev));
 }
 
-static __inline int
+static inline int
 ofw_bus_map_intr(device_t dev, phandle_t iparent, int icells, pcell_t *intr)
 {
 	return (OFW_BUS_MAP_INTR(dev, dev, iparent, icells, intr));

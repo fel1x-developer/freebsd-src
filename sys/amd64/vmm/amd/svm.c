@@ -132,14 +132,14 @@ static VMM_STAT_AMD(VMEXIT_VINTR, "VM exits due to interrupt window");
 static int svm_getdesc(void *vcpui, int reg, struct seg_desc *desc);
 static int svm_setreg(void *vcpui, int ident, uint64_t val);
 static int svm_getreg(void *vcpui, int ident, uint64_t *val);
-static __inline int
+static inline int
 flush_by_asid(void)
 {
 
 	return (svm_feature & AMD_CPUID_SVM_FLUSH_BY_ASID);
 }
 
-static __inline int
+static inline int
 decode_assist(void)
 {
 
@@ -380,7 +380,7 @@ svm_msr_rd_ok(uint8_t *perm_bitmap, uint64_t msr)
 	svm_msr_perm(perm_bitmap, msr, true, false);
 }
 
-static __inline int
+static inline int
 svm_get_intercept(struct svm_vcpu *vcpu, int idx, uint32_t bitmask)
 {
 	struct vmcb_ctrl *ctrl;
@@ -391,7 +391,7 @@ svm_get_intercept(struct svm_vcpu *vcpu, int idx, uint32_t bitmask)
 	return (ctrl->intercept[idx] & bitmask ? 1 : 0);
 }
 
-static __inline void
+static inline void
 svm_set_intercept(struct svm_vcpu *vcpu, int idx, uint32_t bitmask, int enabled)
 {
 	struct vmcb_ctrl *ctrl;
@@ -414,14 +414,14 @@ svm_set_intercept(struct svm_vcpu *vcpu, int idx, uint32_t bitmask, int enabled)
 	}
 }
 
-static __inline void
+static inline void
 svm_disable_intercept(struct svm_vcpu *vcpu, int off, uint32_t bitmask)
 {
 
 	svm_set_intercept(vcpu, off, bitmask, 0);
 }
 
-static __inline void
+static inline void
 svm_enable_intercept(struct svm_vcpu *vcpu, int off, uint32_t bitmask)
 {
 
@@ -1010,7 +1010,7 @@ svm_save_intinfo(struct svm_softc *svm_sc, struct svm_vcpu *vcpu)
 }
 
 #ifdef INVARIANTS
-static __inline int
+static inline int
 vintr_intercept_enabled(struct svm_vcpu *vcpu)
 {
 
@@ -1018,7 +1018,7 @@ vintr_intercept_enabled(struct svm_vcpu *vcpu)
 }
 #endif
 
-static __inline void
+static inline void
 enable_intr_window_exiting(struct svm_vcpu *vcpu)
 {
 	struct vmcb_ctrl *ctrl;
@@ -1040,7 +1040,7 @@ enable_intr_window_exiting(struct svm_vcpu *vcpu)
 	svm_enable_intercept(vcpu, VMCB_CTRL1_INTCPT, VMCB_INTCPT_VINTR);
 }
 
-static __inline void
+static inline void
 disable_intr_window_exiting(struct svm_vcpu *vcpu)
 {
 	struct vmcb_ctrl *ctrl;
@@ -1898,7 +1898,7 @@ done:
 	}
 }
 
-static __inline void
+static inline void
 restore_host_tss(void)
 {
 	struct system_segment_descriptor *tss_sd;
@@ -2025,21 +2025,21 @@ svm_pmap_deactivate(pmap_t pmap)
 	CPU_CLR_ATOMIC(curcpu, &pmap->pm_active);
 }
 
-static __inline void
+static inline void
 disable_gintr(void)
 {
 
 	__asm __volatile("clgi");
 }
 
-static __inline void
+static inline void
 enable_gintr(void)
 {
 
         __asm __volatile("stgi");
 }
 
-static __inline void
+static inline void
 svm_dr_enter_guest(struct svm_regctx *gctx)
 {
 
@@ -2070,7 +2070,7 @@ svm_dr_enter_guest(struct svm_regctx *gctx)
 	load_dr3(gctx->sctx_dr3);
 }
 
-static __inline void
+static inline void
 svm_dr_leave_guest(struct svm_regctx *gctx)
 {
 

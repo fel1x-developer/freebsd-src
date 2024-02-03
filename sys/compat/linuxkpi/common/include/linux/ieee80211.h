@@ -701,7 +701,7 @@ enum ieee80211_reg_ap_power {
 };
 
 /* net80211: IEEE80211_IS_CTL() */
-static __inline bool
+static inline bool
 ieee80211_is_ctl(__le16 fc)
 {
 	__le16 v;
@@ -713,7 +713,7 @@ ieee80211_is_ctl(__le16 fc)
 }
 
 /* net80211: IEEE80211_IS_DATA() */
-static __inline bool
+static inline bool
 ieee80211_is_data(__le16 fc)
 {
 	__le16 v;
@@ -725,7 +725,7 @@ ieee80211_is_data(__le16 fc)
 }
 
 /* net80211: IEEE80211_IS_QOSDATA() */
-static __inline bool
+static inline bool
 ieee80211_is_data_qos(__le16 fc)
 {
 	__le16 v;
@@ -737,7 +737,7 @@ ieee80211_is_data_qos(__le16 fc)
 }
 
 /* net80211: IEEE80211_IS_MGMT() */
-static __inline bool
+static inline bool
 ieee80211_is_mgmt(__le16 fc)
 {
 	__le16 v;
@@ -750,7 +750,7 @@ ieee80211_is_mgmt(__le16 fc)
 
 
 /* Derived from net80211::ieee80211_anyhdrsize. */
-static __inline unsigned int
+static inline unsigned int
 ieee80211_hdrlen(__le16 fc)
 {
 	unsigned int size;

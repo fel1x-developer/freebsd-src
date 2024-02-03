@@ -219,7 +219,7 @@ int ieee80211_crypto_demic(struct ieee80211vap *vap, struct ieee80211_key *k,
 /*
  * Add any MIC.
  */
-static __inline int
+static inline int
 ieee80211_crypto_enmic(struct ieee80211vap *vap,
 	struct ieee80211_key *k, struct mbuf *m, int force)
 {
@@ -232,7 +232,7 @@ ieee80211_crypto_enmic(struct ieee80211vap *vap,
  * key allocation mechanism insures other state (e.g.
  * key data) is properly setup before a key is used.
  */
-static __inline void
+static inline void
 ieee80211_crypto_resetkey(struct ieee80211vap *vap,
 	struct ieee80211_key *k, ieee80211_keyix ix)
 {

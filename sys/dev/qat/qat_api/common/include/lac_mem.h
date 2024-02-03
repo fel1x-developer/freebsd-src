@@ -271,7 +271,7 @@
  * @retval CPA_STATUS_SUCCESS   Macro executed successfully
  *
  ******************************************************************************/
-static __inline CpaStatus
+static inline CpaStatus
 LacMem_OsMemAlloc(void **ppMemAddr, Cpa32U sizeBytes)
 {
 	*ppMemAddr = malloc(sizeBytes, M_QAT, M_WAITOK);
@@ -295,7 +295,7 @@ LacMem_OsMemAlloc(void **ppMemAddr, Cpa32U sizeBytes)
  * @retval CPA_STATUS_SUCCESS   Macro executed successfully
  *
  ******************************************************************************/
-static __inline CpaStatus
+static inline CpaStatus
 LacMem_OsContigAlignMemAlloc(void **ppMemAddr,
 			     Cpa32U sizeBytes,
 			     Cpa32U alignmentBytes,
@@ -428,7 +428,7 @@ LacMem_OsContigAlignMemAlloc(void **ppMemAddr,
  * @retval void
  *
  ******************************************************************************/
-static __inline void
+static inline void
 LacMem_OsMemFree(void **ppMemAddr)
 {
 	free(*ppMemAddr, M_QAT);
@@ -447,7 +447,7 @@ LacMem_OsMemFree(void **ppMemAddr)
  * @retval void
  *
  ******************************************************************************/
-static __inline void
+static inline void
 LacMem_OsContigAlignMemFree(void **ppMemAddr)
 {
 	if (NULL != *ppMemAddr) {

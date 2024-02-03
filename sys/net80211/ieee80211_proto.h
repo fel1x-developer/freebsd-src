@@ -52,14 +52,14 @@ extern	const char *ctl_subtype_name[];
 extern	const char *ieee80211_phymode_name[IEEE80211_MODE_MAX];
 extern	const int ieee80211_opcap[IEEE80211_OPMODE_MAX];
 
-static __inline const char *
+static inline const char *
 ieee80211_mgt_subtype_name(uint8_t subtype)
 {
 	return mgt_subtype_name[(subtype & IEEE80211_FC0_SUBTYPE_MASK) >>
 		   IEEE80211_FC0_SUBTYPE_SHIFT];
 }
 
-static __inline const char *
+static inline const char *
 ieee80211_ctl_subtype_name(uint8_t subtype)
 {
 	return ctl_subtype_name[(subtype & IEEE80211_FC0_SUBTYPE_MASK) >>
@@ -167,7 +167,7 @@ void	ieee80211_addbasicrates(struct ieee80211_rateset *,
 /*
  * Return the size of the 802.11 header for a management or data frame.
  */
-static __inline int
+static inline int
 ieee80211_hdrsize(const void *data)
 {
 	const struct ieee80211_frame *wh = data;
@@ -186,7 +186,7 @@ ieee80211_hdrsize(const void *data)
 /*
  * Like ieee80211_hdrsize, but handles any type of frame.
  */
-static __inline int
+static inline int
 ieee80211_anyhdrsize(const void *data)
 {
 	const struct ieee80211_frame *wh = data;
@@ -310,7 +310,7 @@ void	ieee80211_vap_update_ht_protmode(struct ieee80211vap *vap);
 /*
  * Return pointer to the QoS field from a Qos frame.
  */
-static __inline uint8_t *
+static inline uint8_t *
 ieee80211_getqos(void *data)
 {
 	struct ieee80211_frame *wh = data;
@@ -327,7 +327,7 @@ ieee80211_getqos(void *data)
  * Return the WME TID from a QoS frame.  If no TID
  * is present return the index for the "non-QoS" entry.
  */
-static __inline uint8_t
+static inline uint8_t
 ieee80211_gettid(const struct ieee80211_frame *wh)
 {
 	uint8_t tid;

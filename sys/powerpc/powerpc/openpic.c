@@ -57,13 +57,13 @@
  */
 static int openpic_intr(void *arg);
 
-static __inline uint32_t
+static inline uint32_t
 openpic_read(struct openpic_softc *sc, u_int reg)
 {
 	return (bus_space_read_4(sc->sc_bt, sc->sc_bh, reg));
 }
 
-static __inline void
+static inline void
 openpic_write(struct openpic_softc *sc, u_int reg, uint32_t val)
 {
 	bus_space_write_4(sc->sc_bt, sc->sc_bh, reg, val);

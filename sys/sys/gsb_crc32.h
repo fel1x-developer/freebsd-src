@@ -12,7 +12,7 @@
 
 extern const uint32_t crc32_tab[];
 
-static __inline uint32_t
+static inline uint32_t
 crc32_raw(const void *buf, size_t size, uint32_t crc)
 {
 	const uint8_t *p = (const uint8_t *)buf;
@@ -22,7 +22,7 @@ crc32_raw(const void *buf, size_t size, uint32_t crc)
 	return (crc);
 }
 
-static __inline uint32_t
+static inline uint32_t
 crc32(const void *buf, size_t size)
 {
 	uint32_t crc;

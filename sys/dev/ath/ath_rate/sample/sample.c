@@ -241,7 +241,7 @@ ath_rate_sample_find_min_pktlength(struct ath_softc *sc,
 
 static void	ath_rate_ctl_reset(struct ath_softc *, struct ieee80211_node *);
 
-static __inline int
+static inline int
 size_to_bin(int size) 
 {
 #if NUM_PACKET_SIZE_BINS > 1
@@ -310,7 +310,7 @@ dot11rate_label(const HAL_RATE_TABLE *rt, int rix)
  * Return the rix with the lowest average_tx_time,
  * or -1 if all the average_tx_times are 0.
  */
-static __inline int
+static inline int
 pick_best_rate(struct ath_node *an, const HAL_RATE_TABLE *rt,
     int size_bin, int require_acked_before)
 {
@@ -410,7 +410,7 @@ pick_best_rate(struct ath_node *an, const HAL_RATE_TABLE *rt,
 /*
  * Pick a good "random" bit-rate to sample other than the current one.
  */
-static __inline int
+static inline int
 pick_sample_rate(struct sample_softc *ssc , struct ath_node *an,
     const HAL_RATE_TABLE *rt, int size_bin)
 {

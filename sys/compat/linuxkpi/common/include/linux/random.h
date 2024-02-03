@@ -96,7 +96,7 @@ get_random_u64(void)
 	return (val);
 }
 
-static __inline uint32_t
+static inline uint32_t
 prandom_u32(void)
 {
 	uint32_t val;

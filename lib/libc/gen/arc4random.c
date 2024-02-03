@@ -53,7 +53,7 @@
 #define minimum(a, b) ((a) < (b) ? (a) : (b))
 
 #if defined(__GNUC__) || defined(_MSC_VER)
-#define inline __inline
+#define inline inline
 #else				/* __GNUC__ || _MSC_VER */
 #define inline
 #endif				/* !__GNUC__ && !_MSC_VER */

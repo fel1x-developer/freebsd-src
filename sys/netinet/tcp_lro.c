@@ -146,7 +146,7 @@ tcp_lro_dereg_mbufq(void)
 	atomic_fetchadd_long(&tcplro_stacks_wanting_mbufq, -1);
 }
 
-static __inline void
+static inline void
 tcp_lro_active_insert(struct lro_ctrl *lc, struct lro_head *bucket,
     struct lro_entry *le)
 {
@@ -155,7 +155,7 @@ tcp_lro_active_insert(struct lro_ctrl *lc, struct lro_head *bucket,
 	LIST_INSERT_HEAD(bucket, le, hash_next);
 }
 
-static __inline void
+static inline void
 tcp_lro_active_remove(struct lro_entry *le)
 {
 

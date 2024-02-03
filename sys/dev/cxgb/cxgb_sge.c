@@ -250,7 +250,7 @@ static void cxgb_start_locked(struct sge_qset *qs);
  * window than we are now for determining the need for coalescing
  *
  */
-static __inline uint64_t
+static inline uint64_t
 check_pkt_coalesce(struct sge_qset *qs) 
 { 
         struct adapter *sc; 
@@ -366,7 +366,7 @@ cxgb_dequeue(struct sge_qset *qs)
  *	and frees the associated buffers if possible.  Called with the Tx
  *	queue's lock held.
  */
-static __inline int
+static inline int
 reclaim_completed_tx(struct sge_qset *qs, int reclaim_min, int queue)
 {
 	struct sge_txq *q = &qs->txq[queue];
@@ -406,7 +406,7 @@ cxgb_debugnet_poll_tx(struct sge_qset *qs)
  *
  *	Checks if there are enough descriptors to restart a suspended Tx queue.
  */
-static __inline int
+static inline int
 should_restart_tx(const struct sge_txq *q)
 {
 	unsigned int r = q->processed - q->cleaned;
@@ -465,7 +465,7 @@ t3_sge_init(adapter_t *adap, struct sge_params *p)
  *	Calculates the number of flits needed for a scatter/gather list that
  *	can hold the given number of entries.
  */
-static __inline unsigned int
+static inline unsigned int
 sgl_len(unsigned int n)
 {
 	return ((3 * n) / 2 + (n & 1));
@@ -495,7 +495,7 @@ get_imm_packet(adapter_t *sc, const struct rsp_desc *resp, struct mbuf *m)
 	return (0);	
 }
 
-static __inline u_int
+static inline u_int
 flits_to_desc(u_int n)
 {
 	return (flit_desc_map[n]);
@@ -816,13 +816,13 @@ free_rx_bufs(adapter_t *sc, struct sge_fl *q)
 	}
 }
 
-static __inline void
+static inline void
 __refill_fl(adapter_t *adap, struct sge_fl *fl)
 {
 	refill_fl(adap, fl, min(16U, fl->size - fl->credits));
 }
 
-static __inline void
+static inline void
 __refill_fl_lt(adapter_t *adap, struct sge_fl *fl, int max)
 {
 	uint32_t reclaimable = fl->size - fl->credits;
@@ -1040,7 +1040,7 @@ t3_sge_init_port(struct port_info *pi)
  *	Replenishes a response queue by making the supplied number of responses
  *	available to HW.
  */
-static __inline void
+static inline void
 refill_rspq(adapter_t *sc, const struct sge_rspq *q, u_int credits)
 {
 
@@ -1167,7 +1167,7 @@ txq_prod(struct sge_txq *txq, unsigned int ndesc, struct txq_state *txqs)
  * 	Returns the number of Tx descriptors needed for the given Ethernet
  * 	packet.  Ethernet packets require addition of WR and CPL headers.
  */
-static __inline unsigned int
+static inline unsigned int
 calc_tx_descs(const struct mbuf *m, int nsegs)
 {
 	unsigned int flits;
@@ -1192,7 +1192,7 @@ calc_tx_descs(const struct mbuf *m, int nsegs)
  *	and returns the SGL size in 8-byte words.  The caller must size the SGL
  *	appropriately.
  */
-static __inline void
+static inline void
 make_sgl(struct sg_ent *sgp, bus_dma_segment_t *segs, int nsegs)
 {
 	int i, idx;
@@ -1229,7 +1229,7 @@ make_sgl(struct sg_ent *sgp, bus_dma_segment_t *segs, int nsegs)
  *
  *	When GTS is disabled we unconditionally ring the doorbell.
  */
-static __inline void
+static inline void
 check_ring_tx_db(adapter_t *adap, struct sge_txq *q, int mustring)
 {
 #if USE_GTS
@@ -1253,7 +1253,7 @@ check_ring_tx_db(adapter_t *adap, struct sge_txq *q, int mustring)
 #endif
 }
 
-static __inline void
+static inline void
 wr_gen2(struct tx_desc *d, unsigned int gen)
 {
 #if SGE_NUM_GENBITS == 2
@@ -1790,7 +1790,7 @@ cxgb_qflush(if_t ifp)
  *	carefully so the SGE doesn't read accidentally before it's written in
  *	its entirety.
  */
-static __inline void
+static inline void
 write_imm(struct tx_desc *d, caddr_t src,
 	  unsigned int len, unsigned int gen)
 {
@@ -1828,7 +1828,7 @@ write_imm(struct tx_desc *d, caddr_t src,
  *	needs to retry because there weren't enough descriptors at the
  *	beginning of the call but some freed up in the mean time.
  */
-static __inline int
+static inline int
 check_desc_avail(adapter_t *adap, struct sge_txq *q,
 		 struct mbuf *m, unsigned int ndesc,
 		 unsigned int qid)
@@ -1866,7 +1866,7 @@ addq_exit:	(void )mbufq_enqueue(&q->sendq, m);
  *	that send only immediate data (presently just the control queues) and
  *	thus do not have any mbufs
  */
-static __inline void
+static inline void
 reclaim_completed_tx_imm(struct sge_txq *q)
 {
 	unsigned int reclaim = q->processed - q->cleaned;
@@ -2165,7 +2165,7 @@ t3_free_tx_desc(struct sge_qset *qs, int reclaimable, int queue)
  *	Returns true if a response descriptor contains a yet unprocessed
  *	response.
  */
-static __inline int
+static inline int
 is_new_response(const struct rsp_desc *r,
     const struct sge_rspq *q)
 {
@@ -2773,7 +2773,7 @@ done:
  *	indications and completion credits for the queue set's Tx queues.
  *	HW coalesces credits, we don't do any extra SW coalescing.
  */
-static __inline void
+static inline void
 handle_rsp_cntrl_info(struct sge_qset *qs, uint32_t flags)
 {
 	unsigned int credits;
@@ -2995,7 +2995,7 @@ process_responses(adapter_t *adap, struct sge_qset *qs, int budget)
 /*
  * A helper function that processes responses and issues GTS.
  */
-static __inline int
+static inline int
 process_responses_gts(adapter_t *adap, struct sge_rspq *rq)
 {
 	int work;

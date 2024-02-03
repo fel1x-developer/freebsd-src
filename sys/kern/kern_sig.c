@@ -386,7 +386,7 @@ ksiginfo_free(ksiginfo_t *ksi)
 	uma_zfree(ksiginfo_zone, ksi);
 }
 
-static __inline bool
+static inline bool
 ksiginfo_tryfree(ksiginfo_t *ksi)
 {
 	if ((ksi->ksi_flags & KSI_EXT) == 0) {
@@ -751,7 +751,7 @@ sigonstack(size_t sp)
 	    sp < td->td_sigstk.ss_size + (size_t)td->td_sigstk.ss_sp);
 }
 
-static __inline int
+static inline int
 sigprop(int sig)
 {
 

@@ -316,7 +316,7 @@ bgx_find_root_pcib(device_t dev)
 	}
 }
 
-static __inline phandle_t
+static inline phandle_t
 bgx_fdt_find_node(struct bgx *bgx)
 {
 	device_t root_pcib;

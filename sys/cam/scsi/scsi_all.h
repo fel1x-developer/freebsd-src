@@ -4402,7 +4402,7 @@ int scsi_get_asc(struct scsi_sense_data *sense, u_int sense_len,
 int scsi_get_ascq(struct scsi_sense_data *sense, u_int sense_len,
 		  int show_errors);
 
-static __inline void
+static inline void
 scsi_ulto2b(uint32_t val, uint8_t *bytes)
 {
 
@@ -4410,7 +4410,7 @@ scsi_ulto2b(uint32_t val, uint8_t *bytes)
 	bytes[1] = val & 0xff;
 }
 
-static __inline void
+static inline void
 scsi_ulto3b(uint32_t val, uint8_t *bytes)
 {
 
@@ -4419,7 +4419,7 @@ scsi_ulto3b(uint32_t val, uint8_t *bytes)
 	bytes[2] = val & 0xff;
 }
 
-static __inline void
+static inline void
 scsi_ulto4b(uint32_t val, uint8_t *bytes)
 {
 
@@ -4429,7 +4429,7 @@ scsi_ulto4b(uint32_t val, uint8_t *bytes)
 	bytes[3] = val & 0xff;
 }
 
-static __inline void
+static inline void
 scsi_u64to8b(uint64_t val, uint8_t *bytes)
 {
 
@@ -4443,7 +4443,7 @@ scsi_u64to8b(uint64_t val, uint8_t *bytes)
 	bytes[7] = val & 0xff;
 }
 
-static __inline uint32_t
+static inline uint32_t
 scsi_2btoul(const uint8_t *bytes)
 {
 	uint32_t rv;
@@ -4453,7 +4453,7 @@ scsi_2btoul(const uint8_t *bytes)
 	return (rv);
 }
 
-static __inline uint32_t
+static inline uint32_t
 scsi_3btoul(const uint8_t *bytes)
 {
 	uint32_t rv;
@@ -4464,7 +4464,7 @@ scsi_3btoul(const uint8_t *bytes)
 	return (rv);
 }
 
-static __inline int32_t 
+static inline int32_t 
 scsi_3btol(const uint8_t *bytes)
 {
 	uint32_t rc = scsi_3btoul(bytes);
@@ -4475,7 +4475,7 @@ scsi_3btol(const uint8_t *bytes)
 	return (int32_t) rc;
 }
 
-static __inline uint32_t
+static inline uint32_t
 scsi_4btoul(const uint8_t *bytes)
 {
 	uint32_t rv;
@@ -4487,7 +4487,7 @@ scsi_4btoul(const uint8_t *bytes)
 	return (rv);
 }
 
-static __inline uint64_t
+static inline uint64_t
 scsi_8btou64(const uint8_t *bytes)
 {
         uint64_t rv;
@@ -4507,7 +4507,7 @@ scsi_8btou64(const uint8_t *bytes)
  * Given the pointer to a returned mode sense buffer, return a pointer to
  * the start of the first mode page.
  */
-static __inline void *
+static inline void *
 find_mode_page_6(struct scsi_mode_header_6 *mode_header)
 {
 	void *page_start;
@@ -4518,7 +4518,7 @@ find_mode_page_6(struct scsi_mode_header_6 *mode_header)
 	return(page_start);
 }
 
-static __inline void *
+static inline void *
 find_mode_page_10(struct scsi_mode_header_10 *mode_header)
 {
 	void *page_start;

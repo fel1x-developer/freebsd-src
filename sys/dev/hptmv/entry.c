@@ -1226,7 +1226,7 @@ IdeRegisterVDevice(PDevice pDev)
 }
 #endif
 
-static __inline PBUS_DMAMAP
+static inline PBUS_DMAMAP
 dmamap_get(struct IALAdapter * pAdapter)
 {
 	PBUS_DMAMAP	p = pAdapter->pbus_dmamap_list;
@@ -1235,7 +1235,7 @@ dmamap_get(struct IALAdapter * pAdapter)
 	return p;
 }
 
-static __inline void
+static inline void
 dmamap_put(PBUS_DMAMAP p)
 {
 	p->next = p->pAdapter->pbus_dmamap_list;

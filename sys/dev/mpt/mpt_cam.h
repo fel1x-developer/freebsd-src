@@ -112,10 +112,10 @@
 #define ccb_req_ptr sim_priv.entries[1].ptr
 
 /************************** CCB Manipulation Routines *************************/
-static __inline void mpt_freeze_ccb(union ccb *ccb);
-static __inline void mpt_set_ccb_status(union ccb *ccb, cam_status status);
+static inline void mpt_freeze_ccb(union ccb *ccb);
+static inline void mpt_set_ccb_status(union ccb *ccb, cam_status status);
 
-static __inline void
+static inline void
 mpt_freeze_ccb(union ccb *ccb)
 {
 	if ((ccb->ccb_h.status & CAM_DEV_QFRZN) == 0) {
@@ -124,7 +124,7 @@ mpt_freeze_ccb(union ccb *ccb)
 	}
 }
 
-static __inline void
+static inline void
 mpt_set_ccb_status(union ccb *ccb, cam_status status)
 {
 	ccb->ccb_h.status &= ~CAM_STATUS_MASK;
@@ -137,7 +137,7 @@ mpt_set_ccb_status(union ccb *ccb, cam_status status)
  */
 #define	MPT_TMF_MAX_TIMEOUT	(20000)
 
-static __inline void
+static inline void
 mpt_wakeup_recovery_thread(struct mpt_softc *mpt)
 {
 	wakeup(mpt);

@@ -77,7 +77,7 @@ _citrus_iconv_std_iconv_getops(struct _citrus_iconv_ops *ops)
 /*
  * convenience routines for stdenc.
  */
-static __inline void
+static inline void
 save_encoding_state(struct _citrus_iconv_std_encoding *se)
 {
 
@@ -86,7 +86,7 @@ save_encoding_state(struct _citrus_iconv_std_encoding *se)
 		    _stdenc_get_state_size(se->se_handle));
 }
 
-static __inline void
+static inline void
 restore_encoding_state(struct _citrus_iconv_std_encoding *se)
 {
 
@@ -95,7 +95,7 @@ restore_encoding_state(struct _citrus_iconv_std_encoding *se)
 		    _stdenc_get_state_size(se->se_handle));
 }
 
-static __inline void
+static inline void
 init_encoding_state(struct _citrus_iconv_std_encoding *se)
 {
 
@@ -103,7 +103,7 @@ init_encoding_state(struct _citrus_iconv_std_encoding *se)
 		_stdenc_init_state(se->se_handle, se->se_ps);
 }
 
-static __inline int
+static inline int
 mbtocsx(struct _citrus_iconv_std_encoding *se,
     _csid_t *csid, _index_t *idx, char **s, size_t n, size_t *nresult,
     struct iconv_hooks *hooks)
@@ -113,7 +113,7 @@ mbtocsx(struct _citrus_iconv_std_encoding *se,
 			      nresult, hooks));
 }
 
-static __inline int
+static inline int
 cstombx(struct _citrus_iconv_std_encoding *se,
     char *s, size_t n, _csid_t csid, _index_t idx, size_t *nresult,
     struct iconv_hooks *hooks)
@@ -123,7 +123,7 @@ cstombx(struct _citrus_iconv_std_encoding *se,
 			      nresult, hooks));
 }
 
-static __inline int
+static inline int
 wctombx(struct _citrus_iconv_std_encoding *se,
     char *s, size_t n, _wc_t wc, size_t *nresult,
     struct iconv_hooks *hooks)
@@ -133,7 +133,7 @@ wctombx(struct _citrus_iconv_std_encoding *se,
 			     hooks));
 }
 
-static __inline int
+static inline int
 put_state_resetx(struct _citrus_iconv_std_encoding *se, char *s, size_t n,
     size_t *nresult)
 {
@@ -141,7 +141,7 @@ put_state_resetx(struct _citrus_iconv_std_encoding *se, char *s, size_t n,
 	return (_stdenc_put_state_reset(se->se_handle, s, n, se->se_ps, nresult));
 }
 
-static __inline int
+static inline int
 get_state_desc_gen(struct _citrus_iconv_std_encoding *se, int *rstate)
 {
 	struct _stdenc_state_desc ssd;

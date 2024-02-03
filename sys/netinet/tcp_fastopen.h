@@ -92,45 +92,45 @@ void	tcp_fastopen_disable_path(struct tcpcb *);
 void	tcp_fastopen_update_cache(struct tcpcb *, uint16_t, uint8_t,
 	    uint8_t *);
 #else
-static __inline void
+static inline void
 tcp_fastopen_init(void)
 {
 }
 
-static __inline void
+static inline void
 tcp_fastopen_destroy(void)
 {
 }
 
-static __inline unsigned int *
+static inline unsigned int *
 tcp_fastopen_alloc_counter(void)
 {
 	return (NULL);
 }
 
-static __inline void
+static inline void
 tcp_fastopen_decrement_counter(unsigned int *_counter)
 {
 }
 
-static __inline int
+static inline int
 tcp_fastopen_check_cookie(struct in_conninfo *_inc, uint8_t *_cookie,
     unsigned int _len, uint64_t *_latest_cookie)
 {
 	return (-1);
 }
 
-static __inline void
+static inline void
 tcp_fastopen_connect(struct tcpcb *_tp)
 {
 }
 
-static __inline void
+static inline void
 tcp_fastopen_disable_path(struct tcpcb *_tp)
 {
 }
 
-static __inline void
+static inline void
 tcp_fastopen_update_cache(struct tcpcb *_tp, uint16_t _mss, uint8_t _cookie_len,
     uint8_t *_cookie)
 {

@@ -38,7 +38,7 @@
 #endif
 
 #ifndef	LIBKERN_INLINE
-#define	LIBKERN_INLINE  static __inline
+#define	LIBKERN_INLINE  static inline
 #define	LIBKERN_BODY
 #endif
 
@@ -84,34 +84,34 @@ validbcd(int bcd)
 
 	return (bcd == 0 || (bcd > 0 && bcd <= 0x99 && bcd2bin_data[bcd] != 0));
 }
-static __inline int imax(int a, int b) { return (a > b ? a : b); }
-static __inline int imin(int a, int b) { return (a < b ? a : b); }
-static __inline long lmax(long a, long b) { return (a > b ? a : b); }
-static __inline long lmin(long a, long b) { return (a < b ? a : b); }
-static __inline u_int max(u_int a, u_int b) { return (a > b ? a : b); }
-static __inline u_int min(u_int a, u_int b) { return (a < b ? a : b); }
-static __inline quad_t qmax(quad_t a, quad_t b) { return (a > b ? a : b); }
-static __inline quad_t qmin(quad_t a, quad_t b) { return (a < b ? a : b); }
-static __inline u_quad_t uqmax(u_quad_t a, u_quad_t b) { return (a > b ? a : b); }
-static __inline u_quad_t uqmin(u_quad_t a, u_quad_t b) { return (a < b ? a : b); }
-static __inline u_long ulmax(u_long a, u_long b) { return (a > b ? a : b); }
-static __inline u_long ulmin(u_long a, u_long b) { return (a < b ? a : b); }
-static __inline __uintmax_t ummax(__uintmax_t a, __uintmax_t b)
+static inline int imax(int a, int b) { return (a > b ? a : b); }
+static inline int imin(int a, int b) { return (a < b ? a : b); }
+static inline long lmax(long a, long b) { return (a > b ? a : b); }
+static inline long lmin(long a, long b) { return (a < b ? a : b); }
+static inline u_int max(u_int a, u_int b) { return (a > b ? a : b); }
+static inline u_int min(u_int a, u_int b) { return (a < b ? a : b); }
+static inline quad_t qmax(quad_t a, quad_t b) { return (a > b ? a : b); }
+static inline quad_t qmin(quad_t a, quad_t b) { return (a < b ? a : b); }
+static inline u_quad_t uqmax(u_quad_t a, u_quad_t b) { return (a > b ? a : b); }
+static inline u_quad_t uqmin(u_quad_t a, u_quad_t b) { return (a < b ? a : b); }
+static inline u_long ulmax(u_long a, u_long b) { return (a > b ? a : b); }
+static inline u_long ulmin(u_long a, u_long b) { return (a < b ? a : b); }
+static inline __uintmax_t ummax(__uintmax_t a, __uintmax_t b)
 {
 
 	return (a > b ? a : b);
 }
-static __inline __uintmax_t ummin(__uintmax_t a, __uintmax_t b)
+static inline __uintmax_t ummin(__uintmax_t a, __uintmax_t b)
 {
 
 	return (a < b ? a : b);
 }
-static __inline off_t omax(off_t a, off_t b) { return (a > b ? a : b); }
-static __inline off_t omin(off_t a, off_t b) { return (a < b ? a : b); }
-static __inline int abs(int a) { return (a < 0 ? -a : a); }
-static __inline long labs(long a) { return (a < 0 ? -a : a); }
-static __inline int64_t abs64(int64_t a) { return (a < 0 ? -a : a); }
-static __inline quad_t qabs(quad_t a) { return (a < 0 ? -a : a); }
+static inline off_t omax(off_t a, off_t b) { return (a > b ? a : b); }
+static inline off_t omin(off_t a, off_t b) { return (a < b ? a : b); }
+static inline int abs(int a) { return (a < 0 ? -a : a); }
+static inline long labs(long a) { return (a < 0 ? -a : a); }
+static inline int64_t abs64(int64_t a) { return (a < 0 ? -a : a); }
+static inline quad_t qabs(quad_t a) { return (a < 0 ? -a : a); }
 
 #ifndef RANDOM_FENESTRASX
 #define	ARC4_ENTR_NONE	0	/* Don't have entropy yet. */
@@ -141,28 +141,28 @@ void	*bsearch(const void *, const void *, size_t,
 #define	HAVE_INLINE_FLSL
 #define	HAVE_INLINE_FLSLL
 
-static __inline __pure2 int
+static inline __pure2 int
 ffs(int mask)
 {
 
 	return (__builtin_ffs((u_int)mask));
 }
 
-static __inline __pure2 int
+static inline __pure2 int
 ffsl(long mask)
 {
 
 	return (__builtin_ffsl((u_long)mask));
 }
 
-static __inline __pure2 int
+static inline __pure2 int
 ffsll(long long mask)
 {
 
 	return (__builtin_ffsll((unsigned long long)mask));
 }
 
-static __inline __pure2 int
+static inline __pure2 int
 fls(int mask)
 {
 
@@ -170,7 +170,7 @@ fls(int mask)
 	    8 * sizeof(mask) - __builtin_clz((u_int)mask));
 }
 
-static __inline __pure2 int
+static inline __pure2 int
 flsl(long mask)
 {
 
@@ -178,7 +178,7 @@ flsl(long mask)
 	    8 * sizeof(mask) - __builtin_clzl((u_long)mask));
 }
 
-static __inline __pure2 int
+static inline __pure2 int
 flsll(long long mask)
 {
 
@@ -248,21 +248,21 @@ size_t	SAN_INTERCEPTOR(strlen)(const char *);
 #define strlen(s)	__builtin_strlen((s))
 #endif /* SAN_NEEDS_INTERCEPTORS */
 
-static __inline char *
+static inline char *
 index(const char *p, int ch)
 {
 
 	return (strchr(p, ch));
 }
 
-static __inline char *
+static inline char *
 rindex(const char *p, int ch)
 {
 
 	return (strrchr(p, ch));
 }
 
-static __inline int64_t
+static inline int64_t
 signed_extend64(uint64_t bitmap, int lsb, int width)
 {
 
@@ -270,7 +270,7 @@ signed_extend64(uint64_t bitmap, int lsb, int width)
 	    (63 - (width - 1));
 }
 
-static __inline int32_t
+static inline int32_t
 signed_extend32(uint32_t bitmap, int lsb, int width)
 {
 

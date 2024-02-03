@@ -102,7 +102,7 @@ static const struct auth_hash padlock_hmac_sha256 = {
 
 MALLOC_DECLARE(M_PADLOCK);
 
-static __inline void
+static inline void
 padlock_output_block(uint32_t *src, uint32_t *dst, size_t count)
 {
 

@@ -53,14 +53,14 @@ struct iphdr {
 	uint32_t	daddr;
 };
 
-static __inline struct iphdr *
+static inline struct iphdr *
 ip_hdr(struct sk_buff *skb)
 {
 
 	return (struct iphdr *)skb_network_header(skb);
 }
 
-static __inline void
+static inline void
 ip_send_check(struct iphdr *iph)
 {
 

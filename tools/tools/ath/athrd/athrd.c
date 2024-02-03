@@ -809,7 +809,7 @@ anychan(const struct ieee80211_channel *chans, int nc, int flag)
 	return 0;
 }
 
-static __inline int
+static inline int
 mapgsm(u_int freq, u_int flags)
 {
 	freq *= 10;
@@ -822,7 +822,7 @@ mapgsm(u_int freq, u_int flags)
 	return (freq - 24220) / 5;
 }
 
-static __inline int
+static inline int
 mappsb(u_int freq, u_int flags)
 {
 	return ((freq * 10) + (((freq % 5) == 2) ? 5 : 0) - 49400) / 5;

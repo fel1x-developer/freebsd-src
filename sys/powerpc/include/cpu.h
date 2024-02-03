@@ -110,7 +110,7 @@ extern u_long cpu_features2;
  */
 #define	CPU_CACHELINE	1
 
-static __inline u_int64_t
+static inline u_int64_t
 get_cyclecount(void)
 {
 	u_int32_t _upper, _lower;

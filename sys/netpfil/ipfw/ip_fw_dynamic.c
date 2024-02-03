@@ -758,7 +758,7 @@ static struct opcode_obj_rewrite dyn_opcodes[] = {
  * and we want to find both in the same bucket.
  */
 #ifndef IPFIREWALL_JENKINSHASH
-static __inline uint32_t
+static inline uint32_t
 hash_packet(const struct ipfw_flow_id *id)
 {
 	uint32_t i;
@@ -776,7 +776,7 @@ hash_packet(const struct ipfw_flow_id *id)
 	return (i);
 }
 
-static __inline uint32_t
+static inline uint32_t
 hash_parent(const struct ipfw_flow_id *id, const void *rule)
 {
 
@@ -788,7 +788,7 @@ hash_parent(const struct ipfw_flow_id *id, const void *rule)
 VNET_DEFINE_STATIC(uint32_t, dyn_hashseed);
 #define	V_dyn_hashseed		VNET(dyn_hashseed)
 
-static __inline int
+static inline int
 addrcmp4(const struct ipfw_flow_id *id)
 {
 
@@ -802,7 +802,7 @@ addrcmp4(const struct ipfw_flow_id *id)
 }
 
 #ifdef INET6
-static __inline int
+static inline int
 addrcmp6(const struct ipfw_flow_id *id)
 {
 	int ret;
@@ -817,7 +817,7 @@ addrcmp6(const struct ipfw_flow_id *id)
 	return (1);
 }
 
-static __inline uint32_t
+static inline uint32_t
 hash_packet6(const struct ipfw_flow_id *id)
 {
 	struct tuple6 {
@@ -841,7 +841,7 @@ hash_packet6(const struct ipfw_flow_id *id)
 }
 #endif
 
-static __inline uint32_t
+static inline uint32_t
 hash_packet(const struct ipfw_flow_id *id)
 {
 	struct tuple4 {
@@ -872,7 +872,7 @@ hash_packet(const struct ipfw_flow_id *id)
 	return (0);
 }
 
-static __inline uint32_t
+static inline uint32_t
 hash_parent(const struct ipfw_flow_id *id, const void *rule)
 {
 

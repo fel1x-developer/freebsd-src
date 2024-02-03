@@ -76,7 +76,7 @@ __END_DECLS
  *	  the combination of the above.
  *
  */
-static __inline int
+static inline int
 _citrus_mapper_convert(struct _citrus_mapper * __restrict cm,
     _citrus_index_t * __restrict dst, _citrus_index_t src,
     void * __restrict ps)
@@ -89,7 +89,7 @@ _citrus_mapper_convert(struct _citrus_mapper * __restrict cm,
  * _citrus_mapper_init_state:
  *	initialize the state.
  */
-static __inline void
+static inline void
 _citrus_mapper_init_state(struct _citrus_mapper * __restrict cm)
 {
 
@@ -100,7 +100,7 @@ _citrus_mapper_init_state(struct _citrus_mapper * __restrict cm)
  * _citrus_mapper_get_state_size:
  *	get the size of state storage.
  */
-static __inline size_t
+static inline size_t
 _citrus_mapper_get_state_size(struct _citrus_mapper * __restrict cm)
 {
 
@@ -111,7 +111,7 @@ _citrus_mapper_get_state_size(struct _citrus_mapper * __restrict cm)
  * _citrus_mapper_get_src_max:
  *	get the maximum number of suspended sources.
  */
-static __inline size_t
+static inline size_t
 _citrus_mapper_get_src_max(struct _citrus_mapper * __restrict cm)
 {
 
@@ -122,7 +122,7 @@ _citrus_mapper_get_src_max(struct _citrus_mapper * __restrict cm)
  * _citrus_mapper_get_dst_max:
  *	get the maximum number of suspended destinations.
  */
-static __inline size_t
+static inline size_t
 _citrus_mapper_get_dst_max(struct _citrus_mapper * __restrict cm)
 {
 

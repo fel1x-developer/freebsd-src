@@ -128,7 +128,7 @@ int	mpt_lookup_volume(int fd, const char *name, U8 *VolumeBus,
     U8 *VolumeID);
 int	mpt_rescan_bus(int bus, int id);
 
-static __inline void *
+static inline void *
 mpt_read_man_page(int fd, U8 PageNumber, U16 *IOCStatus)
 {
 
@@ -136,7 +136,7 @@ mpt_read_man_page(int fd, U8 PageNumber, U16 *IOCStatus)
 	    PageNumber, 0, IOCStatus));
 }
 
-static __inline void *
+static inline void *
 mpt_read_ioc_page(int fd, U8 PageNumber, U16 *IOCStatus)
 {
 
@@ -144,14 +144,14 @@ mpt_read_ioc_page(int fd, U8 PageNumber, U16 *IOCStatus)
 	    0, IOCStatus));
 }
 
-static __inline U32
+static inline U32
 mpt_vol_pageaddr(U8 VolumeBus, U8 VolumeID)
 {
 
 	return (VolumeBus << 8 | VolumeID);
 }
 
-static __inline CONFIG_PAGE_RAID_VOL_0 *
+static inline CONFIG_PAGE_RAID_VOL_0 *
 mpt_vol_info(int fd, U8 VolumeBus, U8 VolumeID, U16 *IOCStatus)
 {
 
@@ -159,7 +159,7 @@ mpt_vol_info(int fd, U8 VolumeBus, U8 VolumeID, U16 *IOCStatus)
 	    mpt_vol_pageaddr(VolumeBus, VolumeID), IOCStatus));
 }
 
-static __inline CONFIG_PAGE_RAID_VOL_1 *
+static inline CONFIG_PAGE_RAID_VOL_1 *
 mpt_vol_names(int fd, U8 VolumeBus, U8 VolumeID, U16 *IOCStatus)
 {
 
@@ -167,7 +167,7 @@ mpt_vol_names(int fd, U8 VolumeBus, U8 VolumeID, U16 *IOCStatus)
 	    mpt_vol_pageaddr(VolumeBus, VolumeID), IOCStatus));
 }
 
-static __inline CONFIG_PAGE_RAID_PHYS_DISK_0 *
+static inline CONFIG_PAGE_RAID_PHYS_DISK_0 *
 mpt_pd_info(int fd, U8 PhysDiskNum, U16 *IOCStatus)
 {
 

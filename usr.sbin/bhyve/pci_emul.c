@@ -155,7 +155,7 @@ static struct pci_devemu *pci_emul_finddev(const char *name);
 static void pci_cfgrw(int in, int bus, int slot, int func, int coff,
     int bytes, uint32_t *val);
 
-static __inline void
+static inline void
 CFGWRITE(struct pci_devinst *pi, int coff, uint32_t val, int bytes)
 {
 
@@ -167,7 +167,7 @@ CFGWRITE(struct pci_devinst *pi, int coff, uint32_t val, int bytes)
 		pci_set_cfgdata32(pi, coff, val);
 }
 
-static __inline uint32_t
+static inline uint32_t
 CFGREAD(struct pci_devinst *pi, int coff, int bytes)
 {
 

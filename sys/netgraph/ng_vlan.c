@@ -196,7 +196,7 @@ NETGRAPH_INIT(vlan, &ng_vlan_typestruct);
  * Helper functions.
  */
 
-static __inline int
+static inline int
 m_chk(struct mbuf **mp, int len)
 {
 

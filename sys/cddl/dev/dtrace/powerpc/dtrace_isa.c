@@ -63,7 +63,7 @@
 		(PMAP_HAS_DMAP && (x) >= DMAP_BASE_ADDRESS && \
 		 (x) <= DMAP_MAX_ADDRESS))
 
-static __inline int
+static inline int
 dtrace_sp_inkernel(uintptr_t sp)
 {
 	struct trapframe *frame;
@@ -94,7 +94,7 @@ dtrace_sp_inkernel(uintptr_t sp)
 	return (1);
 }
 
-static __inline void
+static inline void
 dtrace_next_sp_pc(uintptr_t sp, uintptr_t *nsp, uintptr_t *pc, uintptr_t *lr)
 {
 	vm_offset_t callpc;

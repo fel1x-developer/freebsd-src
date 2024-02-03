@@ -98,21 +98,21 @@ void uart_add_sysdev(struct uart_devinfo *);
  * by console and debug port logic.
  */
 
-static __inline void
+static inline void
 uart_lock(struct mtx *hwmtx)
 {
 	if (!kdb_active && hwmtx != NULL)
 		mtx_lock_spin(hwmtx);
 }
 
-static __inline void
+static inline void
 uart_unlock(struct mtx *hwmtx)
 {
 	if (!kdb_active && hwmtx != NULL)
 		mtx_unlock_spin(hwmtx);
 }
 
-static __inline int
+static inline int
 uart_probe(struct uart_devinfo *di)
 {
 	int res;
@@ -123,7 +123,7 @@ uart_probe(struct uart_devinfo *di)
 	return (res);
 }
 
-static __inline void
+static inline void
 uart_init(struct uart_devinfo *di)
 {
 	uart_lock(di->hwmtx);
@@ -132,7 +132,7 @@ uart_init(struct uart_devinfo *di)
 	uart_unlock(di->hwmtx);
 }
 
-static __inline void
+static inline void
 uart_term(struct uart_devinfo *di)
 {
 	uart_lock(di->hwmtx);
@@ -140,7 +140,7 @@ uart_term(struct uart_devinfo *di)
 	uart_unlock(di->hwmtx);
 }
 
-static __inline void
+static inline void
 uart_putc(struct uart_devinfo *di, int c)
 {
 	uart_lock(di->hwmtx);
@@ -148,7 +148,7 @@ uart_putc(struct uart_devinfo *di, int c)
 	uart_unlock(di->hwmtx);
 }
 
-static __inline int
+static inline int
 uart_rxready(struct uart_devinfo *di)
 {
 	int res;
@@ -159,7 +159,7 @@ uart_rxready(struct uart_devinfo *di)
 	return (res);
 }
 
-static __inline int
+static inline int
 uart_poll(struct uart_devinfo *di)
 {
 	int res;
@@ -173,7 +173,7 @@ uart_poll(struct uart_devinfo *di)
 	return (res);
 }
 
-static __inline int
+static inline int
 uart_getc(struct uart_devinfo *di)
 {
 

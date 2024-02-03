@@ -36,7 +36,7 @@
 /*
  * Function: qla_hw_reset
  */
-static __inline void qla_hw_reset(qla_host_t *ha)
+static inline void qla_hw_reset(qla_host_t *ha)
 {
         WRITE_OFFSET32(ha, Q8_ASIC_RESET, 0xFFFFFFFF);
 }
@@ -54,7 +54,7 @@ static __inline void qla_hw_reset(qla_host_t *ha)
  *		This is for debugging purpose
  * Returns:	0 on success; otherwise its failed.
  */
-static __inline int
+static inline int
 qla_sem_lock(qla_host_t *ha, uint32_t sem_reg, uint32_t id_reg, uint32_t id_val)
 {
 	int count = QL8_SEMLOCK_TIMEOUT;
@@ -79,19 +79,19 @@ qla_sem_lock(qla_host_t *ha, uint32_t sem_reg, uint32_t id_reg, uint32_t id_val)
  * Function:	Unlocks the semaphore registers (semaphore 2,3,5 & 7)
  *		previously locked by qla_sem_lock()
  */
-static __inline void
+static inline void
 qla_sem_unlock(qla_host_t *ha, uint32_t sem_reg)
 {
 	READ_REG32(ha, sem_reg);
 }
 
-static __inline int
+static inline int
 qla_get_ifq_snd_maxlen(qla_host_t *ha)
 {
 	return((NUM_TX_DESCRIPTORS - 1));
 }
 
-static __inline uint32_t
+static inline uint32_t
 qla_get_optics(qla_host_t *ha)
 {
 	uint32_t link_speed;
@@ -119,13 +119,13 @@ qla_get_optics(qla_host_t *ha)
 	return(link_speed);
 }
 
-static __inline uint8_t *
+static inline uint8_t *
 qla_get_mac_addr(qla_host_t *ha)
 {
 	return (ha->hw.mac_addr);
 }
 
-static __inline void
+static inline void
 qla_read_mac_addr(qla_host_t *ha)
 {
 	uint32_t mac_crb_addr;
@@ -169,7 +169,7 @@ qla_read_mac_addr(qla_host_t *ha)
 	return;
 }
 
-static __inline void
+static inline void
 qla_set_hw_rcv_desc(qla_host_t *ha, uint32_t ridx, uint32_t index,
 	uint32_t handle, bus_addr_t paddr, uint32_t buf_size)
 {
@@ -186,7 +186,7 @@ qla_set_hw_rcv_desc(qla_host_t *ha, uint32_t ridx, uint32_t index,
 	return;
 }
 
-static __inline void
+static inline void
 qla_init_hw_rcv_descriptors(qla_host_t *ha, uint32_t ridx)
 {
 	if (ridx == RDS_RING_INDEX_NORMAL)
@@ -199,7 +199,7 @@ qla_init_hw_rcv_descriptors(qla_host_t *ha, uint32_t ridx)
 		QL_ASSERT(0, ("%s: invalid rds index [%d]\n", __func__, ridx));
 }
 
-static __inline void
+static inline void
 qla_lock(qla_host_t *ha, const char *str)
 {
 	while (1) {
@@ -216,7 +216,7 @@ qla_lock(qla_host_t *ha, const char *str)
 	return;
 }
 
-static __inline void
+static inline void
 qla_unlock(qla_host_t *ha, const char *str)
 {
 	mtx_lock(&ha->hw_lock);

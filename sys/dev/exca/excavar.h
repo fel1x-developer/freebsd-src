@@ -126,25 +126,25 @@ int exca_activate_resource(struct exca_softc *exca, device_t child,
 int exca_deactivate_resource(struct exca_softc *exca, device_t child,
     struct resource *res);
 
-static __inline uint8_t
+static inline uint8_t
 exca_getb(struct exca_softc *sc, int reg)
 {
 	return (sc->getb(sc, reg));
 }
 
-static __inline void
+static inline void
 exca_putb(struct exca_softc *sc, int reg, uint8_t val)
 {
 	sc->putb(sc, reg, val);
 }
 
-static __inline void
+static inline void
 exca_setb(struct exca_softc *sc, int reg, uint8_t mask)
 {
 	exca_putb(sc, reg, exca_getb(sc, reg) | mask);
 }
 
-static __inline void
+static inline void
 exca_clrb(struct exca_softc *sc, int reg, uint8_t mask)
 {
 	exca_putb(sc, reg, exca_getb(sc, reg) & ~mask);

@@ -251,7 +251,7 @@ lockmgr_note_exclusive_release(struct lock *lk, const char *file, int line)
 	    line);
 }
 
-static __inline struct thread *
+static inline struct thread *
 lockmgr_xholder(const struct lock *lk)
 {
 	uintptr_t x;
@@ -266,7 +266,7 @@ lockmgr_xholder(const struct lock *lk)
  * If LK_INTERLOCK is specified the interlock is not reacquired after the
  * sleep.
  */
-static __inline int
+static inline int
 sleeplk(struct lock *lk, u_int flags, struct lock_object *ilk,
     const char *wmesg, int pri, int timo, int queue)
 {
@@ -312,7 +312,7 @@ sleeplk(struct lock *lk, u_int flags, struct lock_object *ilk,
 	return (error);
 }
 
-static __inline int
+static inline int
 wakeupshlk(struct lock *lk, const char *file, int line)
 {
 	uintptr_t v, x, orig_x;

@@ -590,7 +590,7 @@ void	rtwn_suspend(struct rtwn_softc *);
 /*
  * Methods to access subfields in registers.
  */
-static __inline int
+static inline int
 rtwn_setbits_1(struct rtwn_softc *sc, uint16_t addr, uint8_t clr,
     uint8_t set)
 {
@@ -598,7 +598,7 @@ rtwn_setbits_1(struct rtwn_softc *sc, uint16_t addr, uint8_t clr,
 	    (rtwn_read_1(sc, addr) & ~clr) | set));
 }
 
-static __inline int
+static inline int
 rtwn_setbits_1_shift(struct rtwn_softc *sc, uint16_t addr, uint32_t clr,
     uint32_t set, int shift)
 {
@@ -606,7 +606,7 @@ rtwn_setbits_1_shift(struct rtwn_softc *sc, uint16_t addr, uint32_t clr,
 	    set >> shift * NBBY));
 }
 
-static __inline int
+static inline int
 rtwn_setbits_2(struct rtwn_softc *sc, uint16_t addr, uint16_t clr,
     uint16_t set)
 {
@@ -614,7 +614,7 @@ rtwn_setbits_2(struct rtwn_softc *sc, uint16_t addr, uint16_t clr,
 	    (rtwn_read_2(sc, addr) & ~clr) | set));
 }
 
-static __inline int
+static inline int
 rtwn_setbits_4(struct rtwn_softc *sc, uint16_t addr, uint32_t clr,
     uint32_t set)
 {
@@ -622,7 +622,7 @@ rtwn_setbits_4(struct rtwn_softc *sc, uint16_t addr, uint32_t clr,
 	    (rtwn_read_4(sc, addr) & ~clr) | set));
 }
 
-static __inline void
+static inline void
 rtwn_rf_setbits(struct rtwn_softc *sc, int chain, uint8_t addr,
     uint32_t clr, uint32_t set)
 {

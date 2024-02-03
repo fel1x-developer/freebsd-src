@@ -182,7 +182,7 @@ static const chip_usb_attach rtwn_chip_usb_attach[RTWN_CHIP_MAX_USB] = {
 	[RTWN_CHIP_RTL8821AU] = r21au_attach
 };
 
-static __inline void
+static inline void
 rtwn_usb_attach_private(struct rtwn_usb_softc *uc, int chip)
 {
 	rtwn_chip_usb_attach[chip](uc);

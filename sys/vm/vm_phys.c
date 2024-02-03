@@ -667,7 +667,7 @@ vm_phys_register_domains(int ndomains, struct mem_affinity *affinity,
  * long-term fragmentation by promoting contemporaneous allocation and
  * (hopefully) deallocation.
  */
-static __inline void
+static inline void
 vm_phys_split_pages(vm_page_t m, int oind, struct vm_freelist *fl, int order,
     int tail)
 {

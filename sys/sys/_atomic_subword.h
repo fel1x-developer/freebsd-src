@@ -71,7 +71,7 @@
  * than the ones we're not masking.  old and val should already be preshifted to
  * the proper position.
  */
-static __inline int
+static inline int
 _atomic_cmpset_masked_word(uint32_t *addr, uint32_t old, uint32_t val,
     uint32_t mask)
 {
@@ -97,7 +97,7 @@ _atomic_cmpset_masked_word(uint32_t *addr, uint32_t old, uint32_t val,
 #endif
 
 #ifndef	_atomic_fcmpset_masked_word
-static __inline int
+static inline int
 _atomic_fcmpset_masked_word(uint32_t *addr, uint32_t *old, uint32_t val,
     uint32_t mask)
 {
@@ -115,7 +115,7 @@ _atomic_fcmpset_masked_word(uint32_t *addr, uint32_t *old, uint32_t val,
 #endif
 
 #ifndef atomic_cmpset_8
-static __inline int
+static inline int
 atomic_cmpset_8(__volatile uint8_t *addr, uint8_t old, uint8_t val)
 {
 	int shift;
@@ -128,7 +128,7 @@ atomic_cmpset_8(__volatile uint8_t *addr, uint8_t old, uint8_t val)
 #endif
 
 #ifndef atomic_fcmpset_8
-static __inline int
+static inline int
 atomic_fcmpset_8(__volatile uint8_t *addr, uint8_t *old, uint8_t val)
 {
 	int ret, shift;
@@ -145,7 +145,7 @@ atomic_fcmpset_8(__volatile uint8_t *addr, uint8_t *old, uint8_t val)
 #endif
 
 #ifndef atomic_cmpset_16
-static __inline int
+static inline int
 atomic_cmpset_16(__volatile uint16_t *addr, uint16_t old, uint16_t val)
 {
 	int shift;
@@ -158,7 +158,7 @@ atomic_cmpset_16(__volatile uint16_t *addr, uint16_t old, uint16_t val)
 #endif
 
 #ifndef atomic_fcmpset_16
-static __inline int
+static inline int
 atomic_fcmpset_16(__volatile uint16_t *addr, uint16_t *old, uint16_t val)
 {
 	int ret, shift;
@@ -175,7 +175,7 @@ atomic_fcmpset_16(__volatile uint16_t *addr, uint16_t *old, uint16_t val)
 #endif
 
 #ifndef atomic_load_acq_8
-static __inline uint8_t
+static inline uint8_t
 atomic_load_acq_8(volatile uint8_t *p)
 {
 	int shift;
@@ -188,7 +188,7 @@ atomic_load_acq_8(volatile uint8_t *p)
 #endif
 
 #ifndef atomic_load_acq_16
-static __inline uint16_t
+static inline uint16_t
 atomic_load_acq_16(volatile uint16_t *p)
 {
 	int shift;
@@ -216,7 +216,7 @@ atomic_load_acq_16(volatile uint16_t *p)
  * primitives like this.)
  */
 #ifndef atomic_testandset_acq_long
-static __inline int
+static inline int
 atomic_testandset_acq_long(volatile u_long *p, u_int v)
 {
 	u_long bit, old;
@@ -234,7 +234,7 @@ atomic_testandset_acq_long(volatile u_long *p, u_int v)
 #endif
 
 #ifndef atomic_testandset_long
-static __inline int
+static inline int
 atomic_testandset_long(volatile u_long *p, u_int v)
 {
 	u_long bit, old;
@@ -252,7 +252,7 @@ atomic_testandset_long(volatile u_long *p, u_int v)
 #endif
 
 #ifndef atomic_testandclear_long
-static __inline int
+static inline int
 atomic_testandclear_long(volatile u_long *p, u_int v)
 {
 	u_long bit, old;

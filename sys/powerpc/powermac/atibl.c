@@ -161,7 +161,7 @@ atibl_attach(device_t dev)
 	return (0);
 }
 
-static uint32_t __inline
+static uint32_t inline
 atibl_pll_rreg(struct atibl_softc *sc, uint32_t reg)
 {
 	uint32_t data, save, tmp;
@@ -182,7 +182,7 @@ atibl_pll_rreg(struct atibl_softc *sc, uint32_t reg)
 	return data;
 }
 
-static void __inline
+static void inline
 atibl_pll_wreg(struct atibl_softc *sc, uint32_t reg, uint32_t val)
 {
 	uint32_t save, tmp;

@@ -357,7 +357,7 @@ rfb_recv_set_encodings_msg(struct rfb_softc *rc, int cfd)
 /*
  * Calculate CRC32 using SSE4.2; Intel or AMD Bulldozer+ CPUs only
  */
-static __inline uint32_t
+static inline uint32_t
 fast_crc32(void *buf, int len, uint32_t crcval)
 {
 	uint32_t q = len / sizeof(uint32_t);

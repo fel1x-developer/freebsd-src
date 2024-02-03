@@ -51,7 +51,7 @@ static const uint128_t very_long_zero = {0UL,0UL};
 #define	UINT128_ZERO very_long_zero
 #endif
 
-static __inline void
+static inline void
 uint128_increment(uint128_t *big_uintp)
 {
 #ifdef USE_REAL_UINT128_T
@@ -63,7 +63,7 @@ uint128_increment(uint128_t *big_uintp)
 #endif
 }
 
-static __inline void
+static inline void
 uint128_add64(uint128_t *big_uintp, uint64_t add)
 {
 #ifdef USE_REAL_UINT128_T
@@ -78,7 +78,7 @@ uint128_add64(uint128_t *big_uintp, uint64_t add)
 #endif
 }
 
-static __inline bool
+static inline bool
 uint128_equals(uint128_t a, uint128_t b)
 {
 #ifdef USE_REAL_UINT128_T
@@ -89,13 +89,13 @@ uint128_equals(uint128_t a, uint128_t b)
 #endif
 }
 
-static __inline int
+static inline int
 uint128_is_zero(uint128_t big_uint)
 {
 	return (uint128_equals(big_uint, UINT128_ZERO));
 }
 
-static __inline uint128_t
+static inline uint128_t
 le128dec(const void *pp)
 {
 	const uint8_t *p = pp;
@@ -110,7 +110,7 @@ le128dec(const void *pp)
 #endif
 }
 
-static __inline void
+static inline void
 le128enc(void *pp, uint128_t u)
 {
 	uint8_t *p = pp;

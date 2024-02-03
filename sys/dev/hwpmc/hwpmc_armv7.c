@@ -57,7 +57,7 @@ static struct armv7_cpu **armv7_pcpu;
 /*
  * Interrupt Enable Set Register
  */
-static __inline void
+static inline void
 armv7_interrupt_enable(uint32_t pmc)
 {
 	uint32_t reg;
@@ -69,7 +69,7 @@ armv7_interrupt_enable(uint32_t pmc)
 /*
  * Interrupt Clear Set Register
  */
-static __inline void
+static inline void
 armv7_interrupt_disable(uint32_t pmc)
 {
 	uint32_t reg;
@@ -81,7 +81,7 @@ armv7_interrupt_disable(uint32_t pmc)
 /*
  * Counter Set Enable Register
  */
-static __inline void
+static inline void
 armv7_counter_enable(unsigned int pmc)
 {
 	uint32_t reg;
@@ -93,7 +93,7 @@ armv7_counter_enable(unsigned int pmc)
 /*
  * Counter Clear Enable Register
  */
-static __inline void
+static inline void
 armv7_counter_disable(unsigned int pmc)
 {
 	uint32_t reg;

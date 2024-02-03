@@ -2315,7 +2315,7 @@ process_file(char *filename)
 #define cpuid(in,a,b,c,d)\
   asm("cpuid": "=a" (a), "=b" (b), "=c" (c), "=d" (d) : "a" (in));
 
-static __inline void
+static inline void
 do_cpuid(u_int ax, u_int cx, u_int *p)
 {
 	__asm __volatile("cpuid"

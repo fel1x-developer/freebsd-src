@@ -168,7 +168,7 @@ static void	vge_eeprom_getword(struct vge_softc *, int, uint16_t *);
 #endif
 static int	vge_encap(struct vge_softc *, struct mbuf **);
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void
+static inline void
 		vge_fixup_rx(struct mbuf *);
 #endif
 static void	vge_freebufs(struct vge_softc *);
@@ -1410,7 +1410,7 @@ vge_freebufs(struct vge_softc *sc)
 }
 
 #ifndef	__NO_STRICT_ALIGNMENT
-static __inline void
+static inline void
 vge_fixup_rx(struct mbuf *m)
 {
 	int i;

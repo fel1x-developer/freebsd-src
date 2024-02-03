@@ -485,7 +485,7 @@ typedef struct {
 
 #define TI_HOSTADDR(x)		x.ti_addr_lo
 
-static __inline void
+static inline void
 ti_hostaddr64(ti_hostaddr *x, bus_addr_t addr)
 {
 	uint64_t baddr;

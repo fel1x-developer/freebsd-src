@@ -96,21 +96,21 @@ struct krb5_key_state {
 extern struct krb5_encryption_class krb5_aes128_encryption_class;
 extern struct krb5_encryption_class krb5_aes256_encryption_class;
 
-static __inline void
+static inline void
 krb5_set_key(struct krb5_key_state *ks, const void *keydata)
 {
 
 	ks->ks_class->ec_set_key(ks, keydata);
 }
 
-static __inline void
+static inline void
 krb5_random_to_key(struct krb5_key_state *ks, const void *keydata)
 {
 
 	ks->ks_class->ec_random_to_key(ks, keydata);
 }
 
-static __inline void
+static inline void
 krb5_encrypt(const struct krb5_key_state *ks, struct mbuf *inout,
     size_t skip, size_t len, void *ivec, size_t ivlen)
 {
@@ -118,7 +118,7 @@ krb5_encrypt(const struct krb5_key_state *ks, struct mbuf *inout,
 	ks->ks_class->ec_encrypt(ks, inout, skip, len, ivec, ivlen);
 }
 
-static __inline void
+static inline void
 krb5_decrypt(const struct krb5_key_state *ks, struct mbuf *inout,
     size_t skip, size_t len, void *ivec, size_t ivlen)
 {
@@ -126,7 +126,7 @@ krb5_decrypt(const struct krb5_key_state *ks, struct mbuf *inout,
 	ks->ks_class->ec_decrypt(ks, inout, skip, len, ivec, ivlen);
 }
 
-static __inline void
+static inline void
 krb5_checksum(const struct krb5_key_state *ks, int usage,
     struct mbuf *inout, size_t skip, size_t inlen, size_t outlen)
 {

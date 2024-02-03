@@ -532,7 +532,7 @@ struct scsi_read_capacity_eedp
 	uint8_t protect;
 };
 
-static __inline uint32_t
+static inline uint32_t
 mpr_regread(struct mpr_softc *sc, uint32_t offset)
 {
 	uint32_t ret_val, i = 0;
@@ -545,7 +545,7 @@ mpr_regread(struct mpr_softc *sc, uint32_t offset)
 	return ret_val;
 }
 
-static __inline void
+static inline void
 mpr_regwrite(struct mpr_softc *sc, uint32_t offset, uint32_t val)
 {
 	bus_space_write_4(sc->mpr_btag, sc->mpr_bhandle, offset, val);
@@ -554,7 +554,7 @@ mpr_regwrite(struct mpr_softc *sc, uint32_t offset, uint32_t val)
 /* free_queue must have Little Endian address 
  * TODO- cm_reply_data is unwanted. We can remove it.
  * */
-static __inline void
+static inline void
 mpr_free_reply(struct mpr_softc *sc, uint32_t busaddr)
 {
 	if (++sc->replyfreeindex >= sc->fqdepth)
@@ -563,7 +563,7 @@ mpr_free_reply(struct mpr_softc *sc, uint32_t busaddr)
 	mpr_regwrite(sc, MPI2_REPLY_FREE_HOST_INDEX_OFFSET, sc->replyfreeindex);
 }
 
-static __inline struct mpr_chain *
+static inline struct mpr_chain *
 mpr_alloc_chain(struct mpr_softc *sc)
 {
 	struct mpr_chain *chain;
@@ -578,7 +578,7 @@ mpr_alloc_chain(struct mpr_softc *sc)
 	return (chain);
 }
 
-static __inline void
+static inline void
 mpr_free_chain(struct mpr_softc *sc, struct mpr_chain *chain)
 {
 #if 0
@@ -588,7 +588,7 @@ mpr_free_chain(struct mpr_softc *sc, struct mpr_chain *chain)
 	TAILQ_INSERT_TAIL(&sc->chain_list, chain, chain_link);
 }
 
-static __inline struct mpr_prp_page *
+static inline struct mpr_prp_page *
 mpr_alloc_prp_page(struct mpr_softc *sc)
 {
 	struct mpr_prp_page *prp_page;
@@ -603,14 +603,14 @@ mpr_alloc_prp_page(struct mpr_softc *sc)
 	return (prp_page);
 }
 
-static __inline void
+static inline void
 mpr_free_prp_page(struct mpr_softc *sc, struct mpr_prp_page *prp_page)
 {
 	sc->prp_pages_free++;
 	TAILQ_INSERT_TAIL(&sc->prp_page_list, prp_page, prp_page_link);
 }
 
-static __inline void
+static inline void
 mpr_free_command(struct mpr_softc *sc, struct mpr_command *cm)
 {
 	struct mpr_chain *chain, *chain_temp;
@@ -648,7 +648,7 @@ mpr_free_command(struct mpr_softc *sc, struct mpr_command *cm)
 	TAILQ_INSERT_TAIL(&sc->req_list, cm, cm_link);
 }
 
-static __inline struct mpr_command *
+static inline struct mpr_command *
 mpr_alloc_command(struct mpr_softc *sc)
 {
 	struct mpr_command *cm;
@@ -668,7 +668,7 @@ mpr_alloc_command(struct mpr_softc *sc)
 
 void mprsas_prepare_remove_retry(struct mprsas_softc *sassc);
 
-static __inline void
+static inline void
 mpr_free_high_priority_command(struct mpr_softc *sc, struct mpr_command *cm)
 {
 	struct mpr_chain *chain, *chain_temp;
@@ -696,7 +696,7 @@ mpr_free_high_priority_command(struct mpr_softc *sc, struct mpr_command *cm)
 		mprsas_prepare_remove_retry(sc->sassc);
 }
 
-static __inline struct mpr_command *
+static inline struct mpr_command *
 mpr_alloc_high_priority_command(struct mpr_softc *sc)
 {
 	struct mpr_command *cm;
@@ -716,13 +716,13 @@ mpr_alloc_high_priority_command(struct mpr_softc *sc)
 	return (cm);
 }
 
-static __inline void
+static inline void
 mpr_lock(struct mpr_softc *sc)
 {
 	mtx_lock(&sc->mpr_mtx);
 }
 
-static __inline void
+static inline void
 mpr_unlock(struct mpr_softc *sc)
 {
 	mtx_unlock(&sc->mpr_mtx);
@@ -775,20 +775,20 @@ do {							\
 #define MPR_PRINTFIELD_32(sc, facts, attr, fmt)	\
 	mpr_print_field((sc), #attr ": " #fmt "\n", le32toh((facts)->attr))
 
-static __inline void
+static inline void
 mpr_from_u64(uint64_t data, U64 *mpr)
 {
 	(mpr)->High = htole32((uint32_t)((data) >> 32));
 	(mpr)->Low = htole32((uint32_t)((data) & 0xffffffff));
 }
 
-static __inline uint64_t
+static inline uint64_t
 mpr_to_u64(U64 *data)
 {
 	return (((uint64_t)le32toh(data->High) << 32) | le32toh(data->Low));
 }
 
-static __inline void
+static inline void
 mpr_mask_intr(struct mpr_softc *sc)
 {
 	uint32_t mask;
@@ -798,7 +798,7 @@ mpr_mask_intr(struct mpr_softc *sc)
 	mpr_regwrite(sc, MPI2_HOST_INTERRUPT_MASK_OFFSET, mask);
 }
 
-static __inline void
+static inline void
 mpr_unmask_intr(struct mpr_softc *sc)
 {
 	uint32_t mask;

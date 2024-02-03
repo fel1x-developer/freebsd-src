@@ -305,7 +305,7 @@ void		lacp_linkstate(struct lagg_port *);
 void		lacp_req(struct lagg_softc *, void *);
 void		lacp_portreq(struct lagg_port *, void *);
 
-static __inline bool
+static inline bool
 lacp_isactive(struct lagg_port *lgp)
 {
 	struct lacp_port *lp = LACP_PORT(lgp);
@@ -316,7 +316,7 @@ lacp_isactive(struct lagg_port *lgp)
 	return (la != NULL && la == lsc->lsc_active_aggregator);
 }
 
-static __inline bool
+static inline bool
 lacp_iscollecting(struct lagg_port *lgp)
 {
 	struct lacp_port *lp = LACP_PORT(lgp);
@@ -324,7 +324,7 @@ lacp_iscollecting(struct lagg_port *lgp)
 	return (lp->lp_state & LACP_STATE_COLLECTING);
 }
 
-static __inline bool
+static inline bool
 lacp_isdistributing(struct lagg_port *lgp)
 {
 	struct lacp_port *lp = LACP_PORT(lgp);

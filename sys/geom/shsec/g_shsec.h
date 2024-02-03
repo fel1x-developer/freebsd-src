@@ -70,7 +70,7 @@ struct g_shsec_metadata {
 	char		md_provider[16]; /* Hardcoded provider. */
 	uint64_t	md_provsize;	/* Provider's size. */
 };
-static __inline void
+static inline void
 shsec_metadata_encode(const struct g_shsec_metadata *md, u_char *data)
 {
 
@@ -83,7 +83,7 @@ shsec_metadata_encode(const struct g_shsec_metadata *md, u_char *data)
 	bcopy(md->md_provider, data + 44, sizeof(md->md_provider));
 	le64enc(data + 60, md->md_provsize);
 }
-static __inline void
+static inline void
 shsec_metadata_decode(const u_char *data, struct g_shsec_metadata *md)
 {
 

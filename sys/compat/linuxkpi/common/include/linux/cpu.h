@@ -44,7 +44,7 @@ extern cpumask_t cpu_online_mask;
 
 cpumask_t *lkpi_get_static_single_cpu_mask(int);
 
-static __inline int
+static inline int
 cpumask_next(int cpuid, cpumask_t mask)
 {
 
@@ -66,7 +66,7 @@ cpumask_next(int cpuid, cpumask_t mask)
 	return (cpuid);
 }
 
-static __inline void
+static inline void
 cpumask_set_cpu(int cpu, cpumask_t *mask)
 {
 

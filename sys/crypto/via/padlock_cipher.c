@@ -77,7 +77,7 @@
 
 MALLOC_DECLARE(M_PADLOCK);
 
-static __inline void
+static inline void
 padlock_cbc(void *in, void *out, size_t count, void *key, union padlock_cw *cw,
     void *iv)
 {

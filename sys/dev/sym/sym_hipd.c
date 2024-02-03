@@ -149,7 +149,7 @@ typedef struct sym_quehead {
 	(ptr)->flink = (ptr); (ptr)->blink = (ptr); \
 } while (0)
 
-static __inline void __sym_que_add(struct sym_quehead * new,
+static inline void __sym_que_add(struct sym_quehead * new,
 	struct sym_quehead * blink,
 	struct sym_quehead * flink)
 {
@@ -159,19 +159,19 @@ static __inline void __sym_que_add(struct sym_quehead * new,
 	blink->flink	= new;
 }
 
-static __inline void __sym_que_del(struct sym_quehead * blink,
+static inline void __sym_que_del(struct sym_quehead * blink,
 	struct sym_quehead * flink)
 {
 	flink->blink = blink;
 	blink->flink = flink;
 }
 
-static __inline int sym_que_empty(struct sym_quehead *head)
+static inline int sym_que_empty(struct sym_quehead *head)
 {
 	return head->flink == head;
 }
 
-static __inline void sym_que_splice(struct sym_quehead *list,
+static inline void sym_que_splice(struct sym_quehead *list,
 	struct sym_quehead *head)
 {
 	struct sym_quehead *first = list->flink;
@@ -197,7 +197,7 @@ static __inline void sym_que_splice(struct sym_quehead *list,
 
 #define sym_insque_head(new, head)	__sym_que_add(new, head, (head)->flink)
 
-static __inline struct sym_quehead *sym_remque_head(struct sym_quehead *head)
+static inline struct sym_quehead *sym_remque_head(struct sym_quehead *head)
 {
 	struct sym_quehead *elem = head->flink;
 
@@ -635,7 +635,7 @@ static void ___dma_freep(m_pool_s *mp, m_addr_t m)
 }
 #endif
 
-static __inline m_pool_s *___get_dma_pool(bus_dma_tag_t dev_dmat)
+static inline m_pool_s *___get_dma_pool(bus_dma_tag_t dev_dmat)
 {
 	m_pool_s *mp;
 	for (mp = mp0.next; mp && mp->dev_dmat != dev_dmat; mp = mp->next);
@@ -1698,7 +1698,7 @@ struct sym_hcb {
 /*
  *  Return the name of the controller.
  */
-static __inline const char *sym_name(hcb_p np)
+static inline const char *sym_name(hcb_p np)
 {
 	return device_get_nameunit(np->device);
 }
@@ -2295,7 +2295,7 @@ static void sym_freeze_cam_ccb(union ccb *ccb)
 /*
  *  Set the status field of a CAM CCB.
  */
-static __inline void sym_set_cam_status(union ccb *ccb, cam_status status)
+static inline void sym_set_cam_status(union ccb *ccb, cam_status status)
 {
 	ccb->ccb_h.status &= ~CAM_STATUS_MASK;
 	ccb->ccb_h.status |= status;
@@ -2304,7 +2304,7 @@ static __inline void sym_set_cam_status(union ccb *ccb, cam_status status)
 /*
  *  Get the status field of a CAM CCB.
  */
-static __inline int sym_get_cam_status(union ccb *ccb)
+static inline int sym_get_cam_status(union ccb *ccb)
 {
 	return ccb->ccb_h.status & CAM_STATUS_MASK;
 }
@@ -2397,7 +2397,7 @@ static const u32 div_10M[] =
 /*
  *  Set initial io register bits from burst code.
  */
-static __inline void sym_init_burst(hcb_p np, u_char bc)
+static inline void sym_init_burst(hcb_p np, u_char bc)
 {
 	np->rv_ctest4	&= ~0x80;
 	np->rv_dmode	&= ~(0x3 << 6);
@@ -7657,7 +7657,7 @@ static int sym_setup_cdb(hcb_p np, struct ccb_scsiio *csio, ccb_p cp)
 /*
  *  Set up data pointers used by SCRIPTS.
  */
-static void __inline
+static void inline
 sym_setup_data_pointers(hcb_p np, ccb_p cp, int dir)
 {
 	u32 lastp, goalp;

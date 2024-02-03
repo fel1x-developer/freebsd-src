@@ -209,7 +209,7 @@ pl310_filter(void *arg)
 	return (FILTER_HANDLED);
 }
 
-static __inline void
+static inline void
 pl310_wait_background_op(uint32_t off, uint32_t mask)
 {
 
@@ -228,7 +228,7 @@ pl310_wait_background_op(uint32_t off, uint32_t mask)
  *
  *
  */
-static __inline void
+static inline void
 pl310_cache_sync(void)
 {
 

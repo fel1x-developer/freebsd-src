@@ -101,7 +101,7 @@ struct ieee80211_rate_table {
 const struct ieee80211_rate_table *ieee80211_get_ratetable(
 			struct ieee80211_channel *);
 
-static __inline__ uint8_t
+static inline__ uint8_t
 ieee80211_ack_rate(const struct ieee80211_rate_table *rt, uint8_t rate)
 {
 	/*
@@ -116,7 +116,7 @@ ieee80211_ack_rate(const struct ieee80211_rate_table *rt, uint8_t rate)
 	return rt->info[cix].dot11Rate;
 }
 
-static __inline__ uint8_t
+static inline__ uint8_t
 ieee80211_ctl_rate(const struct ieee80211_rate_table *rt, uint8_t rate)
 {
 	/*
@@ -131,7 +131,7 @@ ieee80211_ctl_rate(const struct ieee80211_rate_table *rt, uint8_t rate)
 	return rt->info[cix].dot11Rate;
 }
 
-static __inline__ enum ieee80211_phytype
+static inline__ enum ieee80211_phytype
 ieee80211_rate2phytype(const struct ieee80211_rate_table *rt, uint8_t rate)
 {
 	/*
@@ -146,7 +146,7 @@ ieee80211_rate2phytype(const struct ieee80211_rate_table *rt, uint8_t rate)
 	return rt->info[rix].phy;
 }
 
-static __inline__ int
+static inline__ int
 ieee80211_isratevalid(const struct ieee80211_rate_table *rt, uint8_t rate)
 {
 	/*
@@ -165,7 +165,7 @@ ieee80211_isratevalid(const struct ieee80211_rate_table *rt, uint8_t rate)
  * o  management frames
  * sent using rate, phy and short preamble setting.
  */
-static __inline__ uint16_t
+static inline__ uint16_t
 ieee80211_ack_duration(const struct ieee80211_rate_table *rt,
     uint8_t rate, int isShortPreamble)
 {
@@ -183,7 +183,7 @@ ieee80211_ack_duration(const struct ieee80211_rate_table *rt,
 	}
 }
 
-static __inline__ uint8_t
+static inline__ uint8_t
 ieee80211_legacy_rate_lookup(const struct ieee80211_rate_table *rt,
     uint8_t rate)
 {

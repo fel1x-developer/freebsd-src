@@ -297,7 +297,7 @@ module_info_init(void *arg __unused)
 SYSINIT(unwind_init, SI_SUB_KMEM, SI_ORDER_ANY, module_info_init, NULL);
 
 /* Expand a 31-bit signed value to a 32-bit signed value */
-static __inline int32_t
+static inline int32_t
 expand_prel31(uint32_t prel31)
 {
 

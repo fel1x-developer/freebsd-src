@@ -813,7 +813,7 @@ acpi_wmi_toggle_we_event_generation(device_t dev, struct wmi_info *winfo,
  * by byteout.
  * Return != 0 if the was a problem (invalid input)
  */
-static __inline int acpi_wmi_hex_to_int(const UINT8 *hexin, UINT8 *byteout)
+static inline int acpi_wmi_hex_to_int(const UINT8 *hexin, UINT8 *byteout)
 {
 	unsigned int hi;
 	unsigned int lo;

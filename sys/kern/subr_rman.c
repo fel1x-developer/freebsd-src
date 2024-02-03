@@ -106,7 +106,7 @@ struct rman_head rman_head;
 static struct mtx rman_mtx; /* mutex to protect rman_head */
 static int int_rman_release_resource(struct rman *rm, struct resource_i *r);
 
-static __inline struct resource_i *
+static inline struct resource_i *
 int_alloc_resource(int malloc_flag)
 {
 	struct resource_i *r;

@@ -70,8 +70,8 @@
 #define NDDATA		BSD_NDRIVEDATA
 #define NSPARE		BSD_NSPARE
 
-static __inline u_int16_t dkcksum(struct disklabel *lp);
-static __inline u_int16_t
+static inline u_int16_t dkcksum(struct disklabel *lp);
+static inline u_int16_t
 dkcksum(struct disklabel *lp)
 {
 	u_int16_t *start, *end;

@@ -239,7 +239,7 @@ void	cpu_desc_init(void);
 #define	CPU_CURRENT_SOCKET				\
     (CPU_AFF2(CPU_AFFINITY(PCPU_GET(cpuid))))
 
-static __inline uint64_t
+static inline uint64_t
 get_cyclecount(void)
 {
 	uint64_t ret;

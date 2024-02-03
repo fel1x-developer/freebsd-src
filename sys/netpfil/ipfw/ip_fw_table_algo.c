@@ -947,14 +947,14 @@ struct ta_buf_chash
 };
 
 #ifdef INET
-static __inline uint32_t hash_ip(uint32_t addr, int hsize);
+static inline uint32_t hash_ip(uint32_t addr, int hsize);
 #endif
 #ifdef INET6
-static __inline uint32_t hash_ip6(struct in6_addr *addr6, int hsize);
-static __inline uint16_t hash_ip64(struct in6_addr *addr6, int hsize);
-static __inline uint32_t hash_ip6_slow(struct in6_addr *addr6, void *key,
+static inline uint32_t hash_ip6(struct in6_addr *addr6, int hsize);
+static inline uint16_t hash_ip64(struct in6_addr *addr6, int hsize);
+static inline uint32_t hash_ip6_slow(struct in6_addr *addr6, void *key,
     int mask, int hsize);
-static __inline uint32_t hash_ip6_al(struct in6_addr *addr6, void *key, int mask,
+static inline uint32_t hash_ip6_al(struct in6_addr *addr6, void *key, int mask,
     int hsize);
 #endif
 static int ta_lookup_chash_slow(struct table_info *ti, void *key, uint32_t keylen,
@@ -1001,7 +1001,7 @@ static void ta_modify_chash(void *ta_state, struct table_info *ti, void *ta_buf,
 static void ta_flush_mod_chash(void *ta_buf);
 
 #ifdef INET
-static __inline uint32_t
+static inline uint32_t
 hash_ip(uint32_t addr, int hsize)
 {
 
@@ -1010,7 +1010,7 @@ hash_ip(uint32_t addr, int hsize)
 #endif
 
 #ifdef INET6
-static __inline uint32_t
+static inline uint32_t
 hash_ip6(struct in6_addr *addr6, int hsize)
 {
 	uint32_t i;
@@ -1021,7 +1021,7 @@ hash_ip6(struct in6_addr *addr6, int hsize)
 	return (i % (hsize - 1));
 }
 
-static __inline uint16_t
+static inline uint16_t
 hash_ip64(struct in6_addr *addr6, int hsize)
 {
 	uint32_t i;
@@ -1031,7 +1031,7 @@ hash_ip64(struct in6_addr *addr6, int hsize)
 	return (i % (hsize - 1));
 }
 
-static __inline uint32_t
+static inline uint32_t
 hash_ip6_slow(struct in6_addr *addr6, void *key, int mask, int hsize)
 {
 	struct in6_addr mask6;
@@ -1042,7 +1042,7 @@ hash_ip6_slow(struct in6_addr *addr6, void *key, int mask, int hsize)
 	return (hash_ip6(addr6, hsize));
 }
 
-static __inline uint32_t
+static inline uint32_t
 hash_ip6_al(struct in6_addr *addr6, void *key, int mask, int hsize)
 {
 	uint64_t *paddr;
@@ -3097,10 +3097,10 @@ struct ta_buf_fhash {
 	struct fhashentry6 fe6;
 };
 
-static __inline int cmp_flow_ent(struct fhashentry *a,
+static inline int cmp_flow_ent(struct fhashentry *a,
     struct fhashentry *b, size_t sz);
-static __inline uint32_t hash_flow4(struct fhashentry4 *f, int hsize);
-static __inline uint32_t hash_flow6(struct fhashentry6 *f, int hsize);
+static inline uint32_t hash_flow4(struct fhashentry4 *f, int hsize);
+static inline uint32_t hash_flow6(struct fhashentry6 *f, int hsize);
 static uint32_t hash_flow_ent(struct fhashentry *ent, uint32_t size);
 static int ta_lookup_fhash(struct table_info *ti, void *key, uint32_t keylen,
     uint32_t *val);
@@ -3135,7 +3135,7 @@ static void ta_modify_fhash(void *ta_state, struct table_info *ti, void *ta_buf,
     uint64_t pflags);
 static void ta_flush_mod_fhash(void *ta_buf);
 
-static __inline int
+static inline int
 cmp_flow_ent(struct fhashentry *a, struct fhashentry *b, size_t sz)
 {
 	uint64_t *ka, *kb;
@@ -3149,7 +3149,7 @@ cmp_flow_ent(struct fhashentry *a, struct fhashentry *b, size_t sz)
 	return (0);
 }
 
-static __inline uint32_t
+static inline uint32_t
 hash_flow4(struct fhashentry4 *f, int hsize)
 {
 	uint32_t i;
@@ -3159,7 +3159,7 @@ hash_flow4(struct fhashentry4 *f, int hsize)
 	return (i % (hsize - 1));
 }
 
-static __inline uint32_t
+static inline uint32_t
 hash_flow6(struct fhashentry6 *f, int hsize)
 {
 	uint32_t i;

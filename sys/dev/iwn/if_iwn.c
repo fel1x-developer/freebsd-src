@@ -1496,13 +1496,13 @@ iwn_nic_lock(struct iwn_softc *sc)
 	return ETIMEDOUT;
 }
 
-static __inline void
+static inline void
 iwn_nic_unlock(struct iwn_softc *sc)
 {
 	IWN_CLRBITS(sc, IWN_GP_CNTRL, IWN_GP_CNTRL_MAC_ACCESS_REQ);
 }
 
-static __inline uint32_t
+static inline uint32_t
 iwn_prph_read(struct iwn_softc *sc, uint32_t addr)
 {
 	IWN_WRITE(sc, IWN_PRPH_RADDR, IWN_PRPH_DWORD | addr);
@@ -1510,7 +1510,7 @@ iwn_prph_read(struct iwn_softc *sc, uint32_t addr)
 	return IWN_READ(sc, IWN_PRPH_RDATA);
 }
 
-static __inline void
+static inline void
 iwn_prph_write(struct iwn_softc *sc, uint32_t addr, uint32_t data)
 {
 	IWN_WRITE(sc, IWN_PRPH_WADDR, IWN_PRPH_DWORD | addr);
@@ -1518,19 +1518,19 @@ iwn_prph_write(struct iwn_softc *sc, uint32_t addr, uint32_t data)
 	IWN_WRITE(sc, IWN_PRPH_WDATA, data);
 }
 
-static __inline void
+static inline void
 iwn_prph_setbits(struct iwn_softc *sc, uint32_t addr, uint32_t mask)
 {
 	iwn_prph_write(sc, addr, iwn_prph_read(sc, addr) | mask);
 }
 
-static __inline void
+static inline void
 iwn_prph_clrbits(struct iwn_softc *sc, uint32_t addr, uint32_t mask)
 {
 	iwn_prph_write(sc, addr, iwn_prph_read(sc, addr) & ~mask);
 }
 
-static __inline void
+static inline void
 iwn_prph_write_region_4(struct iwn_softc *sc, uint32_t addr,
     const uint32_t *data, int count)
 {
@@ -1538,7 +1538,7 @@ iwn_prph_write_region_4(struct iwn_softc *sc, uint32_t addr,
 		iwn_prph_write(sc, addr, *data);
 }
 
-static __inline uint32_t
+static inline uint32_t
 iwn_mem_read(struct iwn_softc *sc, uint32_t addr)
 {
 	IWN_WRITE(sc, IWN_MEM_RADDR, addr);
@@ -1546,7 +1546,7 @@ iwn_mem_read(struct iwn_softc *sc, uint32_t addr)
 	return IWN_READ(sc, IWN_MEM_RDATA);
 }
 
-static __inline void
+static inline void
 iwn_mem_write(struct iwn_softc *sc, uint32_t addr, uint32_t data)
 {
 	IWN_WRITE(sc, IWN_MEM_WADDR, addr);
@@ -1554,7 +1554,7 @@ iwn_mem_write(struct iwn_softc *sc, uint32_t addr, uint32_t data)
 	IWN_WRITE(sc, IWN_MEM_WDATA, data);
 }
 
-static __inline void
+static inline void
 iwn_mem_write_2(struct iwn_softc *sc, uint32_t addr, uint16_t data)
 {
 	uint32_t tmp;
@@ -1567,7 +1567,7 @@ iwn_mem_write_2(struct iwn_softc *sc, uint32_t addr, uint16_t data)
 	iwn_mem_write(sc, addr & ~3, tmp);
 }
 
-static __inline void
+static inline void
 iwn_mem_read_region_4(struct iwn_softc *sc, uint32_t addr, uint32_t *data,
     int count)
 {
@@ -1575,7 +1575,7 @@ iwn_mem_read_region_4(struct iwn_softc *sc, uint32_t addr, uint32_t *data,
 		*data++ = iwn_mem_read(sc, addr);
 }
 
-static __inline void
+static inline void
 iwn_mem_set_region_4(struct iwn_softc *sc, uint32_t addr, uint32_t val,
     int count)
 {
@@ -1605,7 +1605,7 @@ iwn_eeprom_lock(struct iwn_softc *sc)
 	return ETIMEDOUT;
 }
 
-static __inline void
+static inline void
 iwn_eeprom_unlock(struct iwn_softc *sc)
 {
 	IWN_CLRBITS(sc, IWN_HW_IF_CONFIG, IWN_HW_IF_CONFIG_EEPROM_LOCKED);
@@ -2699,7 +2699,7 @@ iwn_node_alloc(struct ieee80211vap *vap, const uint8_t mac[IEEE80211_ADDR_LEN])
 	return (&wn->ni);
 }
 
-static __inline int
+static inline int
 rate2plcp(int rate)
 {
 	switch (rate & 0xff) {
@@ -2719,7 +2719,7 @@ rate2plcp(int rate)
 	return 0;
 }
 
-static __inline uint8_t
+static inline uint8_t
 plcp2rate(const uint8_t rate_plcp)
 {
 	switch (rate_plcp) {

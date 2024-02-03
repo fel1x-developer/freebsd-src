@@ -33,13 +33,13 @@
 #ifndef _QLS_INLINE_H_
 #define _QLS_INLINE_H_
 
-static __inline int
+static inline int
 qls_get_ifq_snd_maxlen(qla_host_t *ha)
 {
 	return((NUM_TX_DESCRIPTORS - 1));
 }
 
-static __inline uint32_t
+static inline uint32_t
 qls_get_optics(qla_host_t *ha)
 {
 	uint32_t link_speed = 0;
@@ -71,13 +71,13 @@ qls_get_optics(qla_host_t *ha)
 	return(link_speed);
 }
 
-static __inline uint8_t *
+static inline uint8_t *
 qls_get_mac_addr(qla_host_t *ha)
 {
 	return (ha->mac_addr);
 }
 
-static __inline int
+static inline int
 qls_lock(qla_host_t *ha, const char *str, uint32_t no_delay)
 {
 	int ret = -1;
@@ -101,7 +101,7 @@ qls_lock(qla_host_t *ha, const char *str, uint32_t no_delay)
 	return (ret);
 }
 
-static __inline void
+static inline void
 qls_unlock(qla_host_t *ha, const char *str)
 {
 	mtx_lock(&ha->hw_lock);

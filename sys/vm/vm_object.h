@@ -282,7 +282,7 @@ struct vnode;
 /*
  *	The object must be locked or thread private.
  */
-static __inline void
+static inline void
 vm_object_set_flag(vm_object_t object, u_short bits)
 {
 
@@ -303,7 +303,7 @@ vm_object_set_flag(vm_object_t object, u_short bits)
  *
  *	The object must be locked.
  */
-static __inline void
+static inline void
 vm_object_color(vm_object_t object, u_short color)
 {
 
@@ -313,7 +313,7 @@ vm_object_color(vm_object_t object, u_short color)
 	}
 }
 
-static __inline bool
+static inline bool
 vm_object_reserv(vm_object_t object)
 {
 

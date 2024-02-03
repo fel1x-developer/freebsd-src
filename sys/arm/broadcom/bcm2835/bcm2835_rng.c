@@ -162,21 +162,21 @@ static struct ofw_compat_data compat_data[] = {
 	{NULL,				0}
 };
 
-static __inline void
+static inline void
 bcm2835_rng_stat_inc_underrun(struct bcm2835_rng_softc *sc)
 {
 
 	atomic_add_long(&sc->sc_underrun, 1);
 }
 
-static __inline uint32_t
+static inline uint32_t
 bcm2835_rng_read4(struct bcm2835_rng_softc *sc, bus_size_t off)
 {
 
 	return bus_read_4(sc->sc_mem_res, off);
 }
 
-static __inline void
+static inline void
 bcm2835_rng_read_multi4(struct bcm2835_rng_softc *sc, bus_size_t off,
     uint32_t *datap, bus_size_t count)
 {
@@ -184,7 +184,7 @@ bcm2835_rng_read_multi4(struct bcm2835_rng_softc *sc, bus_size_t off,
 	bus_read_multi_4(sc->sc_mem_res, off, datap, count);
 }
 
-static __inline void
+static inline void
 bcm2835_rng_write4(struct bcm2835_rng_softc *sc, bus_size_t off, uint32_t val)
 {
 

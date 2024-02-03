@@ -35,7 +35,7 @@ struct netlink_callback {
 	int		args[8];
 };
 
-static __inline int
+static inline int
 nla_put(struct sk_buff *skb, int attr, size_t len, void *data)
 {
 
@@ -43,7 +43,7 @@ nla_put(struct sk_buff *skb, int attr, size_t len, void *data)
 	return (-ENXIO);
 }
 
-static __inline int
+static inline int
 nla_put_u16(struct sk_buff *skb, int attr, uint32_t val)
 {
 

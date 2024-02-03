@@ -475,7 +475,7 @@ enum operation {
 #define ADF_CSR_WR64(csr_base, csr_offset, val)                                \
 	bus_write_8(csr_base, csr_offset, val)
 #else
-static __inline void
+static inline void
 adf_csr_wr64(struct resource *csr_base, bus_size_t offset, uint64_t value)
 {
 	bus_write_4(csr_base, offset, (uint32_t)value);
@@ -492,7 +492,7 @@ adf_csr_wr64(struct resource *csr_base, bus_size_t offset, uint64_t value)
 #ifdef __x86_64__
 #define ADF_CSR_RD64(csr_base, csr_offset) bus_read_8(csr_base, csr_offset)
 #else
-static __inline uint64_t
+static inline uint64_t
 adf_csr_rd64(struct resource *csr_base, bus_size_t offset)
 {
 	return (((uint64_t)bus_read_4(csr_base, offset)) |

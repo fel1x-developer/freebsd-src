@@ -80,7 +80,7 @@ typedef struct lac_sync_op_data_s {
  * @retval CPA_STATUS_SUCCESS   Success
  *
  ******************************************************************************/
-static __inline CpaStatus
+static inline CpaStatus
 LacSync_CreateSyncCookie(lac_sync_op_data_t **ppSyncCallbackCookie)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
@@ -112,7 +112,7 @@ LacSync_CreateSyncCookie(lac_sync_op_data_t **ppSyncCallbackCookie)
  *
  * @return void
  ******************************************************************************/
-static __inline CpaStatus
+static inline CpaStatus
 LacSync_DestroySyncCookie(lac_sync_op_data_t **ppSyncCallbackCookie)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
@@ -149,7 +149,7 @@ LacSync_DestroySyncCookie(lac_sync_op_data_t **ppSyncCallbackCookie)
  * @retval CPA_STATUS_SUCCESS   Fail waiting for a callback
  *
  *****************************************************************************/
-static __inline CpaStatus
+static inline CpaStatus
 LacSync_WaitForCallback(lac_sync_op_data_t *pSyncCallbackCookie,
 			Cpa32S timeOut,
 			CpaStatus *pStatus,
@@ -185,7 +185,7 @@ LacSync_WaitForCallback(lac_sync_op_data_t *pSyncCallbackCookie,
  * @retval CPA_STATUS_FAIL              Fail waiting for a callback
  *
  *****************************************************************************/
-static __inline CpaStatus
+static inline CpaStatus
 LacSync_CheckForCallback(lac_sync_op_data_t *pSyncCallbackCookie,
 			 CpaStatus *pStatus,
 			 CpaBoolean *pOpStatus)
@@ -218,7 +218,7 @@ LacSync_CheckForCallback(lac_sync_op_data_t *pSyncCallbackCookie,
  * @retval CPA_STATUS_FAIL              Failed to mark as complete
  *
  *****************************************************************************/
-static __inline CpaStatus
+static inline CpaStatus
 LacSync_SetSyncCookieComplete(lac_sync_op_data_t *pSyncCallbackCookie)
 {
 	CpaStatus status = CPA_STATUS_FAIL;

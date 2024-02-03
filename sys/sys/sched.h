@@ -147,9 +147,9 @@ void	sched_wakeup(struct thread *td, int srqflags);
  * hold a thread on a particular CPU.
  */
 void	sched_bind(struct thread *td, int cpu);
-static __inline void sched_pin(void);
+static inline void sched_pin(void);
 void	sched_unbind(struct thread *td);
-static __inline void sched_unpin(void);
+static inline void sched_unpin(void);
 int	sched_is_bound(struct thread *td);
 void	sched_affinity(struct thread *td);
 
@@ -169,14 +169,14 @@ char	*sched_tdname(struct thread *td);
 void	sched_clear_tdname(struct thread *td);
 #endif
 
-static __inline void
+static inline void
 sched_pin(void)
 {
 	curthread->td_pinned++;
 	atomic_interrupt_fence();
 }
 
-static __inline void
+static inline void
 sched_unpin(void)
 {
 	atomic_interrupt_fence();

@@ -56,7 +56,7 @@ typedef struct {
 	} u;
 } _citrus_prop_object_t;
 
-static __inline void
+static inline void
 _citrus_prop_object_init(_citrus_prop_object_t *obj, _citrus_prop_type_t type)
 {
 
@@ -64,7 +64,7 @@ _citrus_prop_object_init(_citrus_prop_object_t *obj, _citrus_prop_type_t type)
 	memset(&obj->u, 0, sizeof(obj->u));
 }
 
-static __inline void
+static inline void
 _citrus_prop_object_uninit(_citrus_prop_object_t *obj)
 {
 
@@ -316,7 +316,7 @@ static const _citrus_prop_read_type_t readers[] = {
 	_citrus_prop_read_num,
 };
 
-static __inline int
+static inline int
 _citrus_prop_read_symbol(struct _memstream * __restrict ms,
     char * __restrict s, size_t n)
 {

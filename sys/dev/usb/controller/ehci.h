@@ -389,25 +389,25 @@ typedef struct ehci_softc {
  * Typically the latter is little-endian but some controllers require
  * big-endian in which case we may need to manually swap.
  */
-static __inline uint32_t
+static inline uint32_t
 htohc32(const struct ehci_softc *sc, const uint32_t v)
 {
 	return sc->sc_flags & EHCI_SCFLG_BIGEDESC ? htobe32(v) : htole32(v);
 }
 
-static __inline uint16_t
+static inline uint16_t
 htohc16(const struct ehci_softc *sc, const uint16_t v)
 {
 	return sc->sc_flags & EHCI_SCFLG_BIGEDESC ? htobe16(v) : htole16(v);
 }
 
-static __inline uint32_t
+static inline uint32_t
 hc32toh(const struct ehci_softc *sc, const uint32_t v)
 {
 	return sc->sc_flags & EHCI_SCFLG_BIGEDESC ? be32toh(v) : le32toh(v);
 }
 
-static __inline uint16_t
+static inline uint16_t
 hc16toh(const struct ehci_softc *sc, const uint16_t v)
 {
 	return sc->sc_flags & EHCI_SCFLG_BIGEDESC ? be16toh(v) : le16toh(v);
@@ -416,25 +416,25 @@ hc16toh(const struct ehci_softc *sc, const uint16_t v)
 /*
  * Normal little-endian only conversion routines.
  */
-static __inline uint32_t
+static inline uint32_t
 htohc32(const struct ehci_softc *sc, const uint32_t v)
 {
 	return htole32(v);
 }
 
-static __inline uint16_t
+static inline uint16_t
 htohc16(const struct ehci_softc *sc, const uint16_t v)
 {
 	return htole16(v);
 }
 
-static __inline uint32_t
+static inline uint32_t
 hc32toh(const struct ehci_softc *sc, const uint32_t v)
 {
 	return le32toh(v);
 }
 
-static __inline uint16_t
+static inline uint16_t
 hc16toh(const struct ehci_softc *sc, const uint16_t v)
 {
 	return le16toh(v);

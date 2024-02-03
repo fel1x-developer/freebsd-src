@@ -975,7 +975,7 @@ csum_unfold(__sum16 sum)
 	return (sum);
 }
 
-static __inline void
+static inline void
 skb_postpush_rcsum(struct sk_buff *skb, const void *data, size_t len)
 {
 	SKB_TODO();

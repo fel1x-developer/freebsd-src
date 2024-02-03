@@ -109,7 +109,7 @@ typedef struct {
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
 
-static __inline int
+static inline int
 _citrus_EUC_cs(unsigned int c)
 {
 
@@ -118,7 +118,7 @@ _citrus_EUC_cs(unsigned int c)
 	return ((c & 0x80) ? c == _SS3 ? 3 : c == _SS2 ? 2 : 1 : 0);
 }
 
-static __inline int
+static inline int
 _citrus_EUC_parse_variable(_EUCEncodingInfo *ei, const void *var,
     size_t lenvar __unused)
 {
@@ -161,7 +161,7 @@ _citrus_EUC_parse_variable(_EUCEncodingInfo *ei, const void *var,
 }
 
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_EUC_init_state(_EUCEncodingInfo *ei __unused, _EUCState *s)
 {
@@ -170,7 +170,7 @@ _citrus_EUC_init_state(_EUCEncodingInfo *ei __unused, _EUCState *s)
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_EUC_pack_state(_EUCEncodingInfo *ei __unused, void *pspriv,
     const _EUCState *s)
@@ -179,7 +179,7 @@ _citrus_EUC_pack_state(_EUCEncodingInfo *ei __unused, void *pspriv,
 	memcpy(pspriv, (const void *)s, sizeof(*s));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_EUC_unpack_state(_EUCEncodingInfo *ei __unused, _EUCState *s,
     const void *pspriv)
@@ -320,7 +320,7 @@ err:
 	return (ret);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_EUC_stdenc_wctocs(_EUCEncodingInfo * __restrict ei,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -336,7 +336,7 @@ _citrus_EUC_stdenc_wctocs(_EUCEncodingInfo * __restrict ei,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_EUC_stdenc_cstowc(_EUCEncodingInfo * __restrict ei,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -350,7 +350,7 @@ _citrus_EUC_stdenc_cstowc(_EUCEncodingInfo * __restrict ei,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_EUC_stdenc_get_state_desc_generic(_EUCEncodingInfo * __restrict ei __unused,
     _EUCState * __restrict psenc, int * __restrict rstate)

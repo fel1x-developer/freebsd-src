@@ -136,7 +136,7 @@ struct i40e_spinlock {
 #define le16_to_cpu 
 
 #if defined(__amd64__) || defined(i386)
-static __inline
+static inline
 void prefetch(void *x)
 {
 	__asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
@@ -190,7 +190,7 @@ const char * ixl_vc_opcode_str(uint16_t op);
 */
 #define i40e_rx_desc i40e_32byte_rx_desc
 
-static __inline uint32_t
+static inline uint32_t
 rd32_osdep(struct i40e_osdep *osdep, uint32_t reg)
 {
 
@@ -202,7 +202,7 @@ rd32_osdep(struct i40e_osdep *osdep, uint32_t reg)
 	    osdep->mem_bus_space_handle, reg));
 }
 
-static __inline void
+static inline void
 wr32_osdep(struct i40e_osdep *osdep, uint32_t reg, uint32_t value)
 {
 
@@ -214,7 +214,7 @@ wr32_osdep(struct i40e_osdep *osdep, uint32_t reg, uint32_t value)
 	    osdep->mem_bus_space_handle, reg, value);
 }
 
-static __inline void
+static inline void
 ixl_flush_osdep(struct i40e_osdep *osdep)
 {
 	rd32_osdep(osdep, osdep->flush_reg);

@@ -57,7 +57,7 @@ struct buf_ring {
  * multi-producer safe lock-free ring buffer enqueue
  *
  */
-static __inline int
+static inline int
 buf_ring_enqueue(struct buf_ring *br, void *buf)
 {
 	uint32_t prod_head, prod_next, cons_tail;
@@ -114,7 +114,7 @@ buf_ring_enqueue(struct buf_ring *br, void *buf)
  * multi-consumer safe dequeue 
  *
  */
-static __inline void *
+static inline void *
 buf_ring_dequeue_mc(struct buf_ring *br)
 {
 	uint32_t cons_head, cons_next;
@@ -154,7 +154,7 @@ buf_ring_dequeue_mc(struct buf_ring *br)
  * use where dequeue is protected by a lock
  * e.g. a network driver's tx queue lock
  */
-static __inline void *
+static inline void *
 buf_ring_dequeue_sc(struct buf_ring *br)
 {
 	uint32_t cons_head, cons_next;
@@ -231,7 +231,7 @@ buf_ring_dequeue_sc(struct buf_ring *br)
  * use where it is protected by a lock
  * e.g. a network driver's tx queue lock
  */
-static __inline void
+static inline void
 buf_ring_advance_sc(struct buf_ring *br)
 {
 	uint32_t cons_head, cons_next;
@@ -266,7 +266,7 @@ buf_ring_advance_sc(struct buf_ring *br)
  * if we have to do a multi-queue version we will need
  * the compare and an atomic.
  */
-static __inline void
+static inline void
 buf_ring_putback_sc(struct buf_ring *br, void *new)
 {
 	KASSERT(br->br_cons_head != br->br_prod_tail, 
@@ -279,7 +279,7 @@ buf_ring_putback_sc(struct buf_ring *br, void *new)
  * without modifying it, or NULL if the ring is empty
  * race-prone if not protected by a lock
  */
-static __inline void *
+static inline void *
 buf_ring_peek(struct buf_ring *br)
 {
 
@@ -299,7 +299,7 @@ buf_ring_peek(struct buf_ring *br)
 	return (br->br_ring[br->br_cons_head]);
 }
 
-static __inline void *
+static inline void *
 buf_ring_peek_clear_sc(struct buf_ring *br)
 {
 #ifdef DEBUG_BUFRING
@@ -339,21 +339,21 @@ buf_ring_peek_clear_sc(struct buf_ring *br)
 #endif
 }
 
-static __inline int
+static inline int
 buf_ring_full(struct buf_ring *br)
 {
 
 	return (((br->br_prod_head + 1) & br->br_prod_mask) == br->br_cons_tail);
 }
 
-static __inline int
+static inline int
 buf_ring_empty(struct buf_ring *br)
 {
 
 	return (br->br_cons_head == br->br_prod_tail);
 }
 
-static __inline int
+static inline int
 buf_ring_count(struct buf_ring *br)
 {
 

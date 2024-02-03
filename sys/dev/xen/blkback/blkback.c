@@ -1689,7 +1689,7 @@ send_response:
 	return (0);
 }
 
-static __inline int
+static inline int
 xbb_count_sects(blkif_request_t *ring_req)
 {
 	int i;

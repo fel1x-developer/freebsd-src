@@ -574,7 +574,7 @@ soaio_init(void)
 }
 SYSINIT(soaio, SI_SUB_VFS, SI_ORDER_ANY, soaio_init, NULL);
 
-static __inline int
+static inline int
 soaio_ready(struct socket *so, struct sockbuf *sb)
 {
 	return (sb == &so->so_rcv ? soreadable(so) : sowriteable(so));

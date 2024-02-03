@@ -425,50 +425,50 @@ struct t3_rx_mode {
 #define ADAPTER_LOCK_ASSERT_OWNED(adap) mtx_assert(&(adap)->lock, MA_OWNED)
 
 
-static __inline uint32_t
+static inline uint32_t
 t3_read_reg(adapter_t *adapter, uint32_t reg_addr)
 {
 	return (bus_space_read_4(adapter->bt, adapter->bh, reg_addr));
 }
 
-static __inline void
+static inline void
 t3_write_reg(adapter_t *adapter, uint32_t reg_addr, uint32_t val)
 {
 	bus_space_write_4(adapter->bt, adapter->bh, reg_addr, val);
 }
 
-static __inline void
+static inline void
 t3_os_pci_read_config_4(adapter_t *adapter, int reg, uint32_t *val)
 {
 	*val = pci_read_config(adapter->dev, reg, 4);
 }
 
-static __inline void
+static inline void
 t3_os_pci_write_config_4(adapter_t *adapter, int reg, uint32_t val)
 {
 	pci_write_config(adapter->dev, reg, val, 4);
 }
 
-static __inline void
+static inline void
 t3_os_pci_read_config_2(adapter_t *adapter, int reg, uint16_t *val)
 {
 	*val = pci_read_config(adapter->dev, reg, 2);
 }
 
-static __inline void
+static inline void
 t3_os_pci_write_config_2(adapter_t *adapter, int reg, uint16_t val)
 {
 	pci_write_config(adapter->dev, reg, val, 2);
 }
 
-static __inline void
+static inline void
 t3_init_rx_mode(struct t3_rx_mode *rm, struct port_info *port)
 {
 	rm->idx = 0;
 	rm->port = port;
 }
 
-static __inline struct port_info *
+static inline struct port_info *
 adap2pinfo(struct adapter *adap, int idx)
 {
 	return &adap->port[idx];
@@ -520,19 +520,19 @@ void t3_update_qset_coalesce(struct sge_qset *qs, const struct qset_params *p);
 
 #define container_of(p, stype, field) ((stype *)(((uint8_t *)(p)) - offsetof(stype, field)))
 
-static __inline struct sge_qset *
+static inline struct sge_qset *
 fl_to_qset(struct sge_fl *q, int qidx)
 {
 	return container_of(q, struct sge_qset, fl[qidx]);
 }
 
-static __inline struct sge_qset *
+static inline struct sge_qset *
 rspq_to_qset(struct sge_rspq *q)
 {
 	return container_of(q, struct sge_qset, rspq);
 }
 
-static __inline struct sge_qset *
+static inline struct sge_qset *
 txq_to_qset(struct sge_txq *q, int qidx)
 {
 	return container_of(q, struct sge_qset, txq[qidx]);

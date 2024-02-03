@@ -963,7 +963,7 @@ init_machclk(void)
 }
 
 #if defined(__OpenBSD__) && defined(__i386__)
-static __inline u_int64_t
+static inline u_int64_t
 rdtsc(void)
 {
 	u_int64_t rv;

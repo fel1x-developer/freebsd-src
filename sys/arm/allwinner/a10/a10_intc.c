@@ -110,7 +110,7 @@ struct a10_aintc_softc {
 #define	aintc_write_4(sc, reg, val)					\
 	bus_space_write_4(sc->aintc_bst, sc->aintc_bsh, reg, val)
 
-static __inline void
+static inline void
 a10_intr_eoi(struct a10_aintc_softc *sc, u_int irq)
 {
 

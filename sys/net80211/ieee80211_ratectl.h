@@ -105,13 +105,13 @@ void	ieee80211_ratectl_set(struct ieee80211vap *, int);
 
 MALLOC_DECLARE(M_80211_RATECTL);
 
-static __inline void
+static inline void
 ieee80211_ratectl_deinit(struct ieee80211vap *vap)
 {
 	vap->iv_rate->ir_deinit(vap);
 }
 
-static __inline void
+static inline void
 ieee80211_ratectl_node_init(struct ieee80211_node *ni)
 {
 	const struct ieee80211vap *vap = ni->ni_vap;
@@ -119,7 +119,7 @@ ieee80211_ratectl_node_init(struct ieee80211_node *ni)
 	vap->iv_rate->ir_node_init(ni);
 }
 
-static __inline void
+static inline void
 ieee80211_ratectl_node_deinit(struct ieee80211_node *ni)
 {
 	const struct ieee80211vap *vap = ni->ni_vap;
@@ -127,7 +127,7 @@ ieee80211_ratectl_node_deinit(struct ieee80211_node *ni)
 	vap->iv_rate->ir_node_deinit(ni);
 }
 
-static int __inline
+static int inline
 ieee80211_ratectl_rate(struct ieee80211_node *ni, void *arg, uint32_t iarg)
 {
 	const struct ieee80211vap *vap = ni->ni_vap;
@@ -135,7 +135,7 @@ ieee80211_ratectl_rate(struct ieee80211_node *ni, void *arg, uint32_t iarg)
 	return vap->iv_rate->ir_rate(ni, arg, iarg);
 }
 
-static __inline void
+static inline void
 ieee80211_ratectl_tx_complete(const struct ieee80211_node *ni,
     const struct ieee80211_ratectl_tx_status *status)
 {
@@ -144,7 +144,7 @@ ieee80211_ratectl_tx_complete(const struct ieee80211_node *ni,
 	vap->iv_rate->ir_tx_complete(ni, status);
 }
 
-static __inline void
+static inline void
 ieee80211_ratectl_tx_update(struct ieee80211vap *vap,
     struct ieee80211_ratectl_tx_stats *stats)
 {
@@ -153,7 +153,7 @@ ieee80211_ratectl_tx_update(struct ieee80211vap *vap,
 	vap->iv_rate->ir_tx_update(vap, stats);
 }
 
-static __inline void
+static inline void
 ieee80211_ratectl_setinterval(const struct ieee80211vap *vap, int msecs)
 {
 	if (vap->iv_rate->ir_setinterval == NULL)
@@ -161,7 +161,7 @@ ieee80211_ratectl_setinterval(const struct ieee80211vap *vap, int msecs)
 	vap->iv_rate->ir_setinterval(vap, msecs);
 }
 
-static __inline void
+static inline void
 ieee80211_ratectl_node_stats(struct ieee80211_node *ni, struct sbuf *s)
 {
 	const struct ieee80211vap *vap = ni->ni_vap;

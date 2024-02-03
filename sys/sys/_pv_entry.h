@@ -108,7 +108,7 @@ _Static_assert(sizeof(struct pv_chunk) == PAGE_SIZE,
     "PV entry chunk size mismatch");
 
 #ifdef _KERNEL
-static __inline bool
+static inline bool
 pc_is_full(struct pv_chunk *pc)
 {
 	for (u_int i = 0; i < _NPCM; i++) {
@@ -118,7 +118,7 @@ pc_is_full(struct pv_chunk *pc)
 	return (true);
 }
 
-static __inline bool
+static inline bool
 pc_is_free(struct pv_chunk *pc)
 {
 	for (u_int i = 0; i < _NPCM - 1; i++) {
@@ -128,7 +128,7 @@ pc_is_free(struct pv_chunk *pc)
 	return (pc->pc_map[_NPCM - 1] == PC_FREEL);
 }
 
-static __inline struct pv_chunk *
+static inline struct pv_chunk *
 pv_to_chunk(pv_entry_t pv)
 {
 	return ((struct pv_chunk *)((uintptr_t)pv & ~(uintptr_t)PAGE_MASK));

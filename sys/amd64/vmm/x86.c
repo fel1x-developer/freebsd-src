@@ -64,7 +64,7 @@ SYSCTL_INT(_hw_vmm_topology, OID_AUTO, cpuid_leaf_b, CTLFLAG_RDTUN,
  * Round up to the next power of two, if necessary, and then take log2.
  * Returns -1 if argument is zero.
  */
-static __inline int
+static inline int
 log2(u_int x)
 {
 

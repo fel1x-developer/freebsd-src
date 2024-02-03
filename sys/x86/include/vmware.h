@@ -37,7 +37,7 @@
 #define	VMW_VCPUINFO_LEGACY_X2APIC	(1 << 3)
 #define	VMW_VCPUINFO_VCPU_RESERVED	(1 << 31)
 
-static __inline void
+static inline void
 vmware_hvcall(u_int cmd, u_int *p)
 {
 

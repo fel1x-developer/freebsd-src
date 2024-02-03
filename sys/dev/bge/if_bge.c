@@ -438,8 +438,8 @@ static void bge_setpromisc(struct bge_softc *);
 static void bge_setmulti(struct bge_softc *);
 static void bge_setvlan(struct bge_softc *);
 
-static __inline void bge_rxreuse_std(struct bge_softc *, int);
-static __inline void bge_rxreuse_jumbo(struct bge_softc *, int);
+static inline void bge_rxreuse_std(struct bge_softc *, int);
+static inline void bge_rxreuse_jumbo(struct bge_softc *, int);
 static int bge_newbuf_std(struct bge_softc *, int);
 static int bge_newbuf_jumbo(struct bge_softc *, int);
 static int bge_init_rx_ring_std(struct bge_softc *);
@@ -4260,7 +4260,7 @@ bge_reset(struct bge_softc *sc)
 	return (0);
 }
 
-static __inline void
+static inline void
 bge_rxreuse_std(struct bge_softc *sc, int i)
 {
 	struct bge_rx_bd *r;
@@ -4272,7 +4272,7 @@ bge_rxreuse_std(struct bge_softc *sc, int i)
 	BGE_INC(sc->bge_std, BGE_STD_RX_RING_CNT);
 }
 
-static __inline void
+static inline void
 bge_rxreuse_jumbo(struct bge_softc *sc, int i)
 {
 	struct bge_extrx_bd *r;
@@ -5011,7 +5011,7 @@ bge_stats_update(struct bge_softc *sc)
  * from incorporating its own padding into the UDP/TCP checksum; who knows).
  * If we pad such runts with zeros, the onboard checksum comes out correct.
  */
-static __inline int
+static inline int
 bge_cksum_pad(struct mbuf *m)
 {
 	int padlen = ETHER_MIN_NOPAD - m->m_pkthdr.len;

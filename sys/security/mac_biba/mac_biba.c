@@ -136,7 +136,7 @@ static int	biba_slot;
 
 static uma_zone_t	zone_biba;
 
-static __inline int
+static inline int
 biba_bit_set_empty(u_char *set) {
 	int i;
 

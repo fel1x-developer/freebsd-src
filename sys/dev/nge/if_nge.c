@@ -153,11 +153,11 @@ static int nge_shutdown(device_t);
 static int nge_suspend(device_t);
 static int nge_resume(device_t);
 
-static __inline void nge_discard_rxbuf(struct nge_softc *, int);
+static inline void nge_discard_rxbuf(struct nge_softc *, int);
 static int nge_newbuf(struct nge_softc *, int);
 static int nge_encap(struct nge_softc *, struct mbuf **);
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void nge_fixup_rx(struct mbuf *);
+static inline void nge_fixup_rx(struct mbuf *);
 #endif
 static int nge_rxeof(struct nge_softc *);
 static void nge_txeof(struct nge_softc *);
@@ -1355,7 +1355,7 @@ nge_list_rx_init(struct nge_softc *sc)
 	return (0);
 }
 
-static __inline void
+static inline void
 nge_discard_rxbuf(struct nge_softc *sc, int idx)
 {
 	struct nge_desc *desc;
@@ -1412,7 +1412,7 @@ nge_newbuf(struct nge_softc *sc, int idx)
 }
 
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void
+static inline void
 nge_fixup_rx(struct mbuf *m)
 {
 	int			i;

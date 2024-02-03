@@ -31,7 +31,7 @@
 #ifndef _MACHINE_CPUFUNC_H_
 #define	_MACHINE_CPUFUNC_H_
 
-static __inline void
+static inline void
 breakpoint(void)
 {
 
@@ -43,7 +43,7 @@ breakpoint(void)
 
 void pan_enable(void);
 
-static __inline register_t
+static inline register_t
 dbg_disable(void)
 {
 	uint32_t ret;
@@ -56,14 +56,14 @@ dbg_disable(void)
 	return (ret);
 }
 
-static __inline void
+static inline void
 dbg_enable(void)
 {
 
 	__asm __volatile("msr daifclr, #(" __XSTRING(DAIF_D) ")");
 }
 
-static __inline register_t
+static inline register_t
 intr_disable(void)
 {
 	/* DAIF is a 32-bit register */
@@ -77,28 +77,28 @@ intr_disable(void)
 	return (ret);
 }
 
-static __inline void
+static inline void
 intr_restore(register_t s)
 {
 
 	WRITE_SPECIALREG(daif, s);
 }
 
-static __inline void
+static inline void
 intr_enable(void)
 {
 
 	__asm __volatile("msr daifclr, #(" __XSTRING(DAIF_INTR) ")");
 }
 
-static __inline void
+static inline void
 serror_enable(void)
 {
 
 	__asm __volatile("msr daifclr, #(" __XSTRING(DAIF_A) ")");
 }
 
-static __inline register_t
+static inline register_t
 get_midr(void)
 {
 	uint64_t midr;
@@ -108,7 +108,7 @@ get_midr(void)
 	return (midr);
 }
 
-static __inline register_t
+static inline register_t
 get_mpidr(void)
 {
 	uint64_t mpidr;
@@ -118,7 +118,7 @@ get_mpidr(void)
 	return (mpidr);
 }
 
-static __inline void
+static inline void
 clrex(void)
 {
 
@@ -129,7 +129,7 @@ clrex(void)
 	__asm __volatile("clrex" : : : "memory");
 }
 
-static __inline void
+static inline void
 set_ttbr0(uint64_t ttbr0)
 {
 
@@ -140,7 +140,7 @@ set_ttbr0(uint64_t ttbr0)
 	    : "r" (ttbr0));
 }
 
-static __inline void
+static inline void
 invalidate_icache(void)
 {
 
@@ -150,7 +150,7 @@ invalidate_icache(void)
 	    "isb               \n");
 }
 
-static __inline void
+static inline void
 invalidate_local_icache(void)
 {
 

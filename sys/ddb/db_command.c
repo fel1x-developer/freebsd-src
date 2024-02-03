@@ -614,7 +614,7 @@ db_dump(db_expr_t dummy, bool dummy2, db_expr_t dummy3, char *dummy4)
 typedef db_expr_t __db_f(db_expr_t, db_expr_t, db_expr_t, db_expr_t,
     db_expr_t, db_expr_t, db_expr_t, db_expr_t, db_expr_t, db_expr_t);
 
-static __inline int
+static inline int
 db_fncall_generic(db_expr_t addr, db_expr_t *rv, int nargs, db_expr_t args[])
 {
 	__db_f *f = (__db_f *)addr;

@@ -159,7 +159,7 @@ VNET_DECLARE(int, udp_log_in_vain);
 VNET_DECLARE(int, zero_checksum_port);
 #define	V_zero_checksum_port	VNET(zero_checksum_port)
 
-static __inline struct inpcbinfo *
+static inline struct inpcbinfo *
 udp_get_inpcbinfo(int protocol)
 {
 	return (protocol == IPPROTO_UDP) ? &V_udbinfo : &V_ulitecbinfo;

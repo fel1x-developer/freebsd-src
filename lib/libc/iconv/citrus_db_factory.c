@@ -101,7 +101,7 @@ _citrus_db_factory_free(struct _citrus_db_factory *df)
 	free(df);
 }
 
-static __inline size_t
+static inline size_t
 ceilto(size_t sz)
 {
 	return ((sz + DB_ALIGN - 1) & ~(DB_ALIGN - 1));
@@ -219,7 +219,7 @@ _citrus_db_factory_calc_size(struct _citrus_db_factory *df)
 	return (sz);
 }
 
-static __inline void
+static inline void
 put8(struct _region *r, size_t *rofs, uint8_t val)
 {
 
@@ -227,7 +227,7 @@ put8(struct _region *r, size_t *rofs, uint8_t val)
 	*rofs += 1;
 }
 
-static __inline void
+static inline void
 put32(struct _region *r, size_t *rofs, uint32_t val)
 {
 
@@ -236,7 +236,7 @@ put32(struct _region *r, size_t *rofs, uint32_t val)
 	*rofs += 4;
 }
 
-static __inline void
+static inline void
 putpad(struct _region *r, size_t *rofs)
 {
 	size_t i;
@@ -245,7 +245,7 @@ putpad(struct _region *r, size_t *rofs)
 		put8(r, rofs, 0);
 }
 
-static __inline void
+static inline void
 dump_header(struct _region *r, const char *magic, size_t *rofs,
     size_t num_entries)
 {

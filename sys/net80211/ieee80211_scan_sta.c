@@ -143,7 +143,7 @@ static int match_bss(struct ieee80211vap *,
 	const struct ieee80211_scan_state *, struct sta_entry *, int);
 static void adhoc_age(struct ieee80211_scan_state *);
 
-static __inline int
+static inline int
 isocmp(const uint8_t cc1[], const uint8_t cc2[])
 {
      return (cc1[0] == cc2[0] && cc1[1] == cc2[1]);
@@ -973,7 +973,7 @@ back:
 		return IEEE80211_RV(okrate);
 }
 
-static __inline int
+static inline int
 match_id(const uint8_t *ie, const uint8_t *val, int len)
 {
 	return (ie[1] == len && memcmp(ie+2, val, len) == 0);

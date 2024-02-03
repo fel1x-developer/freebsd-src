@@ -66,7 +66,7 @@ typedef uint32_t HAL_DMA_ADDR;
  */
 #define	OS_DELAY(_n)	DELAY(_n)
 
-#define	OS_INLINE	__inline
+#define	OS_INLINE	inline
 #define	OS_MEMZERO(_a, _n)	bzero((_a), (_n))
 #define	OS_MEMCPY(_d, _s, _n)	memcpy(_d,_s,_n)
 #define	OS_MEMCMP(_a, _b, _l)	memcmp((_a), (_b), (_l))

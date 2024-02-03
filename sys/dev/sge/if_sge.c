@@ -118,7 +118,7 @@ static void	sge_miibus_statchg(device_t);
 
 static int	sge_newbuf(struct sge_softc *, int);
 static int	sge_encap(struct sge_softc *, struct mbuf **);
-static __inline void
+static inline void
 		sge_discard_rxbuf(struct sge_softc *, int);
 static void	sge_rxeof(struct sge_softc *);
 static void	sge_txeof(struct sge_softc *);
@@ -1117,7 +1117,7 @@ sge_newbuf(struct sge_softc *sc, int prod)
 	return (0);
 }
 
-static __inline void
+static inline void
 sge_discard_rxbuf(struct sge_softc *sc, int index)
 {
 	struct sge_desc *desc;

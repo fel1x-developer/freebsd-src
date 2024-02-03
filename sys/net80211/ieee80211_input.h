@@ -81,57 +81,57 @@ void	ieee80211_ssid_mismatch(struct ieee80211vap *, const char *tag,
 
 #include <sys/endian.h>		/* For le16toh() / le32dec() */
 
-static __inline int
+static inline int
 iswpaoui(const uint8_t *frm)
 {
 	return frm[1] > 3 && le32dec(frm+2) == ((WPA_OUI_TYPE<<24)|WPA_OUI);
 }
 
-static __inline int
+static inline int
 iswmeoui(const uint8_t *frm)
 {
 	return frm[1] > 3 && le32dec(frm+2) == ((WME_OUI_TYPE<<24)|WME_OUI);
 }
 
-static __inline int
+static inline int
 iswmeparam(const uint8_t *frm)
 {
 	return frm[1] > 5 && le32dec(frm+2) == ((WME_OUI_TYPE<<24)|WME_OUI) &&
 		frm[6] == WME_PARAM_OUI_SUBTYPE;
 }
 
-static __inline int
+static inline int
 iswmeinfo(const uint8_t *frm)
 {
 	return frm[1] > 5 && le32dec(frm+2) == ((WME_OUI_TYPE<<24)|WME_OUI) &&
 		frm[6] == WME_INFO_OUI_SUBTYPE;
 }
 
-static __inline int
+static inline int
 isatherosoui(const uint8_t *frm)
 {
 	return frm[1] > 3 && le32dec(frm+2) == ((ATH_OUI_TYPE<<24)|ATH_OUI);
 }
 
-static __inline int
+static inline int
 istdmaoui(const uint8_t *frm)
 {
 	return frm[1] > 3 && le32dec(frm+2) == ((TDMA_OUI_TYPE<<24)|TDMA_OUI);
 }
 
-static __inline int
+static inline int
 ishtcapoui(const uint8_t *frm)
 {
 	return frm[1] > 3 && le32dec(frm+2) == ((BCM_OUI_HTCAP<<24)|BCM_OUI);
 }
 
-static __inline int
+static inline int
 ishtinfooui(const uint8_t *frm)
 {
 	return frm[1] > 3 && le32dec(frm+2) == ((BCM_OUI_HTINFO<<24)|BCM_OUI);
 }
 
-static __inline int
+static inline int
 ieee80211_check_rxseq_amsdu(const struct ieee80211_rx_stats *rxs)
 {
 	if (rxs == NULL)
@@ -144,7 +144,7 @@ ieee80211_check_rxseq_amsdu(const struct ieee80211_rx_stats *rxs)
  * number. Return 0 if it's part of an AMSDU batch and it isn't
  * the final frame in the decap'ed burst.
  */
-static __inline int
+static inline int
 ieee80211_check_rxseq_amsdu_more(const struct ieee80211_rx_stats *rxs)
 {
 	/* No state? ok */
@@ -189,7 +189,7 @@ ieee80211_check_rxseq_amsdu_more(const struct ieee80211_rx_stats *rxs)
  *
  * XXX TODO: update for 802.11-2012 9.3.2.10 Duplicate Detection and Recovery.
  */
-static __inline int
+static inline int
 ieee80211_check_rxseq(struct ieee80211_node *ni, struct ieee80211_frame *wh,
     uint8_t *bssid, const struct ieee80211_rx_stats *rxs)
 {

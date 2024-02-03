@@ -287,7 +287,7 @@ uart_sched_softih(struct uart_softc *sc, uint32_t ipend)
  * the exceptional nature of the break condition, so we permit ourselves
  * to be sloppy.
  */
-static __inline int
+static inline int
 uart_intr_break(void *arg)
 {
 	struct uart_softc *sc = arg;
@@ -318,7 +318,7 @@ uart_intr_break(void *arg)
  * token represents the loss of at least one, but possible more bytes in
  * the input stream.
  */
-static __inline int
+static inline int
 uart_intr_overrun(void *arg)
 {
 	struct uart_softc *sc = arg;
@@ -337,7 +337,7 @@ uart_intr_overrun(void *arg)
 /*
  * Received data ready.
  */
-static __inline int
+static inline int
 uart_intr_rxready(void *arg)
 {
 	struct uart_softc *sc = arg;
@@ -370,7 +370,7 @@ uart_intr_rxready(void *arg)
  * bits. This is to avoid losing state transitions due to having more
  * than 1 hardware interrupt between software interrupts.
  */
-static __inline int
+static inline int
 uart_intr_sigchg(void *arg)
 {
 	struct uart_softc *sc = arg;
@@ -407,7 +407,7 @@ uart_intr_sigchg(void *arg)
 /*
  * The transmitter can accept more data.
  */
-static __inline int
+static inline int
 uart_intr_txidle(void *arg)
 {
 	struct uart_softc *sc = arg;

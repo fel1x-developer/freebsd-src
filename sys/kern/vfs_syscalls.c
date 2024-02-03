@@ -1038,7 +1038,7 @@ change_dir(struct vnode *vp, struct thread *td)
 	return (VOP_ACCESS(vp, VEXEC, td->td_ucred, td));
 }
 
-static __inline void
+static inline void
 flags_to_rights(int flags, cap_rights_t *rightsp)
 {
 	if (flags & O_EXEC) {

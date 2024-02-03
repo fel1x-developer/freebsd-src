@@ -265,7 +265,7 @@ out:
 #if defined(CPU_ARM1176) \
  || defined(CPU_MV_PJ4B) \
  || defined(CPU_CORTEXA) || defined(CPU_KRAIT)
-static __inline void
+static inline void
 cpu_scc_setup_ccnt(void)
 {
 /* This is how you give userland access to the CCNT and PMCn

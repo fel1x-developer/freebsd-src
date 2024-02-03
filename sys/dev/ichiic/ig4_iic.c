@@ -156,14 +156,14 @@ SYSCTL_INT(_debug, OID_AUTO, ig4_timings, CTLFLAG_RDTUN, &ig4_timings, 0,
 /*
  * Low-level inline support functions
  */
-static __inline void
+static inline void
 reg_write(ig4iic_softc_t *sc, uint32_t reg, uint32_t value)
 {
 	bus_write_4(sc->regs_res, reg, value);
 	bus_barrier(sc->regs_res, reg, 4, BUS_SPACE_BARRIER_WRITE);
 }
 
-static __inline uint32_t
+static inline uint32_t
 reg_read(ig4iic_softc_t *sc, uint32_t reg)
 {
 	uint32_t value;

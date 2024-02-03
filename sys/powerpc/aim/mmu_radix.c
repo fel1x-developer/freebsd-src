@@ -156,7 +156,7 @@ extern caddr_t crashdumpmap;
 
 #define PPC_INVALIDATE_ERAT		PPC_SLBIA(7)
 
-static __inline void
+static inline void
 ttusync(void)
 {
 	__asm __volatile("eieio; tlbsync; ptesync" ::: "memory");
@@ -200,7 +200,7 @@ radix_tlbie(uint8_t ric, uint8_t prs, uint16_t is, uint32_t pid, uint32_t lpid,
 		"r" (rb), "r" (rs), "i" (ric), "i" (prs) : "memory");
 }
 
-static __inline void
+static inline void
 radix_tlbie_fixup(uint32_t pid, vm_offset_t va, int ap)
 {
 
@@ -212,7 +212,7 @@ radix_tlbie_fixup(uint32_t pid, vm_offset_t va, int ap)
 	    TLBIEL_INVAL_PAGE, pid, 0, va, ap);
 }
 
-static __inline void
+static inline void
 radix_tlbie_invlpg_user_4k(uint32_t pid, vm_offset_t va)
 {
 
@@ -221,7 +221,7 @@ radix_tlbie_invlpg_user_4k(uint32_t pid, vm_offset_t va)
 	radix_tlbie_fixup(pid, va, TLBIE_ACTUAL_PAGE_4K);
 }
 
-static __inline void
+static inline void
 radix_tlbie_invlpg_user_2m(uint32_t pid, vm_offset_t va)
 {
 
@@ -230,7 +230,7 @@ radix_tlbie_invlpg_user_2m(uint32_t pid, vm_offset_t va)
 	radix_tlbie_fixup(pid, va, TLBIE_ACTUAL_PAGE_2M);
 }
 
-static __inline void
+static inline void
 radix_tlbie_invlpwc_user(uint32_t pid)
 {
 
@@ -238,7 +238,7 @@ radix_tlbie_invlpwc_user(uint32_t pid)
 		TLBIEL_INVAL_SET_PID, pid, 0, 0, 0);
 }
 
-static __inline void
+static inline void
 radix_tlbie_flush_user(uint32_t pid)
 {
 
@@ -246,7 +246,7 @@ radix_tlbie_flush_user(uint32_t pid)
 		TLBIEL_INVAL_SET_PID, pid, 0, 0, 0);
 }
 
-static __inline void
+static inline void
 radix_tlbie_invlpg_kernel_4k(vm_offset_t va)
 {
 
@@ -255,7 +255,7 @@ radix_tlbie_invlpg_kernel_4k(vm_offset_t va)
 	radix_tlbie_fixup(0, va, TLBIE_ACTUAL_PAGE_4K);
 }
 
-static __inline void
+static inline void
 radix_tlbie_invlpg_kernel_2m(vm_offset_t va)
 {
 
@@ -265,7 +265,7 @@ radix_tlbie_invlpg_kernel_2m(vm_offset_t va)
 }
 
 /* 1GB pages aren't currently supported. */
-static __inline __unused void
+static inline __unused void
 radix_tlbie_invlpg_kernel_1g(vm_offset_t va)
 {
 
@@ -274,7 +274,7 @@ radix_tlbie_invlpg_kernel_1g(vm_offset_t va)
 	radix_tlbie_fixup(0, va, TLBIE_ACTUAL_PAGE_1G);
 }
 
-static __inline void
+static inline void
 radix_tlbie_invlpwc_kernel(void)
 {
 
@@ -282,7 +282,7 @@ radix_tlbie_invlpwc_kernel(void)
 	    TLBIEL_INVAL_SET_LPID, 0, 0, 0, 0);
 }
 
-static __inline void
+static inline void
 radix_tlbie_flush_kernel(void)
 {
 
@@ -290,33 +290,33 @@ radix_tlbie_flush_kernel(void)
 	    TLBIEL_INVAL_SET_LPID, 0, 0, 0, 0);
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_l3e_pindex(vm_offset_t va)
 {
 	return ((va & PG_FRAME) >> L3_PAGE_SIZE_SHIFT);
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pml3e_index(vm_offset_t va)
 {
 
 	return ((va >> L3_PAGE_SIZE_SHIFT) & RPTE_MASK);
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pml2e_index(vm_offset_t va)
 {
 	return ((va >> L2_PAGE_SIZE_SHIFT) & RPTE_MASK);
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pml1e_index(vm_offset_t va)
 {
 	return ((va & PG_FRAME) >> L1_PAGE_SIZE_SHIFT);
 }
 
 /* Return various clipped indexes for a given VA */
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pte_index(vm_offset_t va)
 {
 
@@ -324,7 +324,7 @@ pmap_pte_index(vm_offset_t va)
 }
 
 /* Return a pointer to the PT slot that corresponds to a VA */
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_l3e_to_pte(pt_entry_t *l3e, vm_offset_t va)
 {
 	pt_entry_t *pte;
@@ -336,7 +336,7 @@ pmap_l3e_to_pte(pt_entry_t *l3e, vm_offset_t va)
 }
 
 /* Return a pointer to the PD slot that corresponds to a VA */
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_l2e_to_l3e(pt_entry_t *l2e, vm_offset_t va)
 {
 	pt_entry_t *l3e;
@@ -348,7 +348,7 @@ pmap_l2e_to_l3e(pt_entry_t *l2e, vm_offset_t va)
 }
 
 /* Return a pointer to the PD slot that corresponds to a VA */
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_l1e_to_l2e(pt_entry_t *l1e, vm_offset_t va)
 {
 	pt_entry_t *l2e;
@@ -360,7 +360,7 @@ pmap_l1e_to_l2e(pt_entry_t *l1e, vm_offset_t va)
 	return (&l2e[pmap_pml2e_index(va)]);
 }
 
-static __inline pml1_entry_t *
+static inline pml1_entry_t *
 pmap_pml1e(pmap_t pmap, vm_offset_t va)
 {
 
@@ -378,7 +378,7 @@ pmap_pml2e(pmap_t pmap, vm_offset_t va)
 	return (pmap_l1e_to_l2e(l1e, va));
 }
 
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_pml3e(pmap_t pmap, vm_offset_t va)
 {
 	pt_entry_t *l2e;
@@ -389,7 +389,7 @@ pmap_pml3e(pmap_t pmap, vm_offset_t va)
 	return (pmap_l2e_to_l3e(l2e, va));
 }
 
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_pte(pmap_t pmap, vm_offset_t va)
 {
 	pt_entry_t *l3e;
@@ -864,7 +864,7 @@ pa_cmp(const void *a, const void *b)
 #define	PG_PTE_PROMOTE	(PG_X | PG_MANAGED | PG_W | PG_PTE_CACHE | \
 	    PG_M | PG_A | RPTE_EAA_MASK | PG_V)
 
-static __inline void
+static inline void
 pmap_resident_count_inc(pmap_t pmap, int count)
 {
 
@@ -872,7 +872,7 @@ pmap_resident_count_inc(pmap_t pmap, int count)
 	pmap->pm_stats.resident_count += count;
 }
 
-static __inline void
+static inline void
 pmap_resident_count_dec(pmap_t pmap, int count)
 {
 
@@ -1160,7 +1160,7 @@ pmap_invalidate_l3e_page(pmap_t pmap, vm_offset_t va, pml3_entry_t l3e)
 	pmap_invalidate_pwc(pmap);
 }
 
-static __inline struct pv_chunk *
+static inline struct pv_chunk *
 pv_to_chunk(pv_entry_t pv)
 {
 
@@ -1254,7 +1254,7 @@ retry:
  * otherwise.  This operation can be performed on pv lists for either 4KB or
  * 2MB page mappings.
  */
-static __inline pv_entry_t
+static inline pv_entry_t
 pmap_pvh_remove(struct md_page *pvh, pmap_t pmap, vm_offset_t va)
 {
 	pv_entry_t pv;
@@ -4717,7 +4717,7 @@ mmu_radix_qremove(vm_offset_t sva, int count)
  * add the page to the specified list of pages that will be released to the
  * physical memory manager after the TLB has been updated.
  */
-static __inline void
+static inline void
 pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
 {
 
@@ -4734,7 +4734,7 @@ pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
  * for mapping a distinct range of virtual addresses.  The pmap's collection is
  * ordered by this virtual address range.
  */
-static __inline int
+static inline int
 pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte)
 {
 
@@ -4748,7 +4748,7 @@ pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte)
  * Otherwise, returns NULL if there is no page table page corresponding to the
  * specified virtual address.
  */
-static __inline vm_page_t
+static inline vm_page_t
 pmap_remove_pt_page(pmap_t pmap, vm_offset_t va)
 {
 
@@ -5975,7 +5975,7 @@ mmu_radix_sync_icache(pmap_t pm, vm_offset_t va, vm_size_t sz)
 	}
 }
 
-static __inline void
+static inline void
 pmap_pte_attr(pt_entry_t *pte, uint64_t cache_bits, uint64_t mask)
 {
 	uint64_t opte, npte;

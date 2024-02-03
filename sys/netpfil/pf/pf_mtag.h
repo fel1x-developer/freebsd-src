@@ -59,7 +59,7 @@ struct pf_mtag {
 	struct sockaddr_storage	dst;	/* For ROUTE_TO */
 };
 
-static __inline struct pf_mtag *
+static inline struct pf_mtag *
 pf_find_mtag(struct mbuf *m)
 {
 	struct m_tag	*mtag;

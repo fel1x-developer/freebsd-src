@@ -184,7 +184,7 @@ static void breada(struct vnode *, daddr_t *, int *, int, struct ucred *, int,
 static int buf_flush(struct vnode *vp, struct bufdomain *, int);
 static int flushbufqueues(struct vnode *, struct bufdomain *, int, int);
 static void buf_daemon(void);
-static __inline void bd_wakeup(void);
+static inline void bd_wakeup(void);
 static int sysctl_runningspace(SYSCTL_HANDLER_ARGS);
 static void bufkva_reclaim(vmem_t *, int);
 static void bufkva_free(struct buf *);
@@ -972,7 +972,7 @@ waitrunningbufspace(void)
  *	bit if the newly extended portion of the buffer does not contain
  *	valid data.
  */
-static __inline void
+static inline void
 vfs_buf_test_cache(struct buf *bp, vm_ooffset_t foff, vm_offset_t off,
     vm_offset_t size, vm_page_t m)
 {

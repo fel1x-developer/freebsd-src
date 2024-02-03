@@ -100,7 +100,7 @@ extern int pmu_attched;
 #define _FX(s...) #s
 
 #define _RF0(fname, aname...)						\
-static __inline uint32_t						\
+static inline uint32_t						\
 fname(void)								\
 {									\
 	uint32_t reg;							\
@@ -109,7 +109,7 @@ fname(void)								\
 }
 
 #define _R64F0(fname, aname)						\
-static __inline uint64_t						\
+static inline uint64_t						\
 fname(void)								\
 {									\
 	uint64_t reg;							\
@@ -118,21 +118,21 @@ fname(void)								\
 }
 
 #define _WF0(fname, aname...)						\
-static __inline void							\
+static inline void							\
 fname(void)								\
 {									\
 	__asm __volatile("mcr\t" _FX(aname));				\
 }
 
 #define _WF1(fname, aname...)						\
-static __inline void							\
+static inline void							\
 fname(uint32_t reg)							\
 {									\
 	__asm __volatile("mcr\t" _FX(aname):: "r" (reg));		\
 }
 
 #define _W64F1(fname, aname...)						\
-static __inline void							\
+static inline void							\
 fname(uint64_t reg)							\
 {									\
 	__asm __volatile("mcrr\t" _FX(aname):: "r" (reg));		\
@@ -332,7 +332,7 @@ _W64F1(cp15_cnthp_cval_set, CP15_CNTHP_CVAL(%Q0, %R0))
 /* Local (i.e. not broadcasting ) operations.  */
 
 /* Flush all TLB entries (even global). */
-static __inline void
+static inline void
 tlb_flush_all_local(void)
 {
 
@@ -342,7 +342,7 @@ tlb_flush_all_local(void)
 }
 
 /* Flush all not global TLB entries. */
-static __inline void
+static inline void
 tlb_flush_all_ng_local(void)
 {
 
@@ -352,7 +352,7 @@ tlb_flush_all_ng_local(void)
 }
 
 /* Flush single TLB entry (even global). */
-static __inline void
+static inline void
 tlb_flush_local(vm_offset_t va)
 {
 
@@ -364,7 +364,7 @@ tlb_flush_local(vm_offset_t va)
 }
 
 /* Flush range of TLB entries (even global). */
-static __inline void
+static inline void
 tlb_flush_range_local(vm_offset_t va, vm_size_t size)
 {
 	vm_offset_t eva = va + size;
@@ -382,7 +382,7 @@ tlb_flush_range_local(vm_offset_t va, vm_size_t size)
 /* Broadcasting operations. */
 #if __ARM_ARCH >= 7 && defined(SMP)
 
-static __inline void
+static inline void
 tlb_flush_all(void)
 {
 
@@ -394,7 +394,7 @@ tlb_flush_all(void)
 	dsb();
 }
 
-static __inline void
+static inline void
 tlb_flush_all_ng(void)
 {
 
@@ -406,7 +406,7 @@ tlb_flush_all_ng(void)
 	dsb();
 }
 
-static __inline void
+static inline void
 tlb_flush(vm_offset_t va)
 {
 
@@ -420,7 +420,7 @@ tlb_flush(vm_offset_t va)
 	dsb();
 }
 
-static __inline void
+static inline void
 tlb_flush_range(vm_offset_t va,  vm_size_t size)
 {
 	vm_offset_t eva = va + size;
@@ -456,7 +456,7 @@ tlb_flush_range(vm_offset_t va,  vm_size_t size)
  */
 
 /*  Sync I and D caches to PoU */
-static __inline void
+static inline void
 icache_sync(vm_offset_t va, vm_size_t size)
 {
 	vm_offset_t eva = va + size;
@@ -481,7 +481,7 @@ icache_sync(vm_offset_t va, vm_size_t size)
 }
 
 /*  Invalidate I cache */
-static __inline void
+static inline void
 icache_inv_all(void)
 {
 
@@ -494,7 +494,7 @@ icache_inv_all(void)
 }
 
 /* Invalidate branch predictor buffer */
-static __inline void
+static inline void
 bpb_inv_all(void)
 {
 
@@ -507,7 +507,7 @@ bpb_inv_all(void)
 }
 
 /* Write back D-cache to PoU */
-static __inline void
+static inline void
 dcache_wb_pou(vm_offset_t va, vm_size_t size)
 {
 	vm_offset_t eva = va + size;
@@ -532,7 +532,7 @@ dcache_wb_pou(vm_offset_t va, vm_size_t size)
  * in any cache before, no stale cacheline should remain in them after this
  * operation finishes.
  */
-static __inline void
+static inline void
 dcache_inv_poc(vm_offset_t va, vm_paddr_t pa, vm_size_t size)
 {
 	vm_offset_t eva = va + size;
@@ -559,7 +559,7 @@ dcache_inv_poc(vm_offset_t va, vm_paddr_t pa, vm_size_t size)
  * overwriting the DMA data.  For that reason, the L1 is done first to ensure
  * that an evicted L1 line doesn't flow to L2 after the L2 has been cleaned.
  */
-static __inline void
+static inline void
 dcache_inv_poc_dma(vm_offset_t va, vm_paddr_t pa, vm_size_t size)
 {
 	vm_offset_t eva = va + size;
@@ -583,7 +583,7 @@ dcache_inv_poc_dma(vm_offset_t va, vm_paddr_t pa, vm_size_t size)
  * flow in this direction. In given range, no dirty cacheline should remain
  * in any cache after this operation finishes.
  */
-static __inline void
+static inline void
 dcache_wb_poc(vm_offset_t va, vm_paddr_t pa, vm_size_t size)
 {
 	vm_offset_t eva = va + size;
@@ -599,7 +599,7 @@ dcache_wb_poc(vm_offset_t va, vm_paddr_t pa, vm_size_t size)
 }
 
 /* Write back and invalidate D-cache to PoC */
-static __inline void
+static inline void
 dcache_wbinv_poc(vm_offset_t sva, vm_paddr_t pa, vm_size_t size)
 {
 	vm_offset_t va;
@@ -625,7 +625,7 @@ dcache_wbinv_poc(vm_offset_t sva, vm_paddr_t pa, vm_size_t size)
 }
 
 /* Set TTB0 register */
-static __inline void
+static inline void
 cp15_ttbr_set(uint32_t reg)
 {
 	dsb();
@@ -647,7 +647,7 @@ cp15_ttbr_set(uint32_t reg)
  *
  * They must be called while interrupts are disabled to get consistent result.
  */
-static __inline int
+static inline int
 cp15_ats1cpr_check(vm_offset_t addr)
 {
 
@@ -656,7 +656,7 @@ cp15_ats1cpr_check(vm_offset_t addr)
 	return (cp15_par_get() & 0x01 ? EFAULT : 0);
 }
 
-static __inline int
+static inline int
 cp15_ats1cpw_check(vm_offset_t addr)
 {
 
@@ -665,7 +665,7 @@ cp15_ats1cpw_check(vm_offset_t addr)
 	return (cp15_par_get() & 0x01 ? EFAULT : 0);
 }
 
-static __inline int
+static inline int
 cp15_ats1cur_check(vm_offset_t addr)
 {
 
@@ -674,7 +674,7 @@ cp15_ats1cur_check(vm_offset_t addr)
 	return (cp15_par_get() & 0x01 ? EFAULT : 0);
 }
 
-static __inline int
+static inline int
 cp15_ats1cuw_check(vm_offset_t addr)
 {
 
@@ -683,7 +683,7 @@ cp15_ats1cuw_check(vm_offset_t addr)
 	return (cp15_par_get() & 0x01 ? EFAULT : 0);
 }
 
-static __inline uint64_t
+static inline uint64_t
 get_cyclecount(void)
 {
 #if __ARM_ARCH > 6 || (__ARM_ARCH == 6 && defined(CPU_ARM1176))

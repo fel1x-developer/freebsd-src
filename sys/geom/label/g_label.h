@@ -89,7 +89,7 @@ struct g_label_metadata {
 	char		md_label[16];	/* Label. */
 	uint64_t	md_provsize;	/* Provider's size. */
 };
-static __inline void
+static inline void
 label_metadata_encode(const struct g_label_metadata *md, u_char *data)
 {
 
@@ -98,7 +98,7 @@ label_metadata_encode(const struct g_label_metadata *md, u_char *data)
 	bcopy(md->md_label, data + 20, sizeof(md->md_label));
 	le64enc(data + 36, md->md_provsize);
 }
-static __inline void
+static inline void
 label_metadata_decode(const u_char *data, struct g_label_metadata *md)
 {
 

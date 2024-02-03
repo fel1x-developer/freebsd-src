@@ -57,7 +57,7 @@
 #include "math.h"
 #include "math_private.h"
 
-static __inline double pzero(double), qzero(double);
+static inline double pzero(double), qzero(double);
 
 static const volatile double vone = 1, vzero = 0;
 
@@ -269,7 +269,7 @@ static const double pS2[5] = {
   1.46576176948256193810e+01, /* 0x402D50B3, 0x44391809 */
 };
 
-static __inline double
+static inline double
 pzero(double x)
 {
 	const double *p,*q;
@@ -365,7 +365,7 @@ static const double qS2[6] = {
  -5.31095493882666946917e+00, /* 0xC0153E6A, 0xF8B32931 */
 };
 
-static __inline double
+static inline double
 qzero(double x)
 {
 	static const double eighth = 0.125;

@@ -406,7 +406,7 @@ struct nfscldevinfo {
 /*
  * Return a pointer to the address at "pos".
  */
-static __inline struct nfsclds **
+static inline struct nfsclds **
 nfsfldi_addr(struct nfscldevinfo *ndi, int pos)
 {
 
@@ -418,7 +418,7 @@ nfsfldi_addr(struct nfscldevinfo *ndi, int pos)
 /*
  * Return the Nth ("pos") stripe index.
  */
-static __inline int
+static inline int
 nfsfldi_stripeindex(struct nfscldevinfo *ndi, int pos)
 {
 	uint8_t *valp;
@@ -433,7 +433,7 @@ nfsfldi_stripeindex(struct nfscldevinfo *ndi, int pos)
 /*
  * Set the Nth ("pos") stripe index to "val".
  */
-static __inline void
+static inline void
 nfsfldi_setstripeindex(struct nfscldevinfo *ndi, int pos, uint8_t val)
 {
 	uint8_t *valp;

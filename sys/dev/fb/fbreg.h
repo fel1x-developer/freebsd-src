@@ -36,7 +36,7 @@
 /* some macros */
 #if defined(__amd64__) || defined(__i386__)
 
-static __inline void
+static inline void
 copyw(uint16_t *src, uint16_t *dst, size_t size)
 {
 	size >>= 1;
@@ -72,7 +72,7 @@ void ofwfb_writew(u_int16_t *addr, u_int16_t val);
 #define bcopy_fromio(s, d, c)	memcpy((void *)(d), (void *)(s), (c))
 #define bzero_io(d, c)		memset((void *)(d), 0, (c))
 #define fill_io(p, d, c)	memset((void *)(d), (p), (c))
-static __inline void
+static inline void
 fillw(int val, uint16_t *buf, size_t size)
 {
 	while (size--)

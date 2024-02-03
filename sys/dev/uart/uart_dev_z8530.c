@@ -50,7 +50,7 @@
 #endif
 
 /* Multiplexed I/O. */
-static __inline void
+static inline void
 uart_setmreg(struct uart_bas *bas, int reg, int val)
 {
 
@@ -59,7 +59,7 @@ uart_setmreg(struct uart_bas *bas, int reg, int val)
 	uart_setreg(bas, REG_CTRL, val);
 }
 
-static __inline uint8_t
+static inline uint8_t
 uart_getmreg(struct uart_bas *bas, int reg)
 {
 

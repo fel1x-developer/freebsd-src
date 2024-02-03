@@ -258,7 +258,7 @@ exclusion_bounce_check(bus_addr_t lowaddr, bus_addr_t highaddr)
 /*
  * Return true if the tag has an exclusion zone that could lead to bouncing.
  */
-static __inline int
+static inline int
 exclusion_bounce(bus_dma_tag_t dmat)
 {
 
@@ -268,7 +268,7 @@ exclusion_bounce(bus_dma_tag_t dmat)
 /*
  * Return true if the given address does not fall on the alignment boundary.
  */
-static __inline int
+static inline int
 alignment_bounce(bus_dma_tag_t dmat, bus_addr_t addr)
 {
 
@@ -286,7 +286,7 @@ alignment_bounce(bus_dma_tag_t dmat, bus_addr_t addr)
  * given DMA operation that doesn't involve the full allocated buffer.  If we're
  * mapping an mbuf, that follows the same rules as a buffer we allocated.
  */
-static __inline int
+static inline int
 cacheline_bounce(bus_dmamap_t map, bus_addr_t addr, bus_size_t size)
 {
 
@@ -309,7 +309,7 @@ cacheline_bounce(bus_dmamap_t map, bus_addr_t addr, bus_size_t size)
  * always comply with the required rules (alignment, boundary, and address
  * range).
  */
-static __inline int
+static inline int
 might_bounce(bus_dma_tag_t dmat, bus_dmamap_t map, bus_addr_t addr,
     bus_size_t size)
 {

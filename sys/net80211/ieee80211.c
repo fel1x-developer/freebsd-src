@@ -1006,7 +1006,7 @@ ieee80211_syncflag_ext(struct ieee80211vap *vap, int flag)
 	IEEE80211_UNLOCK(ic);
 }
 
-static __inline int
+static inline int
 mapgsm(u_int freq, u_int flags)
 {
 	freq *= 10;
@@ -1020,7 +1020,7 @@ mapgsm(u_int freq, u_int flags)
 	return (freq - 906*10) / 5;
 }
 
-static __inline int
+static inline int
 mappsb(u_int freq, u_int flags)
 {
 	return 37 + ((freq * 10) + ((freq % 5) == 2 ? 5 : 0) - 49400) / 5;
@@ -1117,7 +1117,7 @@ ieee80211_ieee2mhz(u_int chan, u_int flags)
 	}
 }
 
-static __inline void
+static inline void
 set_extchan(struct ieee80211_channel *c)
 {
 

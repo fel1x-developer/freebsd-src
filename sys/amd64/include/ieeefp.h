@@ -75,7 +75,7 @@
  * merge the two together.  I think.
  */
 
-static __inline fp_rnd_t
+static inline fp_rnd_t
 __fpgetround(void)
 {
 	unsigned short _cw;
@@ -84,7 +84,7 @@ __fpgetround(void)
 	return ((fp_rnd_t)((_cw & FP_RND_FLD) >> FP_RND_OFF));
 }
 
-static __inline fp_rnd_t
+static inline fp_rnd_t
 __fpsetround(fp_rnd_t _m)
 {
 	fp_rnd_t _p;
@@ -108,7 +108,7 @@ __fpsetround(fp_rnd_t _m)
  * There is no equivalent SSE mode or control.
  */
 
-static __inline fp_prec_t
+static inline fp_prec_t
 __fpgetprec(void)
 {
 	unsigned short _cw;
@@ -117,7 +117,7 @@ __fpgetprec(void)
 	return ((fp_prec_t)((_cw & FP_PRC_FLD) >> FP_PRC_OFF));
 }
 
-static __inline fp_prec_t
+static inline fp_prec_t
 __fpsetprec(fp_prec_t _m)
 {
 	fp_prec_t _p;
@@ -137,7 +137,7 @@ __fpsetprec(fp_prec_t _m)
  * means disable for x87 and SSE, but for fp*mask() it means enable.
  */
 
-static __inline fp_except_t
+static inline fp_except_t
 __fpgetmask(void)
 {
 	unsigned short _cw;
@@ -146,7 +146,7 @@ __fpgetmask(void)
 	return ((~_cw & FP_MSKS_FLD) >> FP_MSKS_OFF);
 }
 
-static __inline fp_except_t
+static inline fp_except_t
 __fpsetmask(fp_except_t _m)
 {
 	fp_except_t _p;
@@ -166,7 +166,7 @@ __fpsetmask(fp_except_t _m)
 	return (_p);
 }
 
-static __inline fp_except_t
+static inline fp_except_t
 __fpgetsticky(void)
 {
 	unsigned _ex, _mxcsr;

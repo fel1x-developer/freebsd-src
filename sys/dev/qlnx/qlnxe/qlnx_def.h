@@ -742,7 +742,7 @@ extern int qlnx_alloc_mem_sb(qlnx_host_t *ha, struct ecore_sb_info *sb_info,
 #ifndef QLNX_RDMA
 #if defined(__i386__) || defined(__amd64__)
 
-static __inline
+static inline
 void prefetch(void *x)
 {
         __asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));

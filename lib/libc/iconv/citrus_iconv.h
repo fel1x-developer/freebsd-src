@@ -51,7 +51,7 @@ __END_DECLS
  * _citrus_iconv_convert:
  *	convert a string.
  */
-static __inline int
+static inline int
 _citrus_iconv_convert(struct _citrus_iconv * __restrict cv,
     char * __restrict * __restrict in, size_t * __restrict inbytes,
     char * __restrict * __restrict out, size_t * __restrict outbytes,

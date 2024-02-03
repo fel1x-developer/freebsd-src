@@ -896,7 +896,7 @@ malo_printtxbuf(const struct malo_txbuf *bf, u_int qnum, u_int ix)
 }
 #endif /* MALO_DEBUG */
 
-static __inline void
+static inline void
 malo_updatetxrate(struct ieee80211_node *ni, int rix)
 {
 	static const int ieeerates[] =
@@ -1329,7 +1329,7 @@ malo_hal_reset(struct malo_softc *sc)
 	return 1;
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 malo_getrxmbuf(struct malo_softc *sc, struct malo_rxbuf *bf)
 {
 	struct mbuf *m;

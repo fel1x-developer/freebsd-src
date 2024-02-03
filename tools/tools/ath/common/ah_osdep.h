@@ -44,7 +44,7 @@ typedef void *HAL_BUS_HANDLE;
 typedef uint32_t HAL_DMA_ADDR;
 
 #define	OS_DELAY(_n)	DELAY(_n)
-#define	OS_INLINE	__inline
+#define	OS_INLINE	inline
 #define	OS_MEMZERO(_a, _size)		bzero((_a), (_size))
 #define	OS_MEMCPY(_dst, _src, _size)	bcopy((_src), (_dst), (_size))
 #define	OS_MACEQU(_a, _b) \
@@ -72,5 +72,5 @@ extern	void OS_MARK(struct ath_hal *, u_int id, u_int32_t value);
 #ifndef __va_list
 #define	__va_list	va_list
 #endif
-#define	OS_INLINE	__inline
+#define	OS_INLINE	inline
 #endif /* _ATH_AH_OSDEP_H_ */

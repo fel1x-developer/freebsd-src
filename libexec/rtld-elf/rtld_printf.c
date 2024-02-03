@@ -95,7 +95,7 @@ static char const hex2ascii_upper[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 #define	hex2ascii(hex)	(hex2ascii_lower[hex])
 #define	hex2ascii_upper(hex)	(hex2ascii_upper[hex])
 
-static __inline int
+static inline int
 imax(int a, int b)
 {
 

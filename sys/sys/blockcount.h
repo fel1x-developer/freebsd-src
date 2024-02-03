@@ -43,13 +43,13 @@ int _blockcount_sleep(blockcount_t *bc, struct lock_object *, const char *wmesg,
     int prio);
 void _blockcount_wakeup(blockcount_t *bc, u_int old);
 
-static __inline void
+static inline void
 blockcount_init(blockcount_t *bc)
 {
 	atomic_store_int(&bc->__count, 0);
 }
 
-static __inline void
+static inline void
 blockcount_acquire(blockcount_t *bc, u_int n)
 {
 #ifdef INVARIANTS
@@ -62,7 +62,7 @@ blockcount_acquire(blockcount_t *bc, u_int n)
 #endif
 }
 
-static __inline void
+static inline void
 blockcount_release(blockcount_t *bc, u_int n)
 {
 	u_int old;
@@ -74,7 +74,7 @@ blockcount_release(blockcount_t *bc, u_int n)
 		_blockcount_wakeup(bc, old);
 }
 
-static __inline void
+static inline void
 _blockcount_wait(blockcount_t *bc, struct lock_object *lo, const char *wmesg,
     int prio)
 {

@@ -335,7 +335,7 @@ ieee80211_node_set_chan(struct ieee80211_node *ni,
 	ni->ni_rates = *ieee80211_get_suprates(ic, chan);
 }
 
-static __inline void
+static inline void
 copy_bss(struct ieee80211_node *nbss, const struct ieee80211_node *obss)
 {
 	/* propagate useful state */
@@ -1951,7 +1951,7 @@ ieee80211_add_neighbor(struct ieee80211vap *vap,
 	(IS_PROBEREQ(wh) && IEEE80211_IS_MULTICAST( \
 	    ((const struct ieee80211_frame *)(wh))->i_addr3))
 
-static __inline struct ieee80211_node *
+static inline struct ieee80211_node *
 _find_rxnode(struct ieee80211_node_table *nt,
     const struct ieee80211_frame_min *wh,
     const char *func __debrefcnt_used, int line __debrefcnt_used)

@@ -3410,7 +3410,7 @@ fget_only_user(struct filedesc *fdp, int fd, cap_rights_t *needrightsp,
  * NULL.  Otherwise *fpp is held and set and zero is returned.  Caller is
  * responsible for fdrop().
  */
-static __inline int
+static inline int
 _fget(struct thread *td, int fd, struct file **fpp, int flags,
     cap_rights_t *needrightsp)
 {
@@ -3561,7 +3561,7 @@ fget_fcntl(struct thread *td, int fd, cap_rights_t *rightsp, int needfcntl,
  *
  * XXX: what about the unused flags ?
  */
-static __inline int
+static inline int
 _fgetvp(struct thread *td, int fd, int flags, cap_rights_t *needrightsp,
     struct vnode **vpp)
 {

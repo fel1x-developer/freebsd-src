@@ -78,7 +78,7 @@ static size_t	  regetmntinfo(struct statfs **, long);
 static void	  update_maxwidths(struct maxwidths *, const struct statfs *);
 static void	  usage(void);
 
-static __inline int
+static inline int
 imax(int a, int b)
 {
 	return (a > b ? a : b);

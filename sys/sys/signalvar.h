@@ -174,7 +174,7 @@ typedef void __osiginfohandler_t(int, osiginfo_t *, void *);
 #define	SIG2OSIG(sig, osig)	(osig = (sig).__bits[0])
 #define	OSIG2SIG(osig, sig)	SIGEMPTYSET(sig); (sig).__bits[0] = osig
 
-static __inline int
+static inline int
 __sigisempty(sigset_t *set)
 {
 	int i;
@@ -186,7 +186,7 @@ __sigisempty(sigset_t *set)
 	return (1);
 }
 
-static __inline int
+static inline int
 __sigseteq(sigset_t *set1, sigset_t *set2)
 {
 	int i;
@@ -282,7 +282,7 @@ extern bool sigfastblock_fetch_always;
  * is an optimized version of SIGISEMPTY() on a temporary variable
  * containing SIGSETNAND(*set, *mask).
  */
-static __inline bool
+static inline bool
 sigsetmasked(sigset_t *set, sigset_t *mask)
 {
 	int i;
@@ -306,14 +306,14 @@ do {						\
 	kp->ksi_flags |= KSI_TRAP;		\
 } while (0)
 
-static __inline void
+static inline void
 ksiginfo_copy(ksiginfo_t *src, ksiginfo_t *dst)
 {
 	(dst)->ksi_info = src->ksi_info;
 	(dst)->ksi_flags = (src->ksi_flags & KSI_COPYMASK);
 }
 
-static __inline void
+static inline void
 ksiginfo_set_sigev(ksiginfo_t *dst, struct sigevent *sigev)
 {
 	dst->ksi_signo = sigev->sigev_signo;

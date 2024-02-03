@@ -36,7 +36,7 @@ extern intpcm_read_t *feeder_format_read_op(uint32_t);
 extern intpcm_write_t *feeder_format_write_op(uint32_t);
 
 #define INTPCM_DECLARE_OP_WRITE(SIGN, BIT, ENDIAN, SHIFT)		\
-static __inline void							\
+static inline void							\
 intpcm_write_##SIGN##BIT##ENDIAN(uint8_t *dst, intpcm_t v)		\
 {									\
 									\
@@ -44,7 +44,7 @@ intpcm_write_##SIGN##BIT##ENDIAN(uint8_t *dst, intpcm_t v)		\
 }
 
 #define INTPCM_DECLARE_OP_8(SIGN, ENDIAN)				\
-static __inline intpcm_t						\
+static inline intpcm_t						\
 intpcm_read_##SIGN##8##ENDIAN(uint8_t *src)				\
 {									\
 									\
@@ -53,7 +53,7 @@ intpcm_read_##SIGN##8##ENDIAN(uint8_t *src)				\
 INTPCM_DECLARE_OP_WRITE(SIGN, 8, ENDIAN, 24)
 
 #define INTPCM_DECLARE_OP_16(SIGN, ENDIAN)				\
-static __inline intpcm_t						\
+static inline intpcm_t						\
 intpcm_read_##SIGN##16##ENDIAN(uint8_t *src)				\
 {									\
 									\
@@ -62,7 +62,7 @@ intpcm_read_##SIGN##16##ENDIAN(uint8_t *src)				\
 INTPCM_DECLARE_OP_WRITE(SIGN, 16, ENDIAN, 16)
 
 #define INTPCM_DECLARE_OP_24(SIGN, ENDIAN)				\
-static __inline intpcm_t						\
+static inline intpcm_t						\
 intpcm_read_##SIGN##24##ENDIAN(uint8_t *src)				\
 {									\
 									\
@@ -71,14 +71,14 @@ intpcm_read_##SIGN##24##ENDIAN(uint8_t *src)				\
 INTPCM_DECLARE_OP_WRITE(SIGN, 24, ENDIAN, 8)
 
 #define INTPCM_DECLARE_OP_32(SIGN, ENDIAN)				\
-static __inline intpcm_t						\
+static inline intpcm_t						\
 intpcm_read_##SIGN##32##ENDIAN(uint8_t *src)				\
 {									\
 									\
 	return (_PCM_READ_##SIGN##32##_##ENDIAN(src));			\
 }									\
 									\
-static __inline void							\
+static inline void							\
 intpcm_write_##SIGN##32##ENDIAN(uint8_t *dst, intpcm_t v)		\
 {									\
 									\
@@ -89,28 +89,28 @@ intpcm_write_##SIGN##32##ENDIAN(uint8_t *dst, intpcm_t v)		\
 									\
 G711_DECLARE_TABLE(t);							\
 									\
-static __inline intpcm_t						\
+static inline intpcm_t						\
 intpcm_read_ulaw(uint8_t *src)						\
 {									\
 									\
 	return (_G711_TO_INTPCM((t).ulaw_to_u8, *src) << 24);		\
 }									\
 									\
-static __inline intpcm_t						\
+static inline intpcm_t						\
 intpcm_read_alaw(uint8_t *src)						\
 {									\
 									\
 	return (_G711_TO_INTPCM((t).alaw_to_u8, *src) << 24);		\
 }									\
 									\
-static __inline void							\
+static inline void							\
 intpcm_write_ulaw(uint8_t *dst, intpcm_t v)				\
 {									\
 									\
 	*dst = _INTPCM_TO_G711((t).u8_to_ulaw, v >> 24);		\
 }									\
 									\
-static __inline void							\
+static inline void							\
 intpcm_write_alaw(uint8_t *dst, intpcm_t v)				\
 {									\
 									\

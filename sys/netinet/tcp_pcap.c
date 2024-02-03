@@ -100,7 +100,7 @@ tcp_pcap_init(void)
  * increment the reference count and return TRUE. Otherwise,
  * leave the reference count alone and return FALSE.
  */
-static __inline bool
+static inline bool
 tcp_pcap_take_cluster_reference(void)
 {
 	if (atomic_fetchadd_int(&tcp_pcap_clusters_referenced_cur, 1) >=
@@ -116,7 +116,7 @@ tcp_pcap_take_cluster_reference(void)
  * This can be used to adjust the counter when an mbuf chain is
  * copied or freed.
  */
-static __inline void
+static inline void
 tcp_pcap_adj_cluster_reference(struct mbuf *m, int adj)
 {
 	while (m) {

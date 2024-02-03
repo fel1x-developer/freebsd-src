@@ -287,7 +287,7 @@ _citrus_mapper_open_direct(struct _citrus_mapper_area *__restrict ma,
 /*
  * hash_func
  */
-static __inline int
+static inline int
 hash_func(const char *key)
 {
 
@@ -297,7 +297,7 @@ hash_func(const char *key)
 /*
  * match_func
  */
-static __inline int
+static inline int
 match_func(struct _citrus_mapper *cm, const char *key)
 {
 

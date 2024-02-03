@@ -51,7 +51,7 @@ typedef uint32_t	l_dev_t;
  * are encoded as MMMmmmMm, therefore conversion of the device numbers between
  * Linux user-space and FreeBSD kernel required.
  */
-static __inline l_dev_t
+static inline l_dev_t
 linux_encode_dev(int _major, int _minor)
 {
 
@@ -59,42 +59,42 @@ linux_encode_dev(int _major, int _minor)
 	    (((_minor & ~0xff) << 12) & 0xfff00000));
 }
 
-static __inline l_dev_t
+static inline l_dev_t
 linux_new_encode_dev(dev_t _dev)
 {
 
 	return (_dev == NODEV ? 0 : linux_encode_dev(major(_dev), minor(_dev)));
 }
 
-static __inline int
+static inline int
 linux_encode_major(dev_t _dev)
 {
 
 	return (_dev == NODEV ? 0 : major(_dev) & 0xfff);
 }
 
-static __inline int
+static inline int
 linux_encode_minor(dev_t _dev)
 {
 
 	return (_dev == NODEV ? 0 : minor(_dev) & 0xfffff);
 }
 
-static __inline int
+static inline int
 linux_decode_major(l_dev_t _dev)
 {
 
 	return ((_dev & 0xfff00) >> 8);
 }
 
-static __inline int
+static inline int
 linux_decode_minor(l_dev_t _dev)
 {
 
 	return ((_dev & 0xff) | ((_dev & 0xfff00000) >> 12));
 }
 
-static __inline dev_t
+static inline dev_t
 linux_decode_dev(l_dev_t _dev)
 {
 

@@ -26,7 +26,7 @@
 #define __kern_prefetch_h__
 #ifdef _KERNEL
 
-static __inline void
+static inline void
 kern_prefetch(const volatile void *addr, void* before)
 {
 #if defined(__amd64__)

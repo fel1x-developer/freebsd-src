@@ -557,7 +557,7 @@ extern	HAL_BOOL ath_hal_getTxQProps(struct ath_hal *ah,
 /*
  * Deduce if the host cpu has big- or litt-endian byte order.
  */
-static __inline__ int
+static inline__ int
 isBigEndian(void)
 {
 	union {

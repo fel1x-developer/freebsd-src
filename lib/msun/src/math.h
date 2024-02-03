@@ -98,7 +98,7 @@ extern const union __nan_un {
 #define	isfinite(x) __fp_type_select(x, __isfinitef, __isfinite, __isfinitel)
 #define	isinf(x) __fp_type_select(x, __isinff, __isinf, __isinfl)
 #define	isnan(x) \
-	__fp_type_select(x, __inline_isnanf, __inline_isnan, __inline_isnanl)
+	__fp_type_select(x, inline_isnanf, inline_isnan, inline_isnanl)
 #define	isnormal(x) __fp_type_select(x, __isnormalf, __isnormal, __isnormall)
 
 #ifdef __MATH_BUILTIN_RELOPS
@@ -180,22 +180,22 @@ int	__signbit(double) __pure2;
 int	__signbitf(float) __pure2;
 int	__signbitl(long double) __pure2;
 
-static __inline int
-__inline_isnan(const double __x)
+static inline int
+inline_isnan(const double __x)
 {
 
 	return (__x != __x);
 }
 
-static __inline int
-__inline_isnanf(const float __x)
+static inline int
+inline_isnanf(const float __x)
 {
 
 	return (__x != __x);
 }
 
-static __inline int
-__inline_isnanl(const long double __x)
+static inline int
+inline_isnanl(const long double __x)
 {
 
 	return (__x != __x);
@@ -204,8 +204,8 @@ __inline_isnanl(const long double __x)
 /*
  * Define the following aliases, for compatibility with glibc and CUDA.
  */
-#define __isnan __inline_isnan
-#define __isnanf __inline_isnanf
+#define __isnan inline_isnan
+#define __isnanf inline_isnanf
 
 /*
  * Version 2 of the Single UNIX Specification (UNIX98) defined isnan() and

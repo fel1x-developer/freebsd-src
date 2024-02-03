@@ -109,7 +109,7 @@ struct mbuf *ieee80211_ff_check(struct ieee80211_node *, struct mbuf *);
 void	ieee80211_ff_age(struct ieee80211com *, struct ieee80211_stageq *,
 	     int quanta);
 
-static __inline void
+static inline void
 ieee80211_ff_age_all(struct ieee80211com *ic, int quanta)
 {
 	struct ieee80211_superg *sg = ic->ic_superg;
@@ -122,7 +122,7 @@ ieee80211_ff_age_all(struct ieee80211com *ic, int quanta)
 	}
 }
 
-static __inline void
+static inline void
 ieee80211_ff_flush(struct ieee80211com *ic, int ac)
 {
 	struct ieee80211_superg *sg = ic->ic_superg;
@@ -131,7 +131,7 @@ ieee80211_ff_flush(struct ieee80211com *ic, int ac)
 		ieee80211_ff_age(ic, &sg->ff_stageq[ac], 0x7fffffff);
 }
 
-static __inline void
+static inline void
 ieee80211_ff_flush_all(struct ieee80211com *ic)
 {
 	ieee80211_ff_age_all(ic, 0x7fffffff);
@@ -144,7 +144,7 @@ struct mbuf * ieee80211_amsdu_encap(struct ieee80211vap *vap, struct mbuf *m1,
 
 struct mbuf *ieee80211_ff_decap(struct ieee80211_node *, struct mbuf *);
 
-static __inline struct mbuf *
+static inline struct mbuf *
 ieee80211_decap_fastframe(struct ieee80211vap *vap, struct ieee80211_node *ni,
     struct mbuf *m)
 {

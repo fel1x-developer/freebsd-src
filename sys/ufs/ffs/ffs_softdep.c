@@ -10170,7 +10170,7 @@ handle_workitem_freefile(struct freefile *freefile)
  * Helper function which unlinks marker element from work list and returns
  * the next element on the list.
  */
-static __inline struct worklist *
+static inline struct worklist *
 markernext(struct worklist *marker)
 {
 	struct worklist *next;

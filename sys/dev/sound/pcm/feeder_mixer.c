@@ -174,7 +174,7 @@ feed_mixer_set(struct pcm_feeder *f, int what, int value)
 	return (0);
 }
 
-static __inline int
+static inline int
 feed_mixer_rec(struct pcm_channel *c)
 {
 	struct pcm_channel *ch;

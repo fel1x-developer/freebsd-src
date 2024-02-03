@@ -1242,7 +1242,7 @@ gic_v3_wait_for_rwp(struct gic_v3_softc *sc, enum gic_v3_xdist xdist)
 }
 
 /* CPU interface. */
-static __inline void
+static inline void
 gic_v3_cpu_priority(uint64_t mask)
 {
 

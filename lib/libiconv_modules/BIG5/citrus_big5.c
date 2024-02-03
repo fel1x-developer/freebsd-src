@@ -115,7 +115,7 @@ typedef struct {
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_BIG5_init_state(_BIG5EncodingInfo * __restrict ei __unused,
     _BIG5State * __restrict s)
@@ -125,7 +125,7 @@ _citrus_BIG5_init_state(_BIG5EncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_BIG5_pack_state(_BIG5EncodingInfo * __restrict ei __unused,
     void * __restrict pspriv,
@@ -135,7 +135,7 @@ _citrus_BIG5_pack_state(_BIG5EncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)s, sizeof(*s));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_BIG5_unpack_state(_BIG5EncodingInfo * __restrict ei __unused,
     _BIG5State * __restrict s,
@@ -146,21 +146,21 @@ _citrus_BIG5_unpack_state(_BIG5EncodingInfo * __restrict ei __unused,
 }
 #endif
 
-static __inline int
+static inline int
 _citrus_BIG5_check(_BIG5EncodingInfo *ei, unsigned int c)
 {
 
 	return ((ei->cell[c & 0xFF] & 0x1) ? 2 : 1);
 }
 
-static __inline int
+static inline int
 _citrus_BIG5_check2(_BIG5EncodingInfo *ei, unsigned int c)
 {
 
 	return ((ei->cell[c & 0xFF] & 0x2) ? 1 : 0);
 }
 
-static __inline int
+static inline int
 _citrus_BIG5_check_excludes(_BIG5EncodingInfo *ei, wint_t c)
 {
 	_BIG5Exclude *exclude;
@@ -405,7 +405,7 @@ err:
 	return (ret);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_BIG5_stdenc_wctocs(_BIG5EncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid,
@@ -418,7 +418,7 @@ _citrus_BIG5_stdenc_wctocs(_BIG5EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_BIG5_stdenc_cstowc(_BIG5EncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc,
@@ -437,7 +437,7 @@ _citrus_BIG5_stdenc_cstowc(_BIG5EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_BIG5_stdenc_get_state_desc_generic(_BIG5EncodingInfo * __restrict ei __unused,
     _BIG5State * __restrict psenc,

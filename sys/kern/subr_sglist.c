@@ -79,7 +79,7 @@ struct sgsave {
  * the current segment in the list.  If we run out of segments then
  * EFBIG will be returned.
  */
-static __inline int
+static inline int
 _sglist_append_range(struct sglist *sg, struct sglist_seg **ssp,
     vm_paddr_t paddr, size_t len)
 {
@@ -104,7 +104,7 @@ _sglist_append_range(struct sglist *sg, struct sglist_seg **ssp,
  * Worker routine to append a virtual address range (either kernel or
  * user) to a scatter/gather list.
  */
-static __inline int
+static inline int
 _sglist_append_buf(struct sglist *sg, void *buf, size_t len, pmap_t pmap,
     size_t *donep)
 {

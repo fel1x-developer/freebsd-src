@@ -474,13 +474,13 @@ extern int mfi_build_cdb(int, uint8_t, u_int64_t, u_int32_t, uint8_t *);
 	} while (0)
 
 #define MFIQ_COMMAND_QUEUE(name, index)					\
-	static __inline void						\
+	static inline void						\
 	mfi_initq_ ## name (struct mfi_softc *sc)			\
 	{								\
 		TAILQ_INIT(&sc->mfi_ ## name);				\
 		MFIQ_INIT(sc, index);					\
 	}								\
-	static __inline void						\
+	static inline void						\
 	mfi_enqueue_ ## name (struct mfi_command *cm)			\
 	{								\
 		if ((cm->cm_flags & MFI_ON_MFIQ_MASK) != 0) {		\
@@ -491,7 +491,7 @@ extern int mfi_build_cdb(int, uint8_t, u_int64_t, u_int32_t, uint8_t *);
 		cm->cm_flags |= MFI_ON_ ## index;			\
 		MFIQ_ADD(cm->cm_sc, index);				\
 	}								\
-	static __inline void						\
+	static inline void						\
 	mfi_requeue_ ## name (struct mfi_command *cm)			\
 	{								\
 		if ((cm->cm_flags & MFI_ON_MFIQ_MASK) != 0) {		\
@@ -502,7 +502,7 @@ extern int mfi_build_cdb(int, uint8_t, u_int64_t, u_int32_t, uint8_t *);
 		cm->cm_flags |= MFI_ON_ ## index;			\
 		MFIQ_ADD(cm->cm_sc, index);				\
 	}								\
-	static __inline struct mfi_command *				\
+	static inline struct mfi_command *				\
 	mfi_dequeue_ ## name (struct mfi_softc *sc)			\
 	{								\
 		struct mfi_command *cm;					\
@@ -519,7 +519,7 @@ extern int mfi_build_cdb(int, uint8_t, u_int64_t, u_int32_t, uint8_t *);
 		}							\
 		return (cm);						\
 	}								\
-	static __inline void						\
+	static inline void						\
 	mfi_remove_ ## name (struct mfi_command *cm)			\
 	{								\
 		if ((cm->cm_flags & MFI_ON_ ## index) == 0) {		\
@@ -537,21 +537,21 @@ MFIQ_COMMAND_QUEUE(free, MFIQ_FREE);
 MFIQ_COMMAND_QUEUE(ready, MFIQ_READY);
 MFIQ_COMMAND_QUEUE(busy, MFIQ_BUSY);
 
-static __inline void
+static inline void
 mfi_initq_bio(struct mfi_softc *sc)
 {
 	bioq_init(&sc->mfi_bioq);
 	MFIQ_INIT(sc, MFIQ_BIO);
 }
 
-static __inline void
+static inline void
 mfi_enqueue_bio(struct mfi_softc *sc, struct bio *bp)
 {
 	bioq_insert_tail(&sc->mfi_bioq, bp);
 	MFIQ_ADD(sc, MFIQ_BIO);
 }
 
-static __inline struct bio *
+static inline struct bio *
 mfi_dequeue_bio(struct mfi_softc *sc)
 {
 	struct bio *bp;
@@ -569,7 +569,7 @@ mfi_dequeue_bio(struct mfi_softc *sc)
  * additions to the SPC spec, and we don't want to force a dependency on
  * the CAM module for such a trivial action.
  */
-static __inline void
+static inline void
 mfi_extract_sense(struct scsi_sense_data_fixed *sense,
     int *error_code, int *sense_key, int *asc, int *ascq)
 {
@@ -580,7 +580,7 @@ mfi_extract_sense(struct scsi_sense_data_fixed *sense,
 	*ascq = (sense->extra_len >= 6) ? sense->add_sense_code_qual : 0;
 }
 
-static __inline void
+static inline void
 mfi_print_sense(struct mfi_softc *sc, void *sense)
 {
 	int error, key, asc, ascq;

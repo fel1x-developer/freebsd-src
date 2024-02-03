@@ -104,7 +104,7 @@ static struct cdevsw tcp_log_cdevsw = {
 	.d_name =	"tcp_log",
 };
 
-static __inline void
+static inline void
 tcp_log_dev_queue_validate_lock(int lockstate)
 {
 
@@ -234,7 +234,7 @@ tcp_log_dev_write(struct cdev *dev __unused, struct uio *uio __unused,
 	return (ENODEV);
 }
 
-static __inline void
+static inline void
 tcp_log_dev_rotate_bufs(struct tcp_log_dev_info *priv, int *lockstate)
 {
 	struct tcp_log_dev_queue *entry;

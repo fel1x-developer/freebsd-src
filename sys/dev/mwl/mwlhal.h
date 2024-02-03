@@ -122,7 +122,7 @@ int	mwl_hal_getchannelinfo(struct mwl_hal *, int band, int chw,
 /*
  * Return the current ISR setting and clear the cause.
  */
-static __inline void
+static inline void
 mwl_hal_getisr(struct mwl_hal *mh, uint32_t *status)
 {
 #define MACREG_REG_A2H_INTERRUPT_CAUSE      	0x00000C30 // (From ARM to host)
@@ -153,7 +153,7 @@ void	mwl_hal_intrset(struct mwl_hal *mh, uint32_t mask);
  * for processing.  The driver says what h/w q has work in
  * case the f/w ever gets smarter.
  */
-static __inline void
+static inline void
 mwl_hal_txstart(struct mwl_hal *mh, int qnum)
 {
 #define MACREG_REG_H2A_INTERRUPT_EVENTS     	0x00000C18 // (From host to ARM)

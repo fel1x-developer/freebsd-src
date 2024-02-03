@@ -286,7 +286,7 @@ struct g_journal_metadata {
 	uint64_t	md_provsize;	/* Provider's size. */
 	u_char		md_hash[16];	/* MD5 hash. */
 };
-static __inline void
+static inline void
 journal_metadata_encode(struct g_journal_metadata *md, u_char *data)
 {
 	MD5_CTX ctx;
@@ -307,7 +307,7 @@ journal_metadata_encode(struct g_journal_metadata *md, u_char *data)
 	MD5Final(md->md_hash, &ctx);
 	bcopy(md->md_hash, data + 85, 16);
 }
-static __inline int
+static inline int
 journal_metadata_decode_v0(const u_char *data, struct g_journal_metadata *md)
 {
 	MD5_CTX ctx;
@@ -328,7 +328,7 @@ journal_metadata_decode_v0(const u_char *data, struct g_journal_metadata *md)
 		return (EINVAL);
 	return (0);
 }
-static __inline int
+static inline int
 journal_metadata_decode(const u_char *data, struct g_journal_metadata *md)
 {
 	int error;
@@ -346,7 +346,7 @@ journal_metadata_decode(const u_char *data, struct g_journal_metadata *md)
 	return (error);
 }
 
-static __inline void
+static inline void
 journal_metadata_dump(const struct g_journal_metadata *md)
 {
 	static const char hex[] = "0123456789abcdef";

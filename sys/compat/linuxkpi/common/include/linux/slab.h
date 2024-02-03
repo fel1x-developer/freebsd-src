@@ -203,7 +203,7 @@ kfree(const void *ptr)
 		free(__DECONST(void *, ptr), M_KMALLOC);
 }
 
-static __inline void
+static inline void
 kfree_sensitive(const void *ptr)
 {
 	if (ZERO_OR_NULL_PTR(ptr))

@@ -189,13 +189,13 @@ static u_int16_t ofwfb_static_window[ROW*COL];
 
 static struct ofwfb_softc ofwfb_softc;
 
-static __inline int
+static inline int
 ofwfb_background(uint8_t attr)
 {
 	return (attr >> 4);
 }
 
-static __inline int
+static inline int
 ofwfb_foreground(uint8_t attr)
 {
 	return (attr & 0x0f);

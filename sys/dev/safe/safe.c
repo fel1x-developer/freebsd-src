@@ -1433,21 +1433,21 @@ safe_rng_init(struct safe_softc *sc)
 	} while (++i < SAFE_RNG_MAXWAIT);
 }
 
-static __inline void
+static inline void
 safe_rng_disable_short_cycle(struct safe_softc *sc)
 {
 	WRITE_REG(sc, SAFE_RNG_CTRL,
 		READ_REG(sc, SAFE_RNG_CTRL) &~ SAFE_RNG_CTRL_SHORTEN);
 }
 
-static __inline void
+static inline void
 safe_rng_enable_short_cycle(struct safe_softc *sc)
 {
 	WRITE_REG(sc, SAFE_RNG_CTRL, 
 		READ_REG(sc, SAFE_RNG_CTRL) | SAFE_RNG_CTRL_SHORTEN);
 }
 
-static __inline u_int32_t
+static inline u_int32_t
 safe_rng_read(struct safe_softc *sc)
 {
 	int i;

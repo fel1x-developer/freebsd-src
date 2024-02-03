@@ -103,7 +103,7 @@ enum {
  * return  DROP if it is time to drop or  ENQUE otherwise.
  * This function is used by PIE and FQ-PIE.
  */
-__inline static int
+inline static int
 drop_early(struct pie_status *pst, uint32_t qlen)
 {
 	struct dn_aqm_pie_parms *pprms;

@@ -455,7 +455,7 @@ static char *aclevel_string[] = {
     "_AC5", "_AC6", "_AC7", "_AC8", "_AC9"
 };
 
-static __inline const char *
+static inline const char *
 acpi_tz_aclevel_string(int active)
 {
     if (active < -1 || active >= TZ_NUMLEVELS)

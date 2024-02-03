@@ -318,13 +318,13 @@ vm_offset_t kernel_vm_end = 0;
  * Data for the pv entry allocation mechanism.
  */
 #ifdef NUMA
-static __inline int
+static inline int
 pc_to_domain(struct pv_chunk *pc)
 {
 	return (vm_phys_domain(DMAP_TO_PHYS((vm_offset_t)pc)));
 }
 #else
-static __inline int
+static inline int
 pc_to_domain(struct pv_chunk *pc __unused)
 {
 	return (0);
@@ -500,7 +500,7 @@ static void _pmap_unwire_l3(pmap_t pmap, vm_offset_t va, vm_page_t m,
 static int pmap_unuse_pt(pmap_t, vm_offset_t, pd_entry_t, struct spglist *);
 static void pmap_update_entry(pmap_t pmap, pd_entry_t *pte, pd_entry_t newpte,
     vm_offset_t va, vm_size_t size);
-static __inline vm_page_t pmap_remove_pt_page(pmap_t pmap, vm_offset_t va);
+static inline vm_page_t pmap_remove_pt_page(pmap_t pmap, vm_offset_t va);
 
 static uma_zone_t pmap_bti_ranges_zone;
 static bool pmap_bti_same(pmap_t pmap, vm_offset_t sva, vm_offset_t eva);
@@ -528,21 +528,21 @@ static void pmap_bti_deassign_all(pmap_t pmap);
 /* Inline functions */
 /********************/
 
-static __inline void
+static inline void
 pagecopy(void *s, void *d)
 {
 
 	memcpy(d, s, PAGE_SIZE);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l0(pmap_t pmap, vm_offset_t va)
 {
 
 	return (&pmap->pm_l0[pmap_l0_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l0_to_l1(pd_entry_t *l0, vm_offset_t va)
 {
 	pd_entry_t *l1;
@@ -551,7 +551,7 @@ pmap_l0_to_l1(pd_entry_t *l0, vm_offset_t va)
 	return (&l1[pmap_l1_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l1(pmap_t pmap, vm_offset_t va)
 {
 	pd_entry_t *l0;
@@ -563,7 +563,7 @@ pmap_l1(pmap_t pmap, vm_offset_t va)
 	return (pmap_l0_to_l1(l0, va));
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l1_to_l2(pd_entry_t *l1p, vm_offset_t va)
 {
 	pd_entry_t l1, *l2p;
@@ -584,7 +584,7 @@ pmap_l1_to_l2(pd_entry_t *l1p, vm_offset_t va)
 	return (&l2p[pmap_l2_index(va)]);
 }
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_l2(pmap_t pmap, vm_offset_t va)
 {
 	pd_entry_t *l1;
@@ -596,7 +596,7 @@ pmap_l2(pmap_t pmap, vm_offset_t va)
 	return (pmap_l1_to_l2(l1, va));
 }
 
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_l2_to_l3(pd_entry_t *l2p, vm_offset_t va)
 {
 	pd_entry_t l2;
@@ -622,7 +622,7 @@ pmap_l2_to_l3(pd_entry_t *l2p, vm_offset_t va)
  * Returns the lowest valid pde for a given virtual address.
  * The next level may or may not point to a valid page or block.
  */
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_pde(pmap_t pmap, vm_offset_t va, int *level)
 {
 	pd_entry_t *l0, *l1, *l2, desc;
@@ -657,7 +657,7 @@ pmap_pde(pmap_t pmap, vm_offset_t va, int *level)
  * address. If there are no valid entries return NULL and set the level to
  * the first invalid level.
  */
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_pte(pmap_t pmap, vm_offset_t va, int *level)
 {
 	pd_entry_t *l1, *l2, desc;
@@ -819,7 +819,7 @@ pmap_get_tables(pmap_t pmap, vm_offset_t va, pd_entry_t **l0, pd_entry_t **l1,
 	return (true);
 }
 
-static __inline int
+static inline int
 pmap_l3_valid(pt_entry_t l3)
 {
 
@@ -901,7 +901,7 @@ pmap_pte_dirty(pmap_t pmap, pt_entry_t pte)
 	    ATTR_S2_S2AP(ATTR_S2_S2AP_WRITE));
 }
 
-static __inline void
+static inline void
 pmap_resident_count_inc(pmap_t pmap, int count)
 {
 
@@ -909,7 +909,7 @@ pmap_resident_count_inc(pmap_t pmap, int count)
 	pmap->pm_stats.resident_count += count;
 }
 
-static __inline void
+static inline void
 pmap_resident_count_dec(pmap_t pmap, int count)
 {
 
@@ -1698,7 +1698,7 @@ SYSCTL_ULONG(_vm_pmap_l3c, OID_AUTO, mappings, CTLFLAG_RD,
  * any cached final-level entry, i.e., either an L{1,2}_BLOCK or L3_PAGE entry.
  * Otherwise, just the cached final-level entry is invalidated.
  */
-static __inline void
+static inline void
 pmap_s1_invalidate_kernel(uint64_t r, bool final_only)
 {
 	if (final_only)
@@ -1707,7 +1707,7 @@ pmap_s1_invalidate_kernel(uint64_t r, bool final_only)
 		__asm __volatile("tlbi vaae1is, %0" : : "r" (r));
 }
 
-static __inline void
+static inline void
 pmap_s1_invalidate_user(uint64_t r, bool final_only)
 {
 	if (final_only)
@@ -1720,7 +1720,7 @@ pmap_s1_invalidate_user(uint64_t r, bool final_only)
  * Invalidates any cached final- and optionally intermediate-level TLB entries
  * for the specified virtual address in the given virtual address space.
  */
-static __inline void
+static inline void
 pmap_s1_invalidate_page(pmap_t pmap, vm_offset_t va, bool final_only)
 {
 	uint64_t r;
@@ -1739,7 +1739,7 @@ pmap_s1_invalidate_page(pmap_t pmap, vm_offset_t va, bool final_only)
 	isb();
 }
 
-static __inline void
+static inline void
 pmap_s2_invalidate_page(pmap_t pmap, vm_offset_t va, bool final_only)
 {
 	PMAP_ASSERT_STAGE2(pmap);
@@ -1748,7 +1748,7 @@ pmap_s2_invalidate_page(pmap_t pmap, vm_offset_t va, bool final_only)
 	    final_only);
 }
 
-static __inline void
+static inline void
 pmap_invalidate_page(pmap_t pmap, vm_offset_t va, bool final_only)
 {
 	if (pmap->pm_stage == PM_STAGE1)
@@ -1761,7 +1761,7 @@ pmap_invalidate_page(pmap_t pmap, vm_offset_t va, bool final_only)
  * Invalidates any cached final- and optionally intermediate-level TLB entries
  * for the specified virtual address range in the given virtual address space.
  */
-static __inline void
+static inline void
 pmap_s1_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva,
     bool final_only)
 {
@@ -1786,7 +1786,7 @@ pmap_s1_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva,
 	isb();
 }
 
-static __inline void
+static inline void
 pmap_s2_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva,
     bool final_only)
 {
@@ -1795,7 +1795,7 @@ pmap_s2_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva,
 	pmap_stage2_invalidate_range(pmap_to_ttbr0(pmap), sva, eva, final_only);
 }
 
-static __inline void
+static inline void
 pmap_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva,
     bool final_only)
 {
@@ -1809,7 +1809,7 @@ pmap_invalidate_range(pmap_t pmap, vm_offset_t sva, vm_offset_t eva,
  * Invalidates all cached intermediate- and final-level TLB entries for the
  * given virtual address space.
  */
-static __inline void
+static inline void
 pmap_s1_invalidate_all(pmap_t pmap)
 {
 	uint64_t r;
@@ -1827,7 +1827,7 @@ pmap_s1_invalidate_all(pmap_t pmap)
 	isb();
 }
 
-static __inline void
+static inline void
 pmap_s2_invalidate_all(pmap_t pmap)
 {
 	PMAP_ASSERT_STAGE2(pmap);
@@ -1835,7 +1835,7 @@ pmap_s2_invalidate_all(pmap_t pmap)
 	pmap_stage2_invalidate_all(pmap_to_ttbr0(pmap));
 }
 
-static __inline void
+static inline void
 pmap_invalidate_all(pmap_t pmap)
 {
 	if (pmap->pm_stage == PM_STAGE1)
@@ -2337,7 +2337,7 @@ pmap_qremove(vm_offset_t sva, int count)
  * add the page to the specified list of pages that will be released to the
  * physical memory manager after the TLB has been updated.
  */
-static __inline void
+static inline void
 pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
 {
 
@@ -3434,7 +3434,7 @@ retry:
  * otherwise.  This operation can be performed on pv lists for either 4KB or
  * 2MB page mappings.
  */
-static __inline pv_entry_t
+static inline pv_entry_t
 pmap_pvh_remove(struct md_page *pvh, pmap_t pmap, vm_offset_t va)
 {
 	pv_entry_t pv;
@@ -4477,7 +4477,7 @@ pmap_disable_promotion(vm_offset_t sva, vm_size_t size)
  * valid mappings with identical attributes including ATTR_AF; "mpte"'s valid
  * field will be set to VM_PAGE_BITS_ALL.
  */
-static __inline int
+static inline int
 pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte, bool promoted,
     bool all_l3e_AF_set)
 {
@@ -4495,7 +4495,7 @@ pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte, bool promoted,
  * Otherwise, returns NULL if there is no page table page corresponding to the
  * specified virtual address.
  */
-static __inline vm_page_t
+static inline vm_page_t
 pmap_remove_pt_page(pmap_t pmap, vm_offset_t va)
 {
 

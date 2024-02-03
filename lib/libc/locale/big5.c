@@ -86,7 +86,7 @@ _BIG5_mbsinit(const mbstate_t *ps)
 	return (ps == NULL || ((const _BIG5State *)ps)->ch == 0);
 }
 
-static __inline int
+static inline int
 _big5_check(u_int c)
 {
 

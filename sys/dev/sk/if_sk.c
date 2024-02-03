@@ -199,8 +199,8 @@ static void sk_intr(void *);
 static void sk_intr_xmac(struct sk_if_softc *);
 static void sk_intr_bcom(struct sk_if_softc *);
 static void sk_intr_yukon(struct sk_if_softc *);
-static __inline void sk_rxcksum(if_t, struct mbuf *, u_int32_t);
-static __inline int sk_rxvalid(struct sk_softc *, u_int32_t, u_int32_t);
+static inline void sk_rxcksum(if_t, struct mbuf *, u_int32_t);
+static inline int sk_rxvalid(struct sk_softc *, u_int32_t, u_int32_t);
 static void sk_rxeof(struct sk_if_softc *);
 static void sk_jumbo_rxeof(struct sk_if_softc *);
 static void sk_txeof(struct sk_if_softc *);
@@ -218,8 +218,8 @@ static void sk_watchdog(void *);
 static int sk_ifmedia_upd(if_t);
 static void sk_ifmedia_sts(if_t, struct ifmediareq *);
 static void sk_reset(struct sk_softc *);
-static __inline void sk_discard_rxbuf(struct sk_if_softc *, int);
-static __inline void sk_discard_jumbo_rxbuf(struct sk_if_softc *, int);
+static inline void sk_discard_rxbuf(struct sk_if_softc *, int);
+static inline void sk_discard_jumbo_rxbuf(struct sk_if_softc *, int);
 static int sk_newbuf(struct sk_if_softc *, int);
 static int sk_jumbo_newbuf(struct sk_if_softc *, int);
 static void sk_dmamap_cb(void *, bus_dma_segment_t *, int, int);
@@ -881,7 +881,7 @@ sk_init_tx_ring(struct sk_if_softc *sc_if)
 	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 }
 
-static __inline void
+static inline void
 sk_discard_rxbuf(struct sk_if_softc *sc_if, int idx)
 {
 	struct sk_rx_desc	*r;
@@ -894,7 +894,7 @@ sk_discard_rxbuf(struct sk_if_softc *sc_if, int idx)
 	r->sk_ctl = htole32(m->m_len | SK_RXSTAT | SK_OPCODE_CSUM);
 }
 
-static __inline void
+static inline void
 sk_discard_jumbo_rxbuf(struct sk_if_softc *sc_if, int idx)
 {
 	struct sk_rx_desc	*r;
@@ -2575,7 +2575,7 @@ skc_resume(device_t dev)
  * of the hardware in question please contact yongari@FreeBSD.org to add
  * TCP/UDP checksum offload support.
  */
-static __inline void
+static inline void
 sk_rxcksum(if_t ifp, struct mbuf *m, u_int32_t csum)
 {
 	struct ether_header	*eh;
@@ -2624,7 +2624,7 @@ sk_rxcksum(if_t ifp, struct mbuf *m, u_int32_t csum)
 		m->m_pkthdr.csum_flags |= CSUM_IP_VALID;
 }
 
-static __inline int
+static inline int
 sk_rxvalid(struct sk_softc *sc, u_int32_t stat, u_int32_t len)
 {
 

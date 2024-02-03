@@ -196,7 +196,7 @@ static int         atiixp_chan_setfragments(kobj_t, void *, uint32_t, uint32_t);
 static uint32_t    atiixp_chan_setblocksize(kobj_t, void *, uint32_t);
 static void   atiixp_buildsgdt(struct atiixp_chinfo *);
 static int    atiixp_chan_trigger(kobj_t, void *, int);
-static __inline uint32_t atiixp_dmapos(struct atiixp_chinfo *);
+static inline uint32_t atiixp_dmapos(struct atiixp_chinfo *);
 static uint32_t          atiixp_chan_getptr(kobj_t, void *);
 static struct pcmchan_caps *atiixp_chan_getcaps(kobj_t, void *);
 
@@ -602,7 +602,7 @@ atiixp_buildsgdt(struct atiixp_chinfo *ch)
 	}
 }
 
-static __inline uint32_t
+static inline uint32_t
 atiixp_dmapos(struct atiixp_chinfo *ch)
 {
 	struct atiixp_info *sc = ch->parent;
@@ -657,7 +657,7 @@ atiixp_dmapos(struct atiixp_chinfo *ch)
 	return (0);
 }
 
-static __inline int
+static inline int
 atiixp_poll_channel(struct atiixp_chinfo *ch)
 {
 	uint32_t sz, delta;

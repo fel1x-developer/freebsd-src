@@ -88,7 +88,7 @@
 #include <sys/smp.h>
 #include <sys/sched.h>
 
-static __inline int qlnx_ms_to_hz(int ms)
+static inline int qlnx_ms_to_hz(int ms)
 {
 	int qlnx_hz;
 
@@ -107,7 +107,7 @@ static __inline int qlnx_ms_to_hz(int ms)
 	return (qlnx_hz);
 }
 
-static __inline int qlnx_sec_to_hz(int sec)
+static inline int qlnx_sec_to_hz(int sec)
 {
 	struct timeval t;
 

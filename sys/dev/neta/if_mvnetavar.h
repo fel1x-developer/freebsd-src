@@ -172,7 +172,7 @@ struct mvneta_tx_ring {
 	uint32_t			drv_error;
 } __aligned(CACHE_LINE_SIZE);
 
-static __inline int
+static inline int
 tx_counter_adv(int ctr, int n)
 {
 
@@ -183,7 +183,7 @@ tx_counter_adv(int ctr, int n)
 	return (ctr);
 }
 
-static __inline int
+static inline int
 rx_counter_adv(int ctr, int n)
 {
 

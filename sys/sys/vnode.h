@@ -592,7 +592,7 @@ void	assert_vop_unlocked(struct vnode *vp, const char *str);
 
 extern int vmiodirenable;
 
-static __inline int
+static inline int
 vn_canvmio(struct vnode *vp)
 {
       if (vp && (vp->v_type == VREG || (vmiodirenable && vp->v_type == VDIR)))
@@ -1064,7 +1064,7 @@ void	vrele(struct vnode *vp);
 void	vref(struct vnode *vp);
 void	vrefact(struct vnode *vp);
 void 	v_addpollinfo(struct vnode *vp);
-static __inline int
+static inline int
 vrefcnt(struct vnode *vp)
 {
 

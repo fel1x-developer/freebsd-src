@@ -89,13 +89,13 @@ struct pctrie_node {
 
 enum pctrie_access { PCTRIE_SMR, PCTRIE_LOCKED, PCTRIE_UNSERIALIZED };
 
-static __inline void pctrie_node_store(smr_pctnode_t *p, void *val,
+static inline void pctrie_node_store(smr_pctnode_t *p, void *val,
     enum pctrie_access access);
 
 /*
  * Map index to an array position for the children of node,
  */
-static __inline int
+static inline int
 pctrie_slot(struct pctrie_node *node, uint64_t index)
 {
 	return ((index >> node->pn_clev) & PCTRIE_MASK);
@@ -105,7 +105,7 @@ pctrie_slot(struct pctrie_node *node, uint64_t index)
  * Returns true if index does not belong to the specified node.  Otherwise,
  * sets slot value, and returns false.
  */
-static __inline bool
+static inline bool
 pctrie_keybarr(struct pctrie_node *node, uint64_t index, int *slot)
 {
 	index = (index - node->pn_owner) >> node->pn_clev;
@@ -118,7 +118,7 @@ pctrie_keybarr(struct pctrie_node *node, uint64_t index, int *slot)
 /*
  * Check radix node.
  */
-static __inline void
+static inline void
 pctrie_node_put(struct pctrie_node *node)
 {
 #ifdef INVARIANTS
@@ -140,7 +140,7 @@ pctrie_node_put(struct pctrie_node *node)
 /*
  * Fetch a node pointer from a slot.
  */
-static __inline struct pctrie_node *
+static inline struct pctrie_node *
 pctrie_node_load(smr_pctnode_t *p, smr_t smr, enum pctrie_access access)
 {
 	switch (access) {
@@ -154,7 +154,7 @@ pctrie_node_load(smr_pctnode_t *p, smr_t smr, enum pctrie_access access)
 	__assert_unreachable();
 }
 
-static __inline void
+static inline void
 pctrie_node_store(smr_pctnode_t *p, void *v, enum pctrie_access access)
 {
 	switch (access) {
@@ -176,7 +176,7 @@ pctrie_node_store(smr_pctnode_t *p, void *v, enum pctrie_access access)
 /*
  * Get the root node for a tree.
  */
-static __inline struct pctrie_node *
+static inline struct pctrie_node *
 pctrie_root_load(struct pctrie *ptree, smr_t smr, enum pctrie_access access)
 {
 	return (pctrie_node_load((smr_pctnode_t *)&ptree->pt_root, smr, access));
@@ -185,7 +185,7 @@ pctrie_root_load(struct pctrie *ptree, smr_t smr, enum pctrie_access access)
 /*
  * Set the root node for a tree.
  */
-static __inline void
+static inline void
 pctrie_root_store(struct pctrie *ptree, struct pctrie_node *node,
     enum pctrie_access access)
 {
@@ -195,7 +195,7 @@ pctrie_root_store(struct pctrie *ptree, struct pctrie_node *node,
 /*
  * Returns TRUE if the specified node is a leaf and FALSE otherwise.
  */
-static __inline bool
+static inline bool
 pctrie_isleaf(struct pctrie_node *node)
 {
 
@@ -205,7 +205,7 @@ pctrie_isleaf(struct pctrie_node *node)
 /*
  * Returns val with leaf bit set.
  */
-static __inline void *
+static inline void *
 pctrie_toleaf(uint64_t *val)
 {
 	return ((void *)((uintptr_t)val | PCTRIE_ISLEAF));
@@ -214,7 +214,7 @@ pctrie_toleaf(uint64_t *val)
 /*
  * Returns the associated val extracted from node.
  */
-static __inline uint64_t *
+static inline uint64_t *
 pctrie_toval(struct pctrie_node *node)
 {
 
@@ -224,7 +224,7 @@ pctrie_toval(struct pctrie_node *node)
 /*
  * Make 'child' a child of 'node'.
  */
-static __inline void
+static inline void
 pctrie_addnode(struct pctrie_node *node, uint64_t index,
     struct pctrie_node *child, enum pctrie_access access)
 {

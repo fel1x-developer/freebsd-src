@@ -58,7 +58,7 @@ __BEGIN_DECLS
 int	__xuname(int, void *);		/* Variable record size. */
 __END_DECLS
 
-static __inline int
+static inline int
 uname(struct utsname *name)
 {
 	return __xuname(SYS_NMLN, (void *)name);

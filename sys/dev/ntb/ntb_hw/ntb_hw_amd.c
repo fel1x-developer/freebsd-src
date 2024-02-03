@@ -131,7 +131,7 @@ SYSCTL_UINT(_hw_ntb, OID_AUTO, debug_level, CTLFLAG_RWTUN,
 } while (0)
 
 #ifdef __i386__
-static __inline uint64_t
+static inline uint64_t
 bus_space_read_8(bus_space_tag_t tag, bus_space_handle_t handle,
     bus_size_t offset)
 {
@@ -140,7 +140,7 @@ bus_space_read_8(bus_space_tag_t tag, bus_space_handle_t handle,
 	    ((uint64_t)bus_space_read_4(tag, handle, offset + 4)) << 32);
 }
 
-static __inline void
+static inline void
 bus_space_write_8(bus_space_tag_t tag, bus_space_handle_t handle,
     bus_size_t offset, uint64_t val)
 {

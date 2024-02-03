@@ -361,7 +361,7 @@ next:	m = q->mq.head;
 /* 
  * Initiate PIE  variable and optionally activate it
  */
-__inline static void
+inline static void
 init_activate_pie(struct pie_status *pst, int resettimer)
 {
 	struct dn_aqm_pie_parms *pprms;
@@ -390,7 +390,7 @@ init_activate_pie(struct pie_status *pst, int resettimer)
 /* 
  * Deactivate PIE and stop probe update callout 
  */
-__inline static void
+inline static void
 deactivate_pie(struct pie_status *pst)
 {
 	mtx_lock(&pst->lock_mtx);

@@ -102,7 +102,7 @@ ksched_detach(struct ksched *ks)
 #define P1B_PRIO_MIN rtpprio_to_p4prio(RTP_PRIO_MAX)
 #define P1B_PRIO_MAX rtpprio_to_p4prio(RTP_PRIO_MIN)
 
-static __inline int
+static inline int
 getscheduler(struct ksched *ksched, struct thread *td, int *policy)
 {
 	struct rtprio rtp;

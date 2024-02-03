@@ -71,9 +71,9 @@ VNET_DEFINE(struct pf_keth_ruleset*,	pf_keth);
 VNET_DEFINE(struct pf_keth_anchor,	pf_main_keth_anchor);
 VNET_DEFINE(struct pf_keth_anchor_global,	 pf_keth_anchors);
 
-static __inline int		pf_kanchor_compare(struct pf_kanchor *,
+static inline int		pf_kanchor_compare(struct pf_kanchor *,
 				    struct pf_kanchor *);
-static __inline int		pf_keth_anchor_compare(struct pf_keth_anchor *,
+static inline int		pf_keth_anchor_compare(struct pf_keth_anchor *,
 				    struct pf_keth_anchor *);
 static struct pf_kanchor	*pf_find_kanchor(const char *);
 
@@ -84,7 +84,7 @@ RB_GENERATE(pf_keth_anchor_global, pf_keth_anchor, entry_global,
 RB_GENERATE(pf_keth_anchor_node, pf_keth_anchor, entry_node,
     pf_keth_anchor_compare);
 
-static __inline int
+static inline int
 pf_kanchor_compare(struct pf_kanchor *a, struct pf_kanchor *b)
 {
 	int c = strcmp(a->path, b->path);
@@ -92,7 +92,7 @@ pf_kanchor_compare(struct pf_kanchor *a, struct pf_kanchor *b)
 	return (c ? (c < 0 ? -1 : 1) : 0);
 }
 
-static __inline int
+static inline int
 pf_keth_anchor_compare(struct pf_keth_anchor *a, struct pf_keth_anchor *b)
 {
 	int c = strcmp(a->path, b->path);

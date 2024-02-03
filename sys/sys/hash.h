@@ -42,7 +42,7 @@
  * value should be 0, or the previous hash value to extend
  * the previous hash.
  */
-static __inline uint32_t
+static inline uint32_t
 hash32_buf(const void *buf, size_t len, uint32_t hash)
 {
 	const unsigned char *p = buf;
@@ -56,7 +56,7 @@ hash32_buf(const void *buf, size_t len, uint32_t hash)
 /*
  * Return a 32-bit hash of the given string.
  */
-static __inline uint32_t
+static inline uint32_t
 hash32_str(const void *buf, uint32_t hash)
 {
 	const unsigned char *p = buf;
@@ -70,7 +70,7 @@ hash32_str(const void *buf, uint32_t hash)
 /*
  * Return a 32-bit hash of the given string, limited by N.
  */
-static __inline uint32_t
+static inline uint32_t
 hash32_strn(const void *buf, size_t len, uint32_t hash)
 {
 	const unsigned char *p = buf;
@@ -86,7 +86,7 @@ hash32_strn(const void *buf, size_t len, uint32_t hash)
  * (as well as 0).  This is mainly here as a helper for the
  * namei() hashing of path name parts.
  */
-static __inline uint32_t
+static inline uint32_t
 hash32_stre(const void *buf, int end, const char **ep, uint32_t hash)
 {
 	const unsigned char *p = buf;
@@ -105,7 +105,7 @@ hash32_stre(const void *buf, int end, const char **ep, uint32_t hash)
  * and terminated by C (as well as 0).  This is mainly here
  * as a helper for the namei() hashing of path name parts.
  */
-static __inline uint32_t
+static inline uint32_t
 hash32_strne(const void *buf, size_t len, int end, const char **ep,
     uint32_t hash)
 {

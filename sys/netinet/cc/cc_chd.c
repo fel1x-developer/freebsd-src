@@ -142,7 +142,7 @@ struct cc_algo chd_cc_algo = {
 	.post_recovery = newreno_cc_post_recovery,
 };
 
-static __inline void
+static inline void
 chd_window_decrease(struct cc_var *ccv)
 {
 	unsigned long win;
@@ -156,7 +156,7 @@ chd_window_decrease(struct cc_var *ccv)
  * Probabilistic backoff function. Returns 1 if we should backoff or 0
  * otherwise. The calculation of p is similar to the calculation of p in cc_hd.
  */
-static __inline int
+static inline int
 should_backoff(int qdly, int maxqdly, struct chd *chd_data)
 {
 	unsigned long p, rand;
@@ -184,7 +184,7 @@ should_backoff(int qdly, int maxqdly, struct chd *chd_data)
 	return (rand < p);
 }
 
-static __inline void
+static inline void
 chd_window_increase(struct cc_var *ccv, int new_measurement)
 {
 	struct chd *chd_data;

@@ -593,13 +593,13 @@ int	bus_child_location(device_t child, struct sbuf *sb);
 void	bus_enumerate_hinted_children(device_t bus);
 int	bus_delayed_attach_children(device_t bus);
 
-static __inline struct resource *
+static inline struct resource *
 bus_alloc_resource_any(device_t dev, int type, int *rid, u_int flags)
 {
 	return (bus_alloc_resource(dev, type, rid, 0, ~0, 1, flags));
 }
 
-static __inline struct resource *
+static inline struct resource *
 bus_alloc_resource_anywhere(device_t dev, int type, int *rid,
     rman_res_t count, u_int flags)
 {
@@ -894,7 +894,7 @@ DECLARE_MODULE(name##_##busname, name##_##busname##_mod,		\
  */
 #define __BUS_ACCESSOR(varp, var, ivarp, ivar, type)			\
 									\
-static __inline type varp ## _get_ ## var(device_t dev)			\
+static inline type varp ## _get_ ## var(device_t dev)			\
 {									\
 	uintptr_t v;							\
 	int e __diagused;						\
@@ -906,7 +906,7 @@ static __inline type varp ## _get_ ## var(device_t dev)			\
 	return ((type) v);						\
 }									\
 									\
-static __inline void varp ## _set_ ## var(device_t dev, type t)		\
+static inline void varp ## _set_ ## var(device_t dev, type t)		\
 {									\
 	uintptr_t v = (uintptr_t) t;					\
 	int e __diagused;						\

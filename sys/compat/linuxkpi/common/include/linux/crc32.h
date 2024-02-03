@@ -33,7 +33,7 @@
 
 #include <sys/gsb_crc32.h>
 
-static __inline uint32_t
+static inline uint32_t
 crc32_le(uint32_t crc, const void *data, size_t len)
 {
 

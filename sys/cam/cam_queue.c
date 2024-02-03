@@ -293,7 +293,7 @@ cam_ccbq_fini(struct cam_ccbq *ccbq)
  * and j, return less than 0, 0, or greater than 0 if i is less than,
  * equal too, or greater than j respectively.
  */
-static __inline int
+static inline int
 queue_cmp(cam_pinfo **queue_array, int i, int j)
 {
 	if (queue_array[i]->priority == queue_array[j]->priority)
@@ -308,7 +308,7 @@ queue_cmp(cam_pinfo **queue_array, int i, int j)
  * swap: Given an array of cam_pinfo* elements and indexes i and j,
  * exchange elements i and j.
  */
-static __inline void
+static inline void
 swap(cam_pinfo **queue_array, int i, int j)
 {
 	cam_pinfo *temp_qentry;

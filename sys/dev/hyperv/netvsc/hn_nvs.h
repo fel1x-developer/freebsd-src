@@ -48,7 +48,7 @@ struct hn_nvs_sendctx {
 	.hn_cbarg	= cbarg			\
 }
 
-static __inline void
+static inline void
 hn_nvs_sendctx_init(struct hn_nvs_sendctx *sndc, hn_nvs_sent_t cb, void *cbarg)
 {
 
@@ -56,7 +56,7 @@ hn_nvs_sendctx_init(struct hn_nvs_sendctx *sndc, hn_nvs_sent_t cb, void *cbarg)
 	sndc->hn_cbarg = cbarg;
 }
 
-static __inline int
+static inline int
 hn_nvs_send(struct vmbus_channel *chan, uint16_t flags,
     void *nvs_msg, int nvs_msglen, struct hn_nvs_sendctx *sndc)
 {
@@ -65,7 +65,7 @@ hn_nvs_send(struct vmbus_channel *chan, uint16_t flags,
 	    nvs_msg, nvs_msglen, (uint64_t)(uintptr_t)sndc));
 }
 
-static __inline int
+static inline int
 hn_nvs_send_sglist(struct vmbus_channel *chan, struct vmbus_gpa sg[], int sglen,
     void *nvs_msg, int nvs_msglen, struct hn_nvs_sendctx *sndc)
 {
@@ -74,7 +74,7 @@ hn_nvs_send_sglist(struct vmbus_channel *chan, struct vmbus_gpa sg[], int sglen,
 	    (uint64_t)(uintptr_t)sndc));
 }
 
-static __inline int
+static inline int
 hn_nvs_send_rndis_sglist(struct vmbus_channel *chan, uint32_t rndis_mtype,
     struct hn_nvs_sendctx *sndc, struct vmbus_gpa *gpa, int gpa_cnt)
 {

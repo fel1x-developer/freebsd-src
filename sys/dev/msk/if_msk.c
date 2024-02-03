@@ -268,14 +268,14 @@ static void msk_tick(void *);
 static void msk_intr(void *);
 static void msk_intr_phy(struct msk_if_softc *);
 static void msk_intr_gmac(struct msk_if_softc *);
-static __inline void msk_rxput(struct msk_if_softc *);
+static inline void msk_rxput(struct msk_if_softc *);
 static int msk_handle_events(struct msk_softc *);
 static void msk_handle_hwerr(struct msk_if_softc *, uint32_t);
 static void msk_intr_hwerr(struct msk_softc *);
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void msk_fixup_rx(struct mbuf *);
+static inline void msk_fixup_rx(struct mbuf *);
 #endif
-static __inline void msk_rxcsum(struct msk_if_softc *, uint32_t, struct mbuf *);
+static inline void msk_rxcsum(struct msk_if_softc *, uint32_t, struct mbuf *);
 static void msk_rxeof(struct msk_if_softc *, uint32_t, uint32_t, int);
 static void msk_jumbo_rxeof(struct msk_if_softc *, uint32_t, uint32_t, int);
 static void msk_txeof(struct msk_if_softc *, int);
@@ -304,8 +304,8 @@ static int msk_rx_fill(struct msk_if_softc *, int);
 static int msk_init_rx_ring(struct msk_if_softc *);
 static int msk_init_jumbo_rx_ring(struct msk_if_softc *);
 static void msk_init_tx_ring(struct msk_if_softc *);
-static __inline void msk_discard_rxbuf(struct msk_if_softc *, int);
-static __inline void msk_discard_jumbo_rxbuf(struct msk_if_softc *, int);
+static inline void msk_discard_rxbuf(struct msk_if_softc *, int);
+static inline void msk_discard_jumbo_rxbuf(struct msk_if_softc *, int);
 static int msk_newbuf(struct msk_if_softc *, int);
 static int msk_jumbo_newbuf(struct msk_if_softc *, int);
 
@@ -850,7 +850,7 @@ msk_init_tx_ring(struct msk_if_softc *sc_if)
 	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 }
 
-static __inline void
+static inline void
 msk_discard_rxbuf(struct msk_if_softc *sc_if, int idx)
 {
 	struct msk_rx_desc *rx_le;
@@ -869,7 +869,7 @@ msk_discard_rxbuf(struct msk_if_softc *sc_if, int idx)
 	rx_le->msk_control = htole32(m->m_len | OP_PACKET | HW_OWNER);
 }
 
-static __inline void
+static inline void
 msk_discard_jumbo_rxbuf(struct msk_if_softc *sc_if, int	idx)
 {
 	struct msk_rx_desc *rx_le;
@@ -3065,7 +3065,7 @@ mskc_resume(device_t dev)
 }
 
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void
+static inline void
 msk_fixup_rx(struct mbuf *m)
 {
         int i;
@@ -3081,7 +3081,7 @@ msk_fixup_rx(struct mbuf *m)
 }
 #endif
 
-static __inline void
+static inline void
 msk_rxcsum(struct msk_if_softc *sc_if, uint32_t control, struct mbuf *m)
 {
 	struct ether_header *eh;
@@ -3554,7 +3554,7 @@ msk_intr_hwerr(struct msk_softc *sc)
 		msk_handle_hwerr(sc->msk_if[MSK_PORT_B], status >> 8);
 }
 
-static __inline void
+static inline void
 msk_rxput(struct msk_if_softc *sc_if)
 {
 	struct msk_softc *sc;

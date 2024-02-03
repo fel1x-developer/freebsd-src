@@ -62,7 +62,7 @@
 static void	k6_mrinit(struct mem_range_softc *sc);
 static int	k6_mrset(struct mem_range_softc *, struct mem_range_desc *,
 		    int *);
-static __inline int k6_mrmake(struct mem_range_desc *, u_int32_t *);
+static inline int k6_mrmake(struct mem_range_desc *, u_int32_t *);
 static void	k6_mem_drvinit(void *);
 
 static struct mem_range_ops k6_mrops =
@@ -73,7 +73,7 @@ static struct mem_range_ops k6_mrops =
 	NULL
 };
 
-static __inline int
+static inline int
 k6_mrmake(struct mem_range_desc *desc, u_int32_t *mtrr)
 {
 	u_int32_t len = 0, wc, uc;

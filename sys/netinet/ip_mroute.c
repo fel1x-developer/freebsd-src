@@ -325,7 +325,7 @@ static int	get_vif_cnt(struct sioc_vif_req *);
 static void	if_detached_event(void *, struct ifnet *);
 static int	ip_mdq(struct mbuf *, struct ifnet *, struct mfc *, vifi_t);
 static int	ip_mrouter_init(struct socket *, int);
-static __inline struct mfc *
+static inline struct mfc *
 		mfc_find(struct in_addr *, struct in_addr *);
 static void	phyint_send(struct ip *, struct vif *, struct mbuf *);
 static struct mbuf *
@@ -364,7 +364,7 @@ static struct timeval pim_assert_interval = { 3, 0 };	/* Rate limit */
  * Find a route for a given origin IP address and multicast group address.
  * Statistics must be updated by the caller.
  */
-static __inline struct mfc *
+static inline struct mfc *
 mfc_find(struct in_addr *o, struct in_addr *g)
 {
 	struct mfc *rt;
@@ -386,7 +386,7 @@ mfc_find(struct in_addr *o, struct in_addr *g)
 	return (rt);
 }
 
-static __inline struct mfc *
+static inline struct mfc *
 mfc_alloc(void)
 {
 	struct mfc *rt;

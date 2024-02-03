@@ -92,7 +92,7 @@ static int		hn_rndis_conf_offload(struct hn_softc *, int);
 static int		hn_rndis_query_hwcaps(struct hn_softc *,
 			    struct ndis_offload *);
 
-static __inline uint32_t
+static inline uint32_t
 hn_rndis_rid(struct hn_softc *sc)
 {
 	uint32_t rid;

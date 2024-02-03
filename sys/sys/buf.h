@@ -414,7 +414,7 @@ struct vn_clusterw {
 
 #ifdef _KERNEL
 
-static __inline int
+static inline int
 bwrite(struct buf *bp)
 {
 
@@ -425,7 +425,7 @@ bwrite(struct buf *bp)
 	return (BO_WRITE(bp->b_bufobj, bp));
 }
 
-static __inline void
+static inline void
 bstrategy(struct buf *bp)
 {
 
@@ -437,7 +437,7 @@ bstrategy(struct buf *bp)
 	BO_STRATEGY(bp->b_bufobj, bp);
 }
 
-static __inline void
+static inline void
 buf_start(struct buf *bp)
 {
 	KASSERT((bp->b_flags & B_IOSTARTED) == 0,
@@ -447,7 +447,7 @@ buf_start(struct buf *bp)
 		(*bioops.io_start)(bp);
 }
 
-static __inline void
+static inline void
 buf_complete(struct buf *bp)
 {
 	if ((bp->b_flags & B_IOSTARTED) != 0) {
@@ -457,14 +457,14 @@ buf_complete(struct buf *bp)
 	}
 }
 
-static __inline void
+static inline void
 buf_deallocate(struct buf *bp)
 {
 	if (bioops.io_deallocate)
 		(*bioops.io_deallocate)(bp);
 }
 
-static __inline int
+static inline int
 buf_countdeps(struct buf *bp, int i)
 {
 	if (bioops.io_countdeps)
@@ -473,7 +473,7 @@ buf_countdeps(struct buf *bp, int i)
 		return (0);
 }
 
-static __inline void
+static inline void
 buf_track(struct buf *bp __unused, const char *location __unused)
 {
 

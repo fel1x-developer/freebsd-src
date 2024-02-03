@@ -94,7 +94,7 @@ struct ifid {
 
 MALLOC_DECLARE(M_UDFFENTRY);
 
-static __inline int
+static inline int
 udf_readdevblks(struct udf_mnt *udfmp, daddr_t sector, int size, struct buf **bp)
 {
 	if (size < 0 || size + udfmp->bmask < size)
@@ -111,7 +111,7 @@ udf_readdevblks(struct udf_mnt *udfmp, daddr_t sector, int size, struct buf **bp
  * XXX Assumes the ICB is a long_ad.  This struct is compatible with short_ad,
  *     but not ext_ad.
  */
-static __inline ino_t
+static inline ino_t
 udf_getid(struct long_ad *icb)
 {
 	return (le32toh(icb->loc.lb_num));

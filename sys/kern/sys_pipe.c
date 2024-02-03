@@ -225,8 +225,8 @@ static void pipeclose(struct pipe *cpipe);
 static void pipe_free_kmem(struct pipe *cpipe);
 static int pipe_create(struct pipe *pipe, bool backing);
 static int pipe_paircreate(struct thread *td, struct pipepair **p_pp);
-static __inline int pipelock(struct pipe *cpipe, int catch);
-static __inline void pipeunlock(struct pipe *cpipe);
+static inline int pipelock(struct pipe *cpipe, int catch);
+static inline void pipeunlock(struct pipe *cpipe);
 static void pipe_timestamp(struct timespec *tsp);
 #ifndef PIPE_NODIRECT
 static int pipe_build_write_buffer(struct pipe *wpipe, struct uio *uio);
@@ -632,7 +632,7 @@ pipespace(struct pipe *cpipe, int size)
 /*
  * lock a pipe for I/O, blocking other access
  */
-static __inline int
+static inline int
 pipelock(struct pipe *cpipe, int catch)
 {
 	int error, prio;
@@ -660,7 +660,7 @@ pipelock(struct pipe *cpipe, int catch)
 /*
  * unlock a pipe I/O lock
  */
-static __inline void
+static inline void
 pipeunlock(struct pipe *cpipe)
 {
 

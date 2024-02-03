@@ -847,7 +847,7 @@ acpi_hp_sysctl_set(struct acpi_hp_softc *sc, int method, int arg, int oldarg)
 	return (0);
 }
 
-static __inline void
+static inline void
 acpi_hp_free_buffer(ACPI_BUFFER* buf) {
 	if (buf && buf->Pointer) {
 		AcpiOsFree(buf->Pointer);
@@ -912,7 +912,7 @@ acpi_hp_exec_wmi_command(device_t wmi_dev, int command, int is_write,
 	return (res);
 }
 
-static __inline char*
+static inline char*
 acpi_hp_get_string_from_object(ACPI_OBJECT* obj, char* dst, size_t size) {
 	int	length;
 
@@ -1071,7 +1071,7 @@ acpi_hp_get_cmi_block(device_t wmi_dev, const char* guid, UINT8 instance,
  * by byteout.
  * Return != 0 if the was a problem (invalid input)
  */
-static __inline int acpi_hp_hex_to_int(const UINT8 *hexin, UINT8 *byteout)
+static inline int acpi_hp_hex_to_int(const UINT8 *hexin, UINT8 *byteout)
 {
 	unsigned int	hi;
 	unsigned int	lo;

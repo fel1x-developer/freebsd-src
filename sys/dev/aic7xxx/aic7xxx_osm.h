@@ -155,9 +155,9 @@ struct scb_platform_data {
 #define ahc_insb(ahc, port, valp, count)		\
 	bus_space_read_multi_1((ahc)->tag, (ahc)->bsh, port, valp, count)
 
-static __inline void ahc_flush_device_writes(struct ahc_softc *);
+static inline void ahc_flush_device_writes(struct ahc_softc *);
 
-static __inline void
+static inline void
 ahc_flush_device_writes(struct ahc_softc *ahc)
 {
 	/* XXX Is this sufficient for all architectures??? */
@@ -166,23 +166,23 @@ ahc_flush_device_writes(struct ahc_softc *ahc)
 
 /**************************** Locking Primitives ******************************/
 /* Lock protecting internal data structures */
-static __inline void ahc_lockinit(struct ahc_softc *);
-static __inline void ahc_lock(struct ahc_softc *);
-static __inline void ahc_unlock(struct ahc_softc *);
+static inline void ahc_lockinit(struct ahc_softc *);
+static inline void ahc_lock(struct ahc_softc *);
+static inline void ahc_unlock(struct ahc_softc *);
 
-static __inline void
+static inline void
 ahc_lockinit(struct ahc_softc *ahc)
 {
 	mtx_init(&ahc->platform_data->mtx, "ahc_lock", NULL, MTX_DEF);
 }
 
-static __inline void
+static inline void
 ahc_lock(struct ahc_softc *ahc)
 {
 	mtx_lock(&ahc->platform_data->mtx);
 }
 
-static __inline void
+static inline void
 ahc_unlock(struct ahc_softc *ahc)
 {
 	mtx_unlock(&ahc->platform_data->mtx);
@@ -204,9 +204,9 @@ int ahc_pci_map_registers(struct ahc_softc *ahc);
 
 /******************************** VL/EISA/ISA *********************************/
 int aic7770_map_registers(struct ahc_softc *ahc, u_int port);
-static __inline int aic7770_map_int(struct ahc_softc *, int);
+static inline int aic7770_map_int(struct ahc_softc *, int);
 
-static __inline int
+static inline int
 aic7770_map_int(struct ahc_softc *ahc, int irq)
 {
 	/*
@@ -219,16 +219,16 @@ aic7770_map_int(struct ahc_softc *ahc, int irq)
 }
 
 /********************************* Debug **************************************/
-static __inline void	ahc_print_path(struct ahc_softc *, struct scb *);
-static __inline void	ahc_platform_dump_card_state(struct ahc_softc *ahc);
+static inline void	ahc_print_path(struct ahc_softc *, struct scb *);
+static inline void	ahc_platform_dump_card_state(struct ahc_softc *ahc);
 
-static __inline void
+static inline void
 ahc_print_path(struct ahc_softc *ahc, struct scb *scb)
 {
 	xpt_print_path(scb->io_ctx->ccb_h.path);
 }
 
-static __inline void
+static inline void
 ahc_platform_dump_card_state(struct ahc_softc *ahc)
 {
 	/* Nothing to do here for FreeBSD */
@@ -241,8 +241,8 @@ void	  ahc_platform_set_tags(struct ahc_softc *, struct ahc_devinfo *,
 
 /****************************** Interrupts ************************************/
 void			ahc_platform_intr(void *);
-static __inline void	ahc_platform_flushwork(struct ahc_softc *ahc);
-static __inline void
+static inline void	ahc_platform_flushwork(struct ahc_softc *ahc);
+static inline void
 ahc_platform_flushwork(struct ahc_softc *ahc)
 {
 }

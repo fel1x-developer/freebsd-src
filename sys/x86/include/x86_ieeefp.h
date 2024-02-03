@@ -117,7 +117,7 @@ typedef enum {
  * environment or even of the full x87 state.  Accessing the environment
  * is very inefficient, so only do it when necessary.
  */
-static __inline void
+static inline void
 __fnldcw(unsigned short _cw, unsigned short _newcw)
 {
 	struct {

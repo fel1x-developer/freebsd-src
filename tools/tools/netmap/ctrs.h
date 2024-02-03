@@ -30,7 +30,7 @@ norm2(char *buf, double val, const char *fmt, int normalize)
 	return buf;
 }
 
-static __inline const char *
+static inline const char *
 norm(char *buf, double val, int normalize)
 {
 	if (normalize)
@@ -39,7 +39,7 @@ norm(char *buf, double val, int normalize)
 		return norm2(buf, val, "%.0f %s", normalize);
 }
 
-static __inline int
+static inline int
 timespec_ge(const struct timespec *a, const struct timespec *b)
 {
 
@@ -52,7 +52,7 @@ timespec_ge(const struct timespec *a, const struct timespec *b)
 	return (0);
 }
 
-static __inline struct timespec
+static inline struct timespec
 timeval2spec(const struct timeval *a)
 {
 	struct timespec ts = {
@@ -62,7 +62,7 @@ timeval2spec(const struct timeval *a)
 	return ts;
 }
 
-static __inline struct timeval
+static inline struct timeval
 timespec2val(const struct timespec *a)
 {
 	struct timeval tv = {
@@ -73,7 +73,7 @@ timespec2val(const struct timespec *a)
 }
 
 
-static __inline struct timespec
+static inline struct timespec
 timespec_add(struct timespec a, struct timespec b)
 {
 	struct timespec ret = { a.tv_sec + b.tv_sec, a.tv_nsec + b.tv_nsec };
@@ -84,7 +84,7 @@ timespec_add(struct timespec a, struct timespec b)
 	return ret;
 }
 
-static __inline struct timespec
+static inline struct timespec
 timespec_sub(struct timespec a, struct timespec b)
 {
 	struct timespec ret = { a.tv_sec - b.tv_sec, a.tv_nsec - b.tv_nsec };
@@ -95,7 +95,7 @@ timespec_sub(struct timespec a, struct timespec b)
 	return ret;
 }
 
-static __inline uint64_t
+static inline uint64_t
 wait_for_next_report(struct timeval *prev, struct timeval *cur,
 		int report_interval)
 {

@@ -32,20 +32,20 @@
 #include <sys/types.h>
 #include <sys/malloc.h>
 
-static __inline__ void *drm_calloc_large(size_t nmemb, size_t size)
+static inline__ void *drm_calloc_large(size_t nmemb, size_t size)
 {
 
 	return mallocarray(nmemb, size, DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 }
 
 /* Modeled after cairo's malloc_ab, it's like calloc but without the zeroing. */
-static __inline__ void *drm_malloc_ab(size_t nmemb, size_t size)
+static inline__ void *drm_malloc_ab(size_t nmemb, size_t size)
 {
 
 	return mallocarray(nmemb, size, DRM_MEM_DRIVER, M_NOWAIT);
 }
 
-static __inline void drm_free_large(void *ptr)
+static inline void drm_free_large(void *ptr)
 {
 	free(ptr, DRM_MEM_DRIVER);
 }

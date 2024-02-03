@@ -111,11 +111,11 @@ static void		 actlist_update(struct hfsc_class *);
 static struct hfsc_class	*actlist_firstfit(struct hfsc_class *,
 				    u_int64_t);
 
-static __inline u_int64_t	seg_x2y(u_int64_t, u_int64_t);
-static __inline u_int64_t	seg_y2x(u_int64_t, u_int64_t);
-static __inline u_int64_t	m2sm(u_int64_t);
-static __inline u_int64_t	m2ism(u_int64_t);
-static __inline u_int64_t	d2dx(u_int);
+static inline u_int64_t	seg_x2y(u_int64_t, u_int64_t);
+static inline u_int64_t	seg_y2x(u_int64_t, u_int64_t);
+static inline u_int64_t	m2sm(u_int64_t);
+static inline u_int64_t	m2ism(u_int64_t);
+static inline u_int64_t	d2dx(u_int);
 static u_int64_t		sm2m(u_int64_t);
 static u_int			dx2d(u_int64_t);
 
@@ -1336,7 +1336,7 @@ actlist_firstfit(struct hfsc_class *cl, u_int64_t cur_time)
 #define	SM_MASK		((1LL << SM_SHIFT) - 1)
 #define	ISM_MASK	((1LL << ISM_SHIFT) - 1)
 
-static __inline u_int64_t
+static inline u_int64_t
 seg_x2y(u_int64_t x, u_int64_t sm)
 {
 	u_int64_t y;
@@ -1350,7 +1350,7 @@ seg_x2y(u_int64_t x, u_int64_t sm)
 	return (y);
 }
 
-static __inline u_int64_t
+static inline u_int64_t
 seg_y2x(u_int64_t y, u_int64_t ism)
 {
 	u_int64_t x;
@@ -1366,7 +1366,7 @@ seg_y2x(u_int64_t y, u_int64_t ism)
 	return (x);
 }
 
-static __inline u_int64_t
+static inline u_int64_t
 m2sm(u_int64_t m)
 {
 	u_int64_t sm;
@@ -1375,7 +1375,7 @@ m2sm(u_int64_t m)
 	return (sm);
 }
 
-static __inline u_int64_t
+static inline u_int64_t
 m2ism(u_int64_t m)
 {
 	u_int64_t ism;
@@ -1387,7 +1387,7 @@ m2ism(u_int64_t m)
 	return (ism);
 }
 
-static __inline u_int64_t
+static inline u_int64_t
 d2dx(u_int d)
 {
 	u_int64_t dx;

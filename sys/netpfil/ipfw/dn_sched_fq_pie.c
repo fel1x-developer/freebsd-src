@@ -282,7 +282,7 @@ SYSCTL_UINT(_net_inet_ip_dummynet_fqpie, OID_AUTO, limit,
  * positive len -> enqueue
  * positive len + drop -> drop during enqueue
  */
-__inline static void
+inline static void
 fq_update_stats(struct fq_pie_flow *q, struct fq_pie_si *si, int len,
 	int drop)
 {
@@ -332,7 +332,7 @@ fq_update_stats(struct fq_pie_flow *q, struct fq_pie_si *si, int len,
  * Return a packet or NULL if the queue is empty.
  * If getts is set, also extract packet's timestamp from mtag.
  */
-__inline static struct mbuf *
+inline static struct mbuf *
 fq_pie_extract_head(struct fq_pie_flow *q, aqm_time_t *pkt_ts,
 	struct fq_pie_si *si, int getts)
 {
@@ -495,7 +495,7 @@ fq_calculate_drop_prob(void *x)
 /* 
  * Reset PIE variables & activate the queue
  */
-__inline static void
+inline static void
 fq_activate_pie(struct fq_pie_flow *q)
 { 
 	struct pie_status *pst = &q->pst;
@@ -524,7 +524,7 @@ fq_activate_pie(struct fq_pie_flow *q)
  /* 
   * Deactivate PIE and stop probe update callout
   */
-__inline static void
+inline static void
 fq_deactivate_pie(struct pie_status *pst)
 { 
 	mtx_lock(&pst->lock_mtx);

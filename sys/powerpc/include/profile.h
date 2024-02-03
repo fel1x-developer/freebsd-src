@@ -200,12 +200,12 @@ extern char interrupt_vector_top[];
 #define	__PROFILE_VECTOR_TOP	1
 #endif
 
-static __inline void
+static inline void
 powerpc_profile_interrupt(void)
 {
 }
 
-static __inline void
+static inline void
 powerpc_profile_userspace(void)
 {
 }

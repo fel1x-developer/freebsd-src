@@ -158,7 +158,7 @@ int	kobject_set_name(struct kobject *kobj, const char *fmt, ...);
 int	kobject_init_and_add(struct kobject *kobj, const struct kobj_type *ktype,
 	    struct kobject *parent, const char *fmt, ...);
 
-static __inline void
+static inline void
 kobject_uevent_env(struct kobject *kobj, int action, char *envp[])
 {
 

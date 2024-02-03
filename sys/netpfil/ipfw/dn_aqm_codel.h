@@ -75,7 +75,7 @@ struct mbuf *codel_extract_head(struct dn_queue *, aqm_time_t *);
 aqm_time_t control_law(struct codel_status *,
 	struct dn_aqm_codel_parms *, aqm_time_t );
 
-__inline static struct mbuf *
+inline static struct mbuf *
 codel_dodequeue(struct dn_queue *q, aqm_time_t now, uint16_t *ok_to_drop)
 {
 	struct mbuf * m;
@@ -128,7 +128,7 @@ codel_dodequeue(struct dn_queue *q, aqm_time_t now, uint16_t *ok_to_drop)
 /* 
  * Dequeue a packet from queue 'q'
  */
-__inline static struct mbuf * 
+inline static struct mbuf * 
 codel_dequeue(struct dn_queue *q)
 {
 	struct mbuf *m;

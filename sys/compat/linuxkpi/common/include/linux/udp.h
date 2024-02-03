@@ -42,7 +42,7 @@ struct udphdr {
 	uint16_t	check;
 };
 
-static __inline struct udphdr *
+static inline struct udphdr *
 udp_hdr(struct sk_buff *skb)
 {
 

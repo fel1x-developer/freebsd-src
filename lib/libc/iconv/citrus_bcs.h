@@ -42,7 +42,7 @@
  */
 
 #define _CITRUS_BCS_PRED(_name_, _cond_) \
-static __inline int _citrus_bcs_##_name_(uint8_t c) { return (_cond_); }
+static inline int _citrus_bcs_##_name_(uint8_t c) { return (_cond_); }
 
 /*
  * predicates.
@@ -64,14 +64,14 @@ _CITRUS_BCS_PRED(isxdigit, _citrus_bcs_isdigit(c) ||
  * transliterate between uppercase and lowercase.
  * Unlike transliterator defined in ctype.h, these do not accept EOF.
  */
-static __inline uint8_t
+static inline uint8_t
 _citrus_bcs_toupper(uint8_t c)
 {
 
 	return (_citrus_bcs_islower(c) ? (c - 'a' + 'A') : c);
 }
 
-static __inline uint8_t
+static inline uint8_t
 _citrus_bcs_tolower(uint8_t c)
 {
 

@@ -45,7 +45,7 @@
 #define	PJDLOG_ASSERT(...)	assert(__VA_ARGS__)
 #endif
 
-static __inline void
+static inline void
 mtx_init(pthread_mutex_t *lock) __requires_unlocked(*lock)
 {
 	int error;
@@ -53,7 +53,7 @@ mtx_init(pthread_mutex_t *lock) __requires_unlocked(*lock)
 	error = pthread_mutex_init(lock, NULL);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline void
+static inline void
 mtx_destroy(pthread_mutex_t *lock) __requires_unlocked(*lock)
 {
 	int error;
@@ -61,7 +61,7 @@ mtx_destroy(pthread_mutex_t *lock) __requires_unlocked(*lock)
 	error = pthread_mutex_destroy(lock);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline void
+static inline void
 mtx_lock(pthread_mutex_t *lock) __locks_exclusive(*lock)
 {
 	int error;
@@ -69,7 +69,7 @@ mtx_lock(pthread_mutex_t *lock) __locks_exclusive(*lock)
 	error = pthread_mutex_lock(lock);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline bool
+static inline bool
 mtx_trylock(pthread_mutex_t *lock) __trylocks_exclusive(true, *lock)
 {
 	int error;
@@ -78,7 +78,7 @@ mtx_trylock(pthread_mutex_t *lock) __trylocks_exclusive(true, *lock)
 	PJDLOG_ASSERT(error == 0 || error == EBUSY);
 	return (error == 0);
 }
-static __inline void
+static inline void
 mtx_unlock(pthread_mutex_t *lock) __unlocks(*lock)
 {
 	int error;
@@ -86,14 +86,14 @@ mtx_unlock(pthread_mutex_t *lock) __unlocks(*lock)
 	error = pthread_mutex_unlock(lock);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline bool
+static inline bool
 mtx_owned(pthread_mutex_t *lock)
 {
 
 	return (pthread_mutex_isowned_np(lock) != 0);
 }
 
-static __inline void
+static inline void
 rw_init(pthread_rwlock_t *lock) __requires_unlocked(*lock)
 {
 	int error;
@@ -101,7 +101,7 @@ rw_init(pthread_rwlock_t *lock) __requires_unlocked(*lock)
 	error = pthread_rwlock_init(lock, NULL);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline void
+static inline void
 rw_destroy(pthread_rwlock_t *lock) __requires_unlocked(*lock)
 {
 	int error;
@@ -109,7 +109,7 @@ rw_destroy(pthread_rwlock_t *lock) __requires_unlocked(*lock)
 	error = pthread_rwlock_destroy(lock);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline void
+static inline void
 rw_rlock(pthread_rwlock_t *lock) __locks_shared(*lock)
 {
 	int error;
@@ -117,7 +117,7 @@ rw_rlock(pthread_rwlock_t *lock) __locks_shared(*lock)
 	error = pthread_rwlock_rdlock(lock);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline void
+static inline void
 rw_wlock(pthread_rwlock_t *lock) __locks_exclusive(*lock)
 {
 	int error;
@@ -125,7 +125,7 @@ rw_wlock(pthread_rwlock_t *lock) __locks_exclusive(*lock)
 	error = pthread_rwlock_wrlock(lock);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline void
+static inline void
 rw_unlock(pthread_rwlock_t *lock) __unlocks(*lock)
 {
 	int error;
@@ -134,7 +134,7 @@ rw_unlock(pthread_rwlock_t *lock) __unlocks(*lock)
 	PJDLOG_ASSERT(error == 0);
 }
 
-static __inline void
+static inline void
 cv_init(pthread_cond_t *cv)
 {
 	pthread_condattr_t attr;
@@ -149,7 +149,7 @@ cv_init(pthread_cond_t *cv)
 	error = pthread_condattr_destroy(&attr);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline void
+static inline void
 cv_wait(pthread_cond_t *cv, pthread_mutex_t *lock) __requires_exclusive(*lock)
 {
 	int error;
@@ -157,7 +157,7 @@ cv_wait(pthread_cond_t *cv, pthread_mutex_t *lock) __requires_exclusive(*lock)
 	error = pthread_cond_wait(cv, lock);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline bool
+static inline bool
 cv_timedwait(pthread_cond_t *cv, pthread_mutex_t *lock, int timeout)
     __requires_exclusive(*lock)
 {
@@ -176,7 +176,7 @@ cv_timedwait(pthread_cond_t *cv, pthread_mutex_t *lock, int timeout)
 	PJDLOG_ASSERT(error == 0 || error == ETIMEDOUT);
 	return (error == ETIMEDOUT);
 }
-static __inline void
+static inline void
 cv_signal(pthread_cond_t *cv)
 {
 	int error;
@@ -184,7 +184,7 @@ cv_signal(pthread_cond_t *cv)
 	error = pthread_cond_signal(cv);
 	PJDLOG_ASSERT(error == 0);
 }
-static __inline void
+static inline void
 cv_broadcast(pthread_cond_t *cv)
 {
 	int error;

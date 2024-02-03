@@ -253,7 +253,7 @@ nicvf_free_q_desc_mem(struct nicvf *nic, struct q_desc_mem *dmem)
  * into RBDR ring, so save buffer address at the start of fragment and
  * align the start address to a cache aligned address
  */
-static __inline int
+static inline int
 nicvf_alloc_rcv_buffer(struct nicvf *nic, struct rbdr *rbdr,
     bus_dmamap_t dmap, int mflags, uint32_t buf_len, bus_addr_t *rbuf)
 {
@@ -1657,7 +1657,7 @@ nicvf_config_data_transfer(struct nicvf *nic, boolean_t enable)
  * Get a free desc from SQ
  * returns descriptor ponter & descriptor number
  */
-static __inline int
+static inline int
 nicvf_get_sq_desc(struct snd_queue *sq, int desc_cnt)
 {
 	int qentry;
@@ -1680,7 +1680,7 @@ nicvf_put_sq_desc(struct snd_queue *sq, int desc_cnt)
 	sq->head &= (sq->dmem.q_len - 1);
 }
 
-static __inline int
+static inline int
 nicvf_get_nxt_sqentry(struct snd_queue *sq, int qentry)
 {
 	qentry++;
@@ -1740,7 +1740,7 @@ nicvf_sq_free_used_descs(struct nicvf *nic, struct snd_queue *sq, int qidx)
  * Add SQ HEADER subdescriptor.
  * First subdescriptor for every send descriptor.
  */
-static __inline int
+static inline int
 nicvf_sq_add_hdr_subdesc(struct snd_queue *sq, int qentry,
 			 int subdesc_cnt, struct mbuf *mbuf, int len)
 {
@@ -1963,7 +1963,7 @@ nicvf_tx_mbuf_locked(struct snd_queue *sq, struct mbuf **mbufp)
 	return (0);
 }
 
-static __inline u_int
+static inline u_int
 frag_num(u_int i)
 {
 #if BYTE_ORDER == BIG_ENDIAN

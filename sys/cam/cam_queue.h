@@ -140,20 +140,20 @@ cam_pinfo	*camq_remove(struct camq *queue, int index);
 void		camq_change_priority(struct camq *queue, int index,
 				     uint32_t new_priority);
 
-static __inline int
+static inline int
 cam_ccbq_pending_ccb_count(struct cam_ccbq *ccbq)
 {
 	return (ccbq->queue.entries + ccbq->queue_extra_entries);
 }
 
-static __inline void
+static inline void
 cam_ccbq_take_opening(struct cam_ccbq *ccbq)
 {
 
 	ccbq->allocated++;
 }
 
-static __inline void
+static inline void
 cam_ccbq_insert_ccb(struct cam_ccbq *ccbq, union ccb *new_ccb)
 {
 	struct ccb_hdr *old_ccb;
@@ -180,7 +180,7 @@ cam_ccbq_insert_ccb(struct cam_ccbq *ccbq, union ccb *new_ccb)
 	camq_insert(queue, &new_ccb->ccb_h.pinfo);
 }
 
-static __inline void
+static inline void
 cam_ccbq_remove_ccb(struct cam_ccbq *ccbq, union ccb *ccb)
 {
 	struct ccb_hdr *cccb, *bccb;
@@ -220,13 +220,13 @@ cam_ccbq_remove_ccb(struct cam_ccbq *ccbq, union ccb *ccb)
 	camq_insert(queue, &bccb->pinfo);
 }
 
-static __inline union ccb *
+static inline union ccb *
 cam_ccbq_peek_ccb(struct cam_ccbq *ccbq, int index)
 {
 	return((union ccb *)ccbq->queue.queue_array[index]);
 }
 
-static __inline void
+static inline void
 cam_ccbq_send_ccb(struct cam_ccbq *ccbq, union ccb *send_ccb)
 {
 
@@ -235,7 +235,7 @@ cam_ccbq_send_ccb(struct cam_ccbq *ccbq, union ccb *send_ccb)
 	ccbq->dev_openings--;
 }
 
-static __inline void
+static inline void
 cam_ccbq_ccb_done(struct cam_ccbq *ccbq, union ccb *done_ccb)
 {
 
@@ -243,7 +243,7 @@ cam_ccbq_ccb_done(struct cam_ccbq *ccbq, union ccb *done_ccb)
 	ccbq->dev_openings++;
 }
 
-static __inline void
+static inline void
 cam_ccbq_release_opening(struct cam_ccbq *ccbq)
 {
 

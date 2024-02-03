@@ -577,7 +577,7 @@ struct ieee80211_node *
 /*
  * Return non-zero if proxy operation is enabled.
  */
-static __inline int
+static inline int
 ieee80211_mesh_isproxyena(struct ieee80211vap *vap)
 {
 	struct ieee80211_mesh_state *ms = vap->iv_mesh;
@@ -592,7 +592,7 @@ ieee80211_mesh_isproxyena(struct ieee80211vap *vap)
  * discovery and, if possible queue the packet to be
  * sent when path discovery completes.
  */
-static __inline struct ieee80211_node *
+static inline struct ieee80211_node *
 ieee80211_mesh_discover(struct ieee80211vap *vap,
     const uint8_t dest[IEEE80211_ADDR_LEN], struct mbuf *m)
 {

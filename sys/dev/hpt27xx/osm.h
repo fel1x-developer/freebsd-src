@@ -62,7 +62,7 @@ typedef long long HPT_64;
 #define LE16_TO_CPU(x) (x)
 #define LE64_TO_CPU(x) (x)
 
-static __inline HPT_U64 CPU_TO_BE64(HPT_U64 x)
+static inline HPT_U64 CPU_TO_BE64(HPT_U64 x)
 {
 	HPT_U8 *p = (HPT_U8 *)&x;
 	return ((HPT_U64)p[0] << 56) |
@@ -75,7 +75,7 @@ static __inline HPT_U64 CPU_TO_BE64(HPT_U64 x)
 		p[7];
 }
 
-static __inline HPT_U32 CPU_TO_BE32(HPT_U32 x)
+static inline HPT_U32 CPU_TO_BE32(HPT_U32 x)
 {
 	HPT_U8 *p = (HPT_U8 *)&x;
 	return ((HPT_U32)p[0] << 24) |
@@ -83,7 +83,7 @@ static __inline HPT_U32 CPU_TO_BE32(HPT_U32 x)
 		((HPT_U32)p[2] << 8) | p[3];
 }
 
-static __inline HPT_U16 CPU_TO_BE16(HPT_U16 x)
+static inline HPT_U16 CPU_TO_BE16(HPT_U16 x)
 {
 	return ((HPT_U8)x << 8) | (x>>8);
 }
@@ -201,7 +201,7 @@ void os_stallexec(HPT_U32 microseconds);
 #define memcpy(dst, src, size) __builtin_memcpy((dst), (src), (size))
 #define memcmp(dst, src, size) __builtin_memcmp((dst), (src), (size))
 #define strcpy(dst, src) __builtin_strcpy((dst), (src))
-static __inline void * memset(void *dst, int c, unsigned long size)
+static inline void * memset(void *dst, int c, unsigned long size)
 {
 	char *p;
 	for (p=(char*)dst; size; size--,p++) *p = c;

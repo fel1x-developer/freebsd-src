@@ -83,7 +83,7 @@
  * tcp_ts_getticks() in ms, should be 1ms < x < 1000ms according to RFC 1323.
  * We always use 1ms granularity independent of hz.
  */
-static __inline uint32_t
+static inline uint32_t
 tcp_ts_getticks(void)
 {
 	struct timeval tv;

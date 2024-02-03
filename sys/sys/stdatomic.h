@@ -135,7 +135,7 @@ typedef enum {
  * 7.17.4 Fences.
  */
 
-static __inline void
+static inline void
 atomic_thread_fence(memory_order __order __unused)
 {
 
@@ -148,7 +148,7 @@ atomic_thread_fence(memory_order __order __unused)
 #endif
 }
 
-static __inline void
+static inline void
 atomic_signal_fence(memory_order __order __unused)
 {
 
@@ -378,14 +378,14 @@ typedef struct {
 } atomic_flag;
 #define	ATOMIC_FLAG_INIT		{ ATOMIC_VAR_INIT(0) }
 
-static __inline _Bool
+static inline _Bool
 atomic_flag_test_and_set_explicit(volatile atomic_flag *__object,
     memory_order __order)
 {
 	return (atomic_exchange_explicit(&__object->__flag, 1, __order));
 }
 
-static __inline void
+static inline void
 atomic_flag_clear_explicit(volatile atomic_flag *__object, memory_order __order)
 {
 
@@ -393,7 +393,7 @@ atomic_flag_clear_explicit(volatile atomic_flag *__object, memory_order __order)
 }
 
 #ifndef _KERNEL
-static __inline _Bool
+static inline _Bool
 atomic_flag_test_and_set(volatile atomic_flag *__object)
 {
 
@@ -401,7 +401,7 @@ atomic_flag_test_and_set(volatile atomic_flag *__object)
 	    memory_order_seq_cst));
 }
 
-static __inline void
+static inline void
 atomic_flag_clear(volatile atomic_flag *__object)
 {
 

@@ -318,7 +318,7 @@ SYSCTL_PROC(_hw_snd, OID_AUTO, feeder_rate_quality,
  *
  * amd64 is the clear winner here, no question about it.
  */
-static __inline uint32_t
+static inline uint32_t
 Z_DIV(uint64_t v, uint32_t d)
 {
 	uint32_t hi, lo, quo, rem;
@@ -387,7 +387,7 @@ Z_DIV(uint64_t v, uint32_t d)
 #define z_copy(src, dst, sz)	(void)memcpy(dst, src, sz)
 #define z_feed(...)		FEEDER_FEED(__VA_ARGS__)
 
-static __inline uint32_t
+static inline uint32_t
 z_min(uint32_t x, uint32_t y)
 {
 

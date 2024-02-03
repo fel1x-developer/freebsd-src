@@ -131,7 +131,7 @@ rowcol_convert(struct _citrus_mapper_std * __restrict ms,
 	return (_MAPPER_CONVERT_SUCCESS);
 }
 
-static __inline int
+static inline int
 set_linear_zone(struct _citrus_mapper_std_linear_zone *lz,
     uint32_t begin, uint32_t end)
 {
@@ -146,7 +146,7 @@ set_linear_zone(struct _citrus_mapper_std_linear_zone *lz,
 	return (0);
 }
 
-static __inline int
+static inline int
 rowcol_parse_variable_compat(struct _citrus_mapper_std_rowcol *rc,
     struct _region *r)
 {
@@ -188,7 +188,7 @@ rowcol_parse_variable_compat(struct _citrus_mapper_std_rowcol *rc,
 	return (set_linear_zone(lz, m, n));
 }
 
-static __inline int
+static inline int
 rowcol_parse_variable(struct _citrus_mapper_std_rowcol *rc,
     struct _region *r)
 {

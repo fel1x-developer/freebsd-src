@@ -111,7 +111,7 @@
  * in order to avoid that for memory barriers.
  */
 #define	ATOMIC_ASM(NAME, TYPE, OP, CONS, V)		\
-static __inline void					\
+static inline void					\
 atomic_##NAME##_##TYPE(volatile u_##TYPE *p, u_##TYPE v)\
 {							\
 	__asm __volatile("lock; " OP			\
@@ -120,7 +120,7 @@ atomic_##NAME##_##TYPE(volatile u_##TYPE *p, u_##TYPE v)\
 	: "cc");					\
 }							\
 							\
-static __inline void					\
+static inline void					\
 atomic_##NAME##_barr_##TYPE(volatile u_##TYPE *p, u_##TYPE v)\
 {							\
 	__asm __volatile("lock; " OP			\
@@ -146,7 +146,7 @@ struct __hack
  * Returns 0 on failure, non-zero on success.
  */
 #define	ATOMIC_CMPSET(TYPE)				\
-static __inline int					\
+static inline int					\
 atomic_cmpset_##TYPE(volatile u_##TYPE *dst, u_##TYPE expect, u_##TYPE src) \
 {							\
 	u_char res;					\
@@ -162,7 +162,7 @@ atomic_cmpset_##TYPE(volatile u_##TYPE *dst, u_##TYPE expect, u_##TYPE src) \
 	return (res);					\
 }							\
 							\
-static __inline int					\
+static inline int					\
 atomic_fcmpset_##TYPE(volatile u_##TYPE *dst, u_##TYPE *expect, u_##TYPE src) \
 {							\
 	u_char res;					\
@@ -187,7 +187,7 @@ ATOMIC_CMPSET(long);
  * Atomically add the value of v to the integer pointed to by p and return
  * the previous value of *p.
  */
-static __inline u_int
+static inline u_int
 atomic_fetchadd_int(volatile u_int *p, u_int v)
 {
 
@@ -204,7 +204,7 @@ atomic_fetchadd_int(volatile u_int *p, u_int v)
  * Atomically add the value of v to the long integer pointed to by p and return
  * the previous value of *p.
  */
-static __inline u_long
+static inline u_long
 atomic_fetchadd_long(volatile u_long *p, u_long v)
 {
 
@@ -217,7 +217,7 @@ atomic_fetchadd_long(volatile u_long *p, u_long v)
 	return (v);
 }
 
-static __inline int
+static inline int
 atomic_testandset_int(volatile u_int *p, u_int v)
 {
 	u_char res;
@@ -232,7 +232,7 @@ atomic_testandset_int(volatile u_int *p, u_int v)
 	return (res);
 }
 
-static __inline int
+static inline int
 atomic_testandset_long(volatile u_long *p, u_int v)
 {
 	u_char res;
@@ -247,7 +247,7 @@ atomic_testandset_long(volatile u_long *p, u_int v)
 	return (res);
 }
 
-static __inline int
+static inline int
 atomic_testandclear_int(volatile u_int *p, u_int v)
 {
 	u_char res;
@@ -262,7 +262,7 @@ atomic_testandclear_int(volatile u_int *p, u_int v)
 	return (res);
 }
 
-static __inline int
+static inline int
 atomic_testandclear_long(volatile u_long *p, u_int v)
 {
 	u_char res;
@@ -291,7 +291,7 @@ atomic_testandclear_long(volatile u_long *p, u_int v)
  * (-8(%rsp)).
  */
 
-static __inline void
+static inline void
 __storeload_barrier(void)
 {
 #if defined(_KERNEL)
@@ -303,7 +303,7 @@ __storeload_barrier(void)
 }
 
 #define	ATOMIC_LOAD(TYPE)					\
-static __inline u_##TYPE					\
+static inline u_##TYPE					\
 atomic_load_acq_##TYPE(volatile u_##TYPE *p)			\
 {								\
 	u_##TYPE res;						\
@@ -315,7 +315,7 @@ atomic_load_acq_##TYPE(volatile u_##TYPE *p)			\
 struct __hack
 
 #define	ATOMIC_STORE(TYPE)					\
-static __inline void						\
+static inline void						\
 atomic_store_rel_##TYPE(volatile u_##TYPE *p, u_##TYPE v)	\
 {								\
 								\
@@ -324,28 +324,28 @@ atomic_store_rel_##TYPE(volatile u_##TYPE *p, u_##TYPE v)	\
 }								\
 struct __hack
 
-static __inline void
+static inline void
 atomic_thread_fence_acq(void)
 {
 
 	__compiler_membar();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_rel(void)
 {
 
 	__compiler_membar();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_acq_rel(void)
 {
 
 	__compiler_membar();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_seq_cst(void)
 {
 
@@ -388,7 +388,7 @@ ATOMIC_LOADSTORE(long);
 #ifndef WANT_FUNCTIONS
 
 /* Read the current value and store a new value in the destination. */
-static __inline u_int
+static inline u_int
 atomic_swap_int(volatile u_int *p, u_int v)
 {
 
@@ -400,7 +400,7 @@ atomic_swap_int(volatile u_int *p, u_int v)
 	return (v);
 }
 
-static __inline u_long
+static inline u_long
 atomic_swap_long(volatile u_long *p, u_long v)
 {
 

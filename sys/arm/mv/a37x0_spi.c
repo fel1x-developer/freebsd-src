@@ -240,7 +240,7 @@ a37x0_spi_detach(device_t dev)
 	return (0);
 }
 
-static __inline void
+static inline void
 a37x0_spi_rx_byte(struct a37x0_spi_softc *sc)
 {
 	struct spi_command *cmd;
@@ -259,7 +259,7 @@ a37x0_spi_rx_byte(struct a37x0_spi_softc *sc)
 	p[read] = A37X0_SPI_READ(sc, A37X0_SPI_DATA_IN) & 0xff;
 }
 
-static __inline void
+static inline void
 a37x0_spi_tx_byte(struct a37x0_spi_softc *sc)
 {
 	struct spi_command *cmd;
@@ -278,7 +278,7 @@ a37x0_spi_tx_byte(struct a37x0_spi_softc *sc)
 	A37X0_SPI_WRITE(sc, A37X0_SPI_DATA_OUT, p[written]);
 }
 
-static __inline void
+static inline void
 a37x0_spi_set_clock(struct a37x0_spi_softc *sc, uint32_t clock)
 {
 	uint32_t psc, reg;
@@ -294,7 +294,7 @@ a37x0_spi_set_clock(struct a37x0_spi_softc *sc, uint32_t clock)
 	A37X0_SPI_WRITE(sc, A37X0_SPI_CONF, reg);
 }
 
-static __inline void
+static inline void
 a37x0_spi_set_pins(struct a37x0_spi_softc *sc, uint32_t npins)
 {
 	uint32_t reg;
@@ -307,7 +307,7 @@ a37x0_spi_set_pins(struct a37x0_spi_softc *sc, uint32_t npins)
 	A37X0_SPI_WRITE(sc, A37X0_SPI_CONF, reg);
 }
 
-static __inline void
+static inline void
 a37x0_spi_set_mode(struct a37x0_spi_softc *sc, uint32_t mode)
 {
 	uint32_t reg;

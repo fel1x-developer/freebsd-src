@@ -70,7 +70,7 @@ static TAILQ_HEAD(, _citrus_iconv_shared) shared_unused;
 
 static pthread_rwlock_t		 ci_lock = PTHREAD_RWLOCK_INITIALIZER;
 
-static __inline void
+static inline void
 init_cache(void)
 {
 
@@ -89,7 +89,7 @@ init_cache(void)
 	UNLOCK(&ci_lock);
 }
 
-static __inline void
+static inline void
 close_shared(struct _citrus_iconv_shared *ci)
 {
 
@@ -106,7 +106,7 @@ close_shared(struct _citrus_iconv_shared *ci)
 	}
 }
 
-static __inline int
+static inline int
 open_shared(struct _citrus_iconv_shared * __restrict * __restrict rci,
     const char * __restrict convname, const char * __restrict src,
     const char * __restrict dst)
@@ -190,14 +190,14 @@ err:
 	return (ret);
 }
 
-static __inline int
+static inline int
 hash_func(const char *key)
 {
 
 	return (_string_hash_func(key, CI_HASH_SIZE));
 }
 
-static __inline int
+static inline int
 match_func(struct _citrus_iconv_shared * __restrict ci,
     const char * __restrict key)
 {

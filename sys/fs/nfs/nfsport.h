@@ -1211,7 +1211,7 @@ extern const char nfs_vnode_tag[];
  */
 #define	NFSMNT_MDSSESSION(m)	(&(TAILQ_FIRST(&((m)->nm_sess))->nfsclds_sess))
 
-static __inline struct nfsclsession *
+static inline struct nfsclsession *
 nfsmnt_mdssession(struct nfsmount *nmp)
 {
 	struct nfsclsession *tsep;

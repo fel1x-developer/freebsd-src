@@ -220,7 +220,7 @@ copy_key(struct krb5_keyblock *from, struct krb5_keyblock **to)
 /*
  * Return non-zero if we are initiator.
  */
-static __inline int
+static inline int
 is_initiator(struct krb5_context *kc)
 {
 	return (kc->kc_more_flags & LOCAL);
@@ -229,7 +229,7 @@ is_initiator(struct krb5_context *kc)
 /*
  * Return non-zero if we are acceptor.
  */
-static __inline int
+static inline int
 is_acceptor(struct krb5_context *kc)
 {
 	return !(kc->kc_more_flags & LOCAL);

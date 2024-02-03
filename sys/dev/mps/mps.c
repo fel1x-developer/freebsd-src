@@ -92,7 +92,7 @@ static int mps_alloc_hw_queues(struct mps_softc *sc);
 static int mps_alloc_replies(struct mps_softc *sc);
 static int mps_alloc_requests(struct mps_softc *sc);
 static int mps_attach_log(struct mps_softc *sc);
-static __inline void mps_complete_command(struct mps_softc *sc,
+static inline void mps_complete_command(struct mps_softc *sc,
     struct mps_command *cm);
 static void mps_dispatch_event(struct mps_softc *sc, uintptr_t data,
     MPI2_EVENT_NOTIFICATION_REPLY *reply);
@@ -2204,7 +2204,7 @@ mps_free(struct mps_softc *sc)
 	return (0);
 }
 
-static __inline void
+static inline void
 mps_complete_command(struct mps_softc *sc, struct mps_command *cm)
 {
 	MPS_FUNCTRACE(sc);

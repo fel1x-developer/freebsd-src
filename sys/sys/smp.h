@@ -198,7 +198,7 @@ extern struct pcb *stoppcbs;
 	for ((i) = 0; (i) <= mp_maxid; (i)++)				\
 		if (!CPU_ABSENT((i)))
 
-static __inline int
+static inline int
 cpu_first(void)
 {
 	int i;
@@ -208,7 +208,7 @@ cpu_first(void)
 			return (i);
 }
 
-static __inline int
+static inline int
 cpu_next(int i)
 {
 

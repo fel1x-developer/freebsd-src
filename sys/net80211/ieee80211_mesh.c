@@ -91,7 +91,7 @@ static void	mesh_recv_ctl(struct ieee80211_node *, struct mbuf *, int);
 static void	mesh_peer_timeout_setup(struct ieee80211_node *);
 static void	mesh_peer_timeout_backoff(struct ieee80211_node *);
 static void	mesh_peer_timeout_cb(void *);
-static __inline void
+static inline void
 		mesh_peer_timeout_stop(struct ieee80211_node *);
 static int	mesh_verify_meshid(struct ieee80211vap *, const uint8_t *);
 static int	mesh_verify_meshconf(struct ieee80211vap *, const uint8_t *);
@@ -345,7 +345,7 @@ ieee80211_mesh_proxy_check(struct ieee80211vap *vap,
 	MESH_RT_UNLOCK(ms);
 }
 
-static __inline void
+static inline void
 mesh_rt_del(struct ieee80211_mesh_state *ms, struct ieee80211_mesh_route *rt)
 {
 	TAILQ_REMOVE(&ms->ms_routes, rt, rt_next);
@@ -1338,7 +1338,7 @@ mesh_decap(struct ieee80211vap *vap, struct mbuf *m, int hdrlen, int meshdrlen)
  * locally.  Frames that are not proxy'd have our address, otherwise
  * we need to consult the routing table to look for a proxy entry.
  */
-static __inline int
+static inline int
 mesh_isucastforme(struct ieee80211vap *vap, const struct ieee80211_frame *wh,
     const struct ieee80211_meshcntl *mc)
 {
@@ -3006,7 +3006,7 @@ mesh_peer_timeout_backoff(struct ieee80211_node *ni)
 	    ni);
 }
 
-static __inline void
+static inline void
 mesh_peer_timeout_stop(struct ieee80211_node *ni)
 {
 	callout_drain(&ni->ni_mltimer);

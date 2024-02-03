@@ -434,7 +434,7 @@ ttydisc_read(struct tty *tp, struct uio *uio, int ioflag)
 	return (error);
 }
 
-static __inline unsigned int
+static inline unsigned int
 ttydisc_findchar(const char *obstart, unsigned int oblen)
 {
 	const char *c = obstart;

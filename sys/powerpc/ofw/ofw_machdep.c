@@ -88,7 +88,7 @@ static int	openfirmware(void *args);
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wfortify-source"
 
-__inline void
+inline void
 ofw_save_trap_vec(char *save_trap_vec)
 {
 	if (!ofw_real_mode || !hw_direct_map)
@@ -97,7 +97,7 @@ ofw_save_trap_vec(char *save_trap_vec)
 	bcopy((void *)PHYS_TO_DMAP(EXC_RST), save_trap_vec, EXC_LAST - EXC_RST);
 }
 
-static __inline void
+static inline void
 ofw_restore_trap_vec(char *restore_trap_vec)
 {
 	if (!ofw_real_mode || !hw_direct_map)
@@ -115,7 +115,7 @@ ofw_restore_trap_vec(char *restore_trap_vec)
  */
 register_t	ofw_sprg0_save;
 
-static __inline void
+static inline void
 ofw_sprg_prepare(void)
 {
 	if (ofw_real_mode)
@@ -147,7 +147,7 @@ ofw_sprg_prepare(void)
 #endif
 }
 
-static __inline void
+static inline void
 ofw_sprg_restore(void)
 {
 	if (ofw_real_mode)

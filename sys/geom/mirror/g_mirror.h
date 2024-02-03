@@ -259,7 +259,7 @@ struct g_mirror_metadata {
 	uint64_t	md_provsize;	/* Provider's size. */
 	u_char		md_hash[16];	/* MD5 hash. */
 };
-static __inline void
+static inline void
 mirror_metadata_encode(struct g_mirror_metadata *md, u_char *data)
 {
 	MD5_CTX ctx;
@@ -287,7 +287,7 @@ mirror_metadata_encode(struct g_mirror_metadata *md, u_char *data)
 	MD5Final(md->md_hash, &ctx);
 	bcopy(md->md_hash, data + 119, 16);
 }
-static __inline int
+static inline int
 mirror_metadata_decode_v0v1(const u_char *data, struct g_mirror_metadata *md)
 {
 	MD5_CTX ctx;
@@ -319,7 +319,7 @@ mirror_metadata_decode_v0v1(const u_char *data, struct g_mirror_metadata *md)
 
 	return (0);
 }
-static __inline int
+static inline int
 mirror_metadata_decode_v2(const u_char *data, struct g_mirror_metadata *md)
 {
 	MD5_CTX ctx;
@@ -351,7 +351,7 @@ mirror_metadata_decode_v2(const u_char *data, struct g_mirror_metadata *md)
 
 	return (0);
 }
-static __inline int
+static inline int
 mirror_metadata_decode_v3v4(const u_char *data, struct g_mirror_metadata *md)
 {
 	MD5_CTX ctx;
@@ -380,7 +380,7 @@ mirror_metadata_decode_v3v4(const u_char *data, struct g_mirror_metadata *md)
 		return (EINVAL);
 	return (0);
 }
-static __inline int
+static inline int
 mirror_metadata_decode(const u_char *data, struct g_mirror_metadata *md)
 {
 	int error;
@@ -406,7 +406,7 @@ mirror_metadata_decode(const u_char *data, struct g_mirror_metadata *md)
 	return (error);
 }
 
-static __inline const char *
+static inline const char *
 balance_name(u_int balance)
 {
 	static const char *algorithms[] = {
@@ -424,7 +424,7 @@ balance_name(u_int balance)
 	return (algorithms[balance]);
 }
 
-static __inline int
+static inline int
 balance_id(const char *name)
 {
 	static const char *algorithms[] = {
@@ -443,7 +443,7 @@ balance_id(const char *name)
 	return (-1);
 }
 
-static __inline void
+static inline void
 mirror_metadata_dump(const struct g_mirror_metadata *md)
 {
 	static const char hex[] = "0123456789abcdef";

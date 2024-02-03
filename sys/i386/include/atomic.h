@@ -45,7 +45,7 @@
  */
 #define	__OFFSETOF_MONITORBUF	0x80
 
-static __inline void
+static inline void
 __mbk(void)
 {
 
@@ -53,7 +53,7 @@ __mbk(void)
 	    : "+m" (*(u_int *)__OFFSETOF_MONITORBUF) : : "memory", "cc");
 }
 
-static __inline void
+static inline void
 __mbu(void)
 {
 
@@ -100,7 +100,7 @@ __mbu(void)
  * in order to avoid that for memory barriers.
  */
 #define	ATOMIC_ASM(NAME, TYPE, OP, CONS, V)		\
-static __inline void					\
+static inline void					\
 atomic_##NAME##_##TYPE(volatile u_##TYPE *p, u_##TYPE v)\
 {							\
 	__asm __volatile("lock; " OP			\
@@ -109,7 +109,7 @@ atomic_##NAME##_##TYPE(volatile u_##TYPE *p, u_##TYPE v)\
 	: "cc");					\
 }							\
 							\
-static __inline void					\
+static inline void					\
 atomic_##NAME##_barr_##TYPE(volatile u_##TYPE *p, u_##TYPE v)\
 {							\
 	__asm __volatile("lock; " OP			\
@@ -135,7 +135,7 @@ struct __hack
  * Returns 0 on failure, non-zero on success.
  */
 #define	ATOMIC_CMPSET(TYPE, CONS)			\
-static __inline int					\
+static inline int					\
 atomic_cmpset_##TYPE(volatile u_##TYPE *dst, u_##TYPE expect, u_##TYPE src) \
 {							\
 	u_char res;					\
@@ -152,7 +152,7 @@ atomic_cmpset_##TYPE(volatile u_##TYPE *dst, u_##TYPE expect, u_##TYPE src) \
 	return (res);					\
 }							\
 							\
-static __inline int					\
+static inline int					\
 atomic_fcmpset_##TYPE(volatile u_##TYPE *dst, u_##TYPE *expect, u_##TYPE src) \
 {							\
 	u_char res;					\
@@ -177,7 +177,7 @@ ATOMIC_CMPSET(int, "r");
  * Atomically add the value of v to the integer pointed to by p and return
  * the previous value of *p.
  */
-static __inline u_int
+static inline u_int
 atomic_fetchadd_int(volatile u_int *p, u_int v)
 {
 
@@ -190,7 +190,7 @@ atomic_fetchadd_int(volatile u_int *p, u_int v)
 	return (v);
 }
 
-static __inline int
+static inline int
 atomic_testandset_int(volatile u_int *p, u_int v)
 {
 	u_char res;
@@ -206,7 +206,7 @@ atomic_testandset_int(volatile u_int *p, u_int v)
 	return (res);
 }
 
-static __inline int
+static inline int
 atomic_testandclear_int(volatile u_int *p, u_int v)
 {
 	u_char res;
@@ -248,7 +248,7 @@ atomic_testandclear_int(volatile u_int *p, u_int v)
 #endif /* _KERNEL*/
 
 #define	ATOMIC_LOAD(TYPE)					\
-static __inline u_##TYPE					\
+static inline u_##TYPE					\
 atomic_load_acq_##TYPE(volatile u_##TYPE *p)			\
 {								\
 	u_##TYPE res;						\
@@ -260,7 +260,7 @@ atomic_load_acq_##TYPE(volatile u_##TYPE *p)			\
 struct __hack
 
 #define	ATOMIC_STORE(TYPE)					\
-static __inline void						\
+static inline void						\
 atomic_store_rel_##TYPE(volatile u_##TYPE *p, u_##TYPE v)	\
 {								\
 								\
@@ -269,28 +269,28 @@ atomic_store_rel_##TYPE(volatile u_##TYPE *p, u_##TYPE v)	\
 }								\
 struct __hack
 
-static __inline void
+static inline void
 atomic_thread_fence_acq(void)
 {
 
 	__compiler_membar();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_rel(void)
 {
 
 	__compiler_membar();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_acq_rel(void)
 {
 
 	__compiler_membar();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_seq_cst(void)
 {
 
@@ -311,7 +311,7 @@ uint64_t	atomic_swap_64_i586(volatile uint64_t *, uint64_t);
 #endif
 
 /* I486 does not support SMP or CMPXCHG8B. */
-static __inline int
+static inline int
 atomic_cmpset_64_i386(volatile uint64_t *dst, uint64_t expect, uint64_t src)
 {
 	volatile uint32_t *p;
@@ -340,7 +340,7 @@ atomic_cmpset_64_i386(volatile uint64_t *dst, uint64_t expect, uint64_t src)
 	return (res);
 }
 
-static __inline int
+static inline int
 atomic_fcmpset_64_i386(volatile uint64_t *dst, uint64_t *expect, uint64_t src)
 {
 
@@ -352,7 +352,7 @@ atomic_fcmpset_64_i386(volatile uint64_t *dst, uint64_t *expect, uint64_t src)
 	}
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_load_acq_64_i386(volatile uint64_t *p)
 {
 	volatile uint32_t *q;
@@ -372,7 +372,7 @@ atomic_load_acq_64_i386(volatile uint64_t *p)
 	return (res);
 }
 
-static __inline void
+static inline void
 atomic_store_rel_64_i386(volatile uint64_t *p, uint64_t v)
 {
 	volatile uint32_t *q;
@@ -390,7 +390,7 @@ atomic_store_rel_64_i386(volatile uint64_t *p, uint64_t v)
 	: "memory");
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_swap_64_i386(volatile uint64_t *p, uint64_t v)
 {
 	volatile uint32_t *q;
@@ -413,7 +413,7 @@ atomic_swap_64_i386(volatile uint64_t *p, uint64_t v)
 	return (res);
 }
 
-static __inline int
+static inline int
 atomic_cmpset_64_i586(volatile uint64_t *dst, uint64_t expect, uint64_t src)
 {
 	u_char res;
@@ -430,7 +430,7 @@ atomic_cmpset_64_i586(volatile uint64_t *dst, uint64_t expect, uint64_t src)
 	return (res);
 }
 
-static __inline int
+static inline int
 atomic_fcmpset_64_i586(volatile uint64_t *dst, uint64_t *expect, uint64_t src)
 {
 	u_char res;
@@ -447,7 +447,7 @@ atomic_fcmpset_64_i586(volatile uint64_t *dst, uint64_t *expect, uint64_t src)
 	return (res);
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_load_acq_64_i586(volatile uint64_t *p)
 {
 	uint64_t res;
@@ -462,7 +462,7 @@ atomic_load_acq_64_i586(volatile uint64_t *p)
 	return (res);
 }
 
-static __inline void
+static inline void
 atomic_store_rel_64_i586(volatile uint64_t *p, uint64_t v)
 {
 
@@ -477,7 +477,7 @@ atomic_store_rel_64_i586(volatile uint64_t *p, uint64_t v)
 	: : "ebx", "ecx", "memory", "cc");
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_swap_64_i586(volatile uint64_t *p, uint64_t v)
 {
 
@@ -493,7 +493,7 @@ atomic_swap_64_i586(volatile uint64_t *p, uint64_t v)
 	return (v);
 }
 
-static __inline int
+static inline int
 atomic_cmpset_64(volatile uint64_t *dst, uint64_t expect, uint64_t src)
 {
 
@@ -503,7 +503,7 @@ atomic_cmpset_64(volatile uint64_t *dst, uint64_t expect, uint64_t src)
 		return (atomic_cmpset_64_i586(dst, expect, src));
 }
 
-static __inline int
+static inline int
 atomic_fcmpset_64(volatile uint64_t *dst, uint64_t *expect, uint64_t src)
 {
 
@@ -513,7 +513,7 @@ atomic_fcmpset_64(volatile uint64_t *dst, uint64_t *expect, uint64_t src)
 		return (atomic_fcmpset_64_i586(dst, expect, src));
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_load_acq_64(volatile uint64_t *p)
 {
 
@@ -523,7 +523,7 @@ atomic_load_acq_64(volatile uint64_t *p)
 		return (atomic_load_acq_64_i586(p));
 }
 
-static __inline void
+static inline void
 atomic_store_rel_64(volatile uint64_t *p, uint64_t v)
 {
 
@@ -533,7 +533,7 @@ atomic_store_rel_64(volatile uint64_t *p, uint64_t v)
 		atomic_store_rel_64_i586(p, v);
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_swap_64(volatile uint64_t *p, uint64_t v)
 {
 
@@ -543,7 +543,7 @@ atomic_swap_64(volatile uint64_t *p, uint64_t v)
 		return (atomic_swap_64_i586(p, v));
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_fetchadd_64(volatile uint64_t *p, uint64_t v)
 {
 
@@ -554,7 +554,7 @@ atomic_fetchadd_64(volatile uint64_t *p, uint64_t v)
 	}
 }
 
-static __inline void
+static inline void
 atomic_add_64(volatile uint64_t *p, uint64_t v)
 {
 	uint64_t t;
@@ -566,7 +566,7 @@ atomic_add_64(volatile uint64_t *p, uint64_t v)
 	}
 }
 
-static __inline void
+static inline void
 atomic_subtract_64(volatile uint64_t *p, uint64_t v)
 {
 	uint64_t t;
@@ -616,7 +616,7 @@ ATOMIC_LOADSTORE(long);
 
 #ifndef WANT_FUNCTIONS
 
-static __inline int
+static inline int
 atomic_cmpset_long(volatile u_long *dst, u_long expect, u_long src)
 {
 
@@ -624,7 +624,7 @@ atomic_cmpset_long(volatile u_long *dst, u_long expect, u_long src)
 	    (u_int)src));
 }
 
-static __inline int
+static inline int
 atomic_fcmpset_long(volatile u_long *dst, u_long *expect, u_long src)
 {
 
@@ -632,21 +632,21 @@ atomic_fcmpset_long(volatile u_long *dst, u_long *expect, u_long src)
 	    (u_int)src));
 }
 
-static __inline u_long
+static inline u_long
 atomic_fetchadd_long(volatile u_long *p, u_long v)
 {
 
 	return (atomic_fetchadd_int((volatile u_int *)p, (u_int)v));
 }
 
-static __inline int
+static inline int
 atomic_testandset_long(volatile u_long *p, u_int v)
 {
 
 	return (atomic_testandset_int((volatile u_int *)p, v));
 }
 
-static __inline int
+static inline int
 atomic_testandclear_long(volatile u_long *p, u_int v)
 {
 
@@ -654,7 +654,7 @@ atomic_testandclear_long(volatile u_long *p, u_int v)
 }
 
 /* Read the current value and store a new value in the destination. */
-static __inline u_int
+static inline u_int
 atomic_swap_int(volatile u_int *p, u_int v)
 {
 
@@ -666,7 +666,7 @@ atomic_swap_int(volatile u_int *p, u_int v)
 	return (v);
 }
 
-static __inline u_long
+static inline u_long
 atomic_swap_long(volatile u_long *p, u_long v)
 {
 

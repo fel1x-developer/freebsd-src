@@ -154,7 +154,7 @@ int biowait(struct bio *bp, const char *wmesg);
 #if defined(BUF_TRACKING) || defined(FULL_BUF_TRACKING)
 void biotrack_buf(struct bio *bp, const char *location);
 
-static __inline void
+static inline void
 biotrack(struct bio *bp, const char *location)
 {
 
@@ -162,7 +162,7 @@ biotrack(struct bio *bp, const char *location)
 		biotrack_buf(bp, location);
 }
 #else
-static __inline void
+static inline void
 biotrack(struct bio *bp __unused, const char *location __unused)
 {
 }

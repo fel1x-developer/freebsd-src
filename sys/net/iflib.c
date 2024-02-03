@@ -1385,13 +1385,13 @@ iflib_netmap_timer(void *arg)
 #endif
 
 #if defined(__i386__) || defined(__amd64__)
-static __inline void
+static inline void
 prefetch(void *x)
 {
 	__asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
 }
 
-static __inline void
+static inline void
 prefetch2cachelines(void *x)
 {
 	__asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
@@ -1400,12 +1400,12 @@ prefetch2cachelines(void *x)
 #endif
 }
 #else
-static __inline void
+static inline void
 prefetch(void *x)
 {
 }
 
-static __inline void
+static inline void
 prefetch2cachelines(void *x)
 {
 }
@@ -3846,7 +3846,7 @@ iflib_tx_desc_free(iflib_txq_t txq, int n)
 	txq->ift_gen = gen;
 }
 
-static __inline int
+static inline int
 iflib_completed_tx_reclaim(iflib_txq_t txq, int thresh)
 {
 	int reclaim;

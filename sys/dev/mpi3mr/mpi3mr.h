@@ -755,25 +755,25 @@ struct mpi3mr_softc {
 	bool ioctl_sges_allocated;
 };
 
-static __inline uint64_t
+static inline uint64_t
 mpi3mr_regread64(struct mpi3mr_softc *sc, uint32_t offset)
 {
 	return bus_space_read_8(sc->mpi3mr_btag, sc->mpi3mr_bhandle, offset);
 }
 
-static __inline void
+static inline void
 mpi3mr_regwrite64(struct mpi3mr_softc *sc, uint32_t offset, uint64_t val)
 {
 	bus_space_write_8(sc->mpi3mr_btag, sc->mpi3mr_bhandle, offset, val);
 }
 
-static __inline uint32_t
+static inline uint32_t
 mpi3mr_regread(struct mpi3mr_softc *sc, uint32_t offset)
 {
 	return bus_space_read_4(sc->mpi3mr_btag, sc->mpi3mr_bhandle, offset);
 }
 
-static __inline void
+static inline void
 mpi3mr_regwrite(struct mpi3mr_softc *sc, uint32_t offset, uint32_t val)
 {
 	bus_space_write_4(sc->mpi3mr_btag, sc->mpi3mr_bhandle, offset, val);
@@ -827,25 +827,25 @@ do {							\
 #define MPI3MR_PRIORITY_XPT	5
 #endif
 
-static __inline void
+static inline void
 mpi3mr_clear_bit(int b, volatile void *p)
 {
 	atomic_clear_int(((volatile int *)p) + (b >> 5), 1 << (b & 0x1f));
 }
 
-static __inline void
+static inline void
 mpi3mr_set_bit(int b, volatile void *p)
 {
 	atomic_set_int(((volatile int *)p) + (b >> 5), 1 << (b & 0x1f));
 }
 
-static __inline int
+static inline int
 mpi3mr_test_bit(int b, volatile void *p)
 {
 	return ((volatile int *)p)[b >> 5] & (1 << (b & 0x1f));
 }
 
-static __inline int
+static inline int
 mpi3mr_test_and_set_bit(int b, volatile void *p)
 {
 	int ret = ((volatile int *)p)[b >> 5] & (1 << (b & 0x1f));
@@ -854,7 +854,7 @@ mpi3mr_test_and_set_bit(int b, volatile void *p)
 	return ret;
 }
 
-static __inline int
+static inline int
 mpi3mr_find_first_zero_bit(void *p, int bit_count)
 {
 	int i, sz, j=0;

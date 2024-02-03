@@ -215,7 +215,7 @@ is_linux_error(long e)
  * values as a 'long' which has to align to CPU register size, so accept that
  * size as the error so the assert can catch more values.
  */
-static __inline int
+static inline int
 host_to_stand_errno(long e)
 {
 	assert(is_linux_error(e));

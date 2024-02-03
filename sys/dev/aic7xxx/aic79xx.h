@@ -1384,8 +1384,8 @@ void			ahd_reset_cmds_pending(struct ahd_softc *ahd);
 u_int			ahd_find_busy_tcl(struct ahd_softc *ahd, u_int tcl);
 void			ahd_busy_tcl(struct ahd_softc *ahd,
 				     u_int tcl, u_int busyid);
-static __inline void	ahd_unbusy_tcl(struct ahd_softc *ahd, u_int tcl);
-static __inline void
+static inline void	ahd_unbusy_tcl(struct ahd_softc *ahd, u_int tcl);
+static inline void
 ahd_unbusy_tcl(struct ahd_softc *ahd, u_int tcl)
 {
 	ahd_busy_tcl(ahd, tcl, SCB_LIST_NULL);

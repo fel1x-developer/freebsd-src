@@ -165,7 +165,7 @@ int ipdn_bound_var(int *v, int dflt, int lo, int hi, const char *msg);
  * Extract the head of a queue, update stats. Must be the very last
  * thing done on a dequeue as the queue itself may go away.
  */
-static __inline struct mbuf*
+static inline struct mbuf*
 dn_dequeue(struct dn_queue *q)
 {
 	struct mbuf *m;

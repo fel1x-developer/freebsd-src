@@ -293,7 +293,7 @@ struct witness_order_list_entry {
  * Returns 0 if one of the locks is a spin lock and the other is not.
  * Returns 1 otherwise.
  */
-static __inline int
+static inline int
 witness_lock_type_equal(struct witness *w1, struct witness *w2)
 {
 
@@ -301,7 +301,7 @@ witness_lock_type_equal(struct witness *w1, struct witness *w2)
 		(w2->w_class->lc_flags & (LC_SLEEPLOCK | LC_SPINLOCK)));
 }
 
-static __inline int
+static inline int
 witness_lock_order_key_equal(const struct witness_lock_order_key *a,
     const struct witness_lock_order_key *b)
 {

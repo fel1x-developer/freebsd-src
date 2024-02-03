@@ -442,7 +442,7 @@ pci_dev_get(struct pci_dev *pdev)
 	return (pdev);
 }
 
-static __inline void
+static inline void
 pci_dev_put(struct pci_dev *pdev)
 {
 
@@ -617,7 +617,7 @@ pci_find_ext_capability(struct pci_dev *pdev, int capid)
 }
 
 #define	PCIM_PCAP_PME_SHIFT	11
-static __inline bool
+static inline bool
 pci_pme_capable(struct pci_dev *pdev, uint32_t flag)
 {
 	struct pci_devinfo *dinfo;
@@ -1208,7 +1208,7 @@ pci_unlock_rescan_remove(void)
 {
 }
 
-static __inline void
+static inline void
 pci_stop_and_remove_bus_device(struct pci_dev *pdev)
 {
 }

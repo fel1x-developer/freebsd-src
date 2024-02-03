@@ -154,7 +154,7 @@ SYSINIT(cap_rights_sysinit, SI_SUB_COPYRIGHT, SI_ORDER_ANY, cap_rights_sysinit,
 #define	CAPARSIZE_MIN	(CAP_RIGHTS_VERSION_00 + 2)
 #define	CAPARSIZE_MAX	(CAP_RIGHTS_VERSION + 2)
 
-static __inline int
+static inline int
 right_to_index(uint64_t right)
 {
 	static const int bit2idx[] = {

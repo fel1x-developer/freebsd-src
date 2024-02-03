@@ -56,7 +56,7 @@
 
 /* Misc */
 
-#define inline __inline
+#define inline inline
 
 #ifndef DEB
 #define DEB(x) /* x */

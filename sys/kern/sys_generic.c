@@ -1324,7 +1324,7 @@ static const int select_flags[3] = {
  * Compute the fo_poll flags required for a fd given by the index and
  * bit position in the fd_mask array.
  */
-static __inline int
+static inline int
 selflags(fd_mask **ibits, int idx, fd_mask bit)
 {
 	int flags;
@@ -1345,7 +1345,7 @@ selflags(fd_mask **ibits, int idx, fd_mask bit)
  * Set the appropriate output bits given a mask of fired events and the
  * input bits originally requested.
  */
-static __inline int
+static inline int
 selsetbits(fd_mask **ibits, fd_mask **obits, int idx, fd_mask bit, int events)
 {
 	int msk;

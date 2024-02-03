@@ -121,7 +121,7 @@ static int cxgb_controller_probe(device_t);
 static int cxgb_controller_attach(device_t);
 static int cxgb_controller_detach(device_t);
 static void cxgb_free(struct adapter *);
-static __inline void reg_block_dump(struct adapter *ap, uint8_t *buf, unsigned int start,
+static inline void reg_block_dump(struct adapter *ap, uint8_t *buf, unsigned int start,
     unsigned int end);
 static void cxgb_get_regs(adapter_t *sc, struct ch_ifconf_regs *regs, uint8_t *buf);
 static int cxgb_get_regs_len(void);
@@ -307,7 +307,7 @@ enum { FILTER_NO_VLAN_PRI = 7 };
 static int set_eeprom(struct port_info *pi, const uint8_t *data, int len, int offset);
 
 
-static __inline char
+static inline char
 t3rev2char(struct adapter *adapter)
 {
 	char rev = 'z';
@@ -3188,7 +3188,7 @@ cxgb_extension_ioctl(struct cdev *dev, unsigned long cmd, caddr_t data,
 	return (error);
 }
 
-static __inline void
+static inline void
 reg_block_dump(struct adapter *ap, uint8_t *buf, unsigned int start,
     unsigned int end)
 {

@@ -94,7 +94,7 @@ struct filemon {
 static struct cdev *filemon_dev;
 static void filemon_output(struct filemon *filemon, char *msg, size_t len);
 
-static __inline struct filemon *
+static inline struct filemon *
 filemon_acquire(struct filemon *filemon)
 {
 
@@ -175,7 +175,7 @@ filemon_proc_drop(struct proc *p)
 }
 
 /* Unlock and release the filemon. */
-static __inline void
+static inline void
 filemon_drop(struct filemon *filemon)
 {
 

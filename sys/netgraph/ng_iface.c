@@ -214,7 +214,7 @@ VNET_DEFINE_STATIC(struct unrhdr *, ng_iface_unit);
 /*
  * Get the family descriptor from the family ID
  */
-static __inline iffam_p
+static inline iffam_p
 get_iffam_from_af(sa_family_t family)
 {
 	iffam_p iffam;
@@ -231,7 +231,7 @@ get_iffam_from_af(sa_family_t family)
 /*
  * Get the family descriptor from the hook
  */
-static __inline iffam_p
+static inline iffam_p
 get_iffam_from_hook(priv_p priv, hook_p hook)
 {
 	int k;
@@ -246,7 +246,7 @@ get_iffam_from_hook(priv_p priv, hook_p hook)
  * Get the hook from the iffam descriptor
  */
 
-static __inline hook_p *
+static inline hook_p *
 get_hook_from_iffam(priv_p priv, iffam_p iffam)
 {
 	return (&priv->hooks[iffam - gFamilies]);
@@ -255,7 +255,7 @@ get_hook_from_iffam(priv_p priv, iffam_p iffam)
 /*
  * Get the iffam descriptor from the name
  */
-static __inline iffam_p
+static inline iffam_p
 get_iffam_from_name(const char *name)
 {
 	iffam_p iffam;

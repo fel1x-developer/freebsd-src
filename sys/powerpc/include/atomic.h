@@ -63,7 +63,7 @@
 #define __ATOMIC_ACQ()	__asm __volatile("isync" : : : "memory")
 #endif
 
-static __inline void
+static inline void
 powerpc_lwsync(void)
 {
 
@@ -115,20 +115,20 @@ powerpc_lwsync(void)
 #endif
 
 #define	_ATOMIC_ADD(type)					\
-    static __inline void					\
+    static inline void					\
     atomic_add_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__atomic_add_##type(p, v, t);				\
     }								\
 								\
-    static __inline void					\
+    static inline void					\
     atomic_add_acq_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__atomic_add_##type(p, v, t);				\
 	__ATOMIC_ACQ();						\
     }								\
 								\
-    static __inline void					\
+    static inline void					\
     atomic_add_rel_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__ATOMIC_REL();						\
@@ -201,20 +201,20 @@ _ATOMIC_ADD(long)
 #endif
 
 #define	_ATOMIC_CLEAR(type)					\
-    static __inline void					\
+    static inline void					\
     atomic_clear_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__atomic_clear_##type(p, v, t);				\
     }								\
 								\
-    static __inline void					\
+    static inline void					\
     atomic_clear_acq_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__atomic_clear_##type(p, v, t);				\
 	__ATOMIC_ACQ();						\
     }								\
 								\
-    static __inline void					\
+    static inline void					\
     atomic_clear_rel_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__ATOMIC_REL();						\
@@ -302,20 +302,20 @@ _ATOMIC_CLEAR(long)
 #endif
 
 #define	_ATOMIC_SET(type)					\
-    static __inline void					\
+    static inline void					\
     atomic_set_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__atomic_set_##type(p, v, t);				\
     }								\
 								\
-    static __inline void					\
+    static inline void					\
     atomic_set_acq_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__atomic_set_##type(p, v, t);				\
 	__ATOMIC_ACQ();						\
     }								\
 								\
-    static __inline void					\
+    static inline void					\
     atomic_set_rel_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;						\
 	__ATOMIC_REL();						\
@@ -388,20 +388,20 @@ _ATOMIC_SET(long)
 #endif
 
 #define	_ATOMIC_SUBTRACT(type)						\
-    static __inline void						\
+    static inline void						\
     atomic_subtract_##type(volatile u_##type *p, u_##type v) {		\
 	u_##type t;							\
 	__atomic_subtract_##type(p, v, t);				\
     }									\
 									\
-    static __inline void						\
+    static inline void						\
     atomic_subtract_acq_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;							\
 	__atomic_subtract_##type(p, v, t);				\
 	__ATOMIC_ACQ();							\
     }									\
 									\
-    static __inline void						\
+    static inline void						\
     atomic_subtract_rel_##type(volatile u_##type *p, u_##type v) {	\
 	u_##type t;							\
 	__ATOMIC_REL();							\
@@ -442,7 +442,7 @@ _ATOMIC_SUBTRACT(long)
  * Old/original implementations that still need revisiting.
  */
 
-static __inline u_int
+static inline u_int
 atomic_readandclear_int(volatile u_int *addr)
 {
 	u_int result,temp;
@@ -461,7 +461,7 @@ atomic_readandclear_int(volatile u_int *addr)
 }
 
 #ifdef __powerpc64__
-static __inline u_long
+static inline u_long
 atomic_readandclear_long(volatile u_long *addr)
 {
 	u_long result,temp;
@@ -487,7 +487,7 @@ atomic_readandclear_long(volatile u_long *addr)
 
 #define	atomic_readandclear_ptr		atomic_readandclear_long
 #else
-static __inline u_long
+static inline u_long
 atomic_readandclear_long(volatile u_long *addr)
 {
 
@@ -501,7 +501,7 @@ atomic_readandclear_long(volatile u_long *addr)
  * We assume that a = b will do atomic loads and stores.
  */
 #define	ATOMIC_STORE_LOAD(TYPE)					\
-static __inline u_##TYPE					\
+static inline u_##TYPE					\
 atomic_load_acq_##TYPE(volatile u_##TYPE *p)			\
 {								\
 	u_##TYPE v;						\
@@ -511,7 +511,7 @@ atomic_load_acq_##TYPE(volatile u_##TYPE *p)			\
 	return (v);						\
 }								\
 								\
-static __inline void						\
+static inline void						\
 atomic_store_rel_##TYPE(volatile u_##TYPE *p, u_##TYPE v)	\
 {								\
 								\
@@ -533,14 +533,14 @@ ATOMIC_STORE_LOAD(long)
 #define	atomic_load_acq_ptr	atomic_load_acq_long
 #define	atomic_store_rel_ptr	atomic_store_rel_long
 #else
-static __inline u_long
+static inline u_long
 atomic_load_acq_long(volatile u_long *addr)
 {
 
 	return ((u_long)atomic_load_acq_int((volatile u_int *)addr));
 }
 
-static __inline void
+static inline void
 atomic_store_rel_long(volatile u_long *addr, u_long val)
 {
 
@@ -558,7 +558,7 @@ atomic_store_rel_long(volatile u_long *addr, u_long val)
  * zero if the compare failed, nonzero otherwise.
  */
 #ifdef ISA_206_ATOMICS
-static __inline int
+static inline int
 atomic_cmpset_char(volatile u_char *p, u_char cmpval, u_char newval)
 {
 	int	ret;
@@ -582,7 +582,7 @@ atomic_cmpset_char(volatile u_char *p, u_char cmpval, u_char newval)
 	return (ret);
 }
 
-static __inline int
+static inline int
 atomic_cmpset_short(volatile u_short *p, u_short cmpval, u_short newval)
 {
 	int	ret;
@@ -606,7 +606,7 @@ atomic_cmpset_short(volatile u_short *p, u_short cmpval, u_short newval)
 	return (ret);
 }
 #else
-static __inline int
+static inline int
 atomic_cmpset_masked(uint32_t *p, uint32_t cmpval, uint32_t newval,
     uint32_t mask)
 {
@@ -639,7 +639,7 @@ atomic_cmpset_masked(uint32_t *p, uint32_t cmpval, uint32_t newval,
 #define	_atomic_cmpset_masked_word(a,o,v,m) atomic_cmpset_masked(a, o, v, m)
 #endif
 
-static __inline int
+static inline int
 atomic_cmpset_int(volatile u_int* p, u_int cmpval, u_int newval)
 {
 	int	ret;
@@ -662,7 +662,7 @@ atomic_cmpset_int(volatile u_int* p, u_int cmpval, u_int newval)
 
 	return (ret);
 }
-static __inline int
+static inline int
 atomic_cmpset_long(volatile u_long* p, u_long cmpval, u_long newval)
 {
 	int ret;
@@ -698,7 +698,7 @@ atomic_cmpset_long(volatile u_long* p, u_long cmpval, u_long newval)
 }
 
 #define	ATOMIC_CMPSET_ACQ_REL(type) \
-    static __inline int \
+    static inline int \
     atomic_cmpset_acq_##type(volatile u_##type *p, \
 	    u_##type cmpval, u_##type newval)\
     {\
@@ -707,7 +707,7 @@ atomic_cmpset_long(volatile u_long* p, u_long cmpval, u_long newval)
 	__ATOMIC_ACQ();\
 	return (retval);\
     }\
-    static __inline int \
+    static inline int \
     atomic_cmpset_rel_##type(volatile u_##type *p, \
 	    u_##type cmpval, u_##type newval)\
     {\
@@ -756,7 +756,7 @@ ATOMIC_CMPSET_ACQ_REL(long);
  * nonzero otherwise.
  */
 #ifdef ISA_206_ATOMICS
-static __inline int
+static inline int
 atomic_fcmpset_char(volatile u_char *p, u_char *cmpval, u_char newval)
 {
 	int	ret;
@@ -781,7 +781,7 @@ atomic_fcmpset_char(volatile u_char *p, u_char *cmpval, u_char newval)
 	return (ret);
 }
 
-static __inline int
+static inline int
 atomic_fcmpset_short(volatile u_short *p, u_short *cmpval, u_short newval)
 {
 	int	ret;
@@ -807,7 +807,7 @@ atomic_fcmpset_short(volatile u_short *p, u_short *cmpval, u_short newval)
 }
 #endif	/* ISA_206_ATOMICS */
 
-static __inline int
+static inline int
 atomic_fcmpset_int(volatile u_int *p, u_int *cmpval, u_int newval)
 {
 	int	ret;
@@ -831,7 +831,7 @@ atomic_fcmpset_int(volatile u_int *p, u_int *cmpval, u_int newval)
 
 	return (ret);
 }
-static __inline int
+static inline int
 atomic_fcmpset_long(volatile u_long *p, u_long *cmpval, u_long newval)
 {
 	int ret;
@@ -869,7 +869,7 @@ atomic_fcmpset_long(volatile u_long *p, u_long *cmpval, u_long newval)
 }
 
 #define	ATOMIC_FCMPSET_ACQ_REL(type) \
-    static __inline int \
+    static inline int \
     atomic_fcmpset_acq_##type(volatile u_##type *p, \
 	    u_##type *cmpval, u_##type newval)\
     {\
@@ -878,7 +878,7 @@ atomic_fcmpset_long(volatile u_long *p, u_long *cmpval, u_long newval)
 	__ATOMIC_ACQ();\
 	return (retval);\
     }\
-    static __inline int \
+    static inline int \
     atomic_fcmpset_rel_##type(volatile u_##type *p, \
 	    u_##type *cmpval, u_##type newval)\
     {\
@@ -920,7 +920,7 @@ ATOMIC_FCMPSET_ACQ_REL(long);
 #define	atomic_fcmpset_rel_ptr	atomic_fcmpset_rel_int
 #endif
 
-static __inline u_int
+static inline u_int
 atomic_fetchadd_int(volatile u_int *p, u_int v)
 {
 	u_int value;
@@ -931,7 +931,7 @@ atomic_fetchadd_int(volatile u_int *p, u_int v)
 	return (value);
 }
 
-static __inline u_long
+static inline u_long
 atomic_fetchadd_long(volatile u_long *p, u_long v)
 {
 	u_long value;
@@ -942,7 +942,7 @@ atomic_fetchadd_long(volatile u_long *p, u_long v)
 	return (value);
 }
 
-static __inline u_int
+static inline u_int
 atomic_swap_32(volatile u_int *p, u_int v)
 {
 	u_int prev;
@@ -959,7 +959,7 @@ atomic_swap_32(volatile u_int *p, u_int v)
 }
 
 #ifdef __powerpc64__
-static __inline u_long
+static inline u_long
 atomic_swap_64(volatile u_long *p, u_long v)
 {
 	u_long prev;
@@ -988,7 +988,7 @@ atomic_swap_64(volatile u_long *p, u_long v)
 #define	atomic_swap_ptr(p,v)	atomic_swap_32((volatile u_int *)(p), v)
 #endif
 
-static __inline int
+static inline int
 atomic_testandset_int(volatile u_int *p, u_int v)
 {
 	u_int m = (1u << (v & 0x1f));
@@ -1008,7 +1008,7 @@ atomic_testandset_int(volatile u_int *p, u_int v)
 	return (res != 0);
 }
 
-static __inline int
+static inline int
 atomic_testandclear_int(volatile u_int *p, u_int v)
 {
 	u_int m = (1u << (v & 0x1f));
@@ -1029,7 +1029,7 @@ atomic_testandclear_int(volatile u_int *p, u_int v)
 }
 
 #ifdef __powerpc64__
-static __inline int
+static inline int
 atomic_testandset_long(volatile u_long *p, u_int v)
 {
 	u_long m = (1ul << (v & 0x3f));
@@ -1049,7 +1049,7 @@ atomic_testandset_long(volatile u_long *p, u_int v)
 	return (res != 0);
 }
 
-static __inline int
+static inline int
 atomic_testandclear_long(volatile u_long *p, u_int v)
 {
 	u_long m = (1ul << (v & 0x3f));
@@ -1069,13 +1069,13 @@ atomic_testandclear_long(volatile u_long *p, u_int v)
 	return (res != 0);
 }
 #else
-static __inline int
+static inline int
 atomic_testandset_long(volatile u_long *p, u_int v)
 {
 	return (atomic_testandset_int((volatile u_int *)p, v));
 }
 
-static __inline int
+static inline int
 atomic_testandclear_long(volatile u_long *p, u_int v)
 {
 	return (atomic_testandclear_int((volatile u_int *)p, v));
@@ -1085,7 +1085,7 @@ atomic_testandclear_long(volatile u_long *p, u_int v)
 #define	atomic_testandclear_32	atomic_testandclear_int
 #define	atomic_testandset_32	atomic_testandset_int
 
-static __inline int
+static inline int
 atomic_testandset_acq_long(volatile u_long *p, u_int v)
 {
 	u_int a = atomic_testandset_long(p, v);
@@ -1099,28 +1099,28 @@ atomic_testandset_acq_long(volatile u_long *p, u_int v)
 #define	atomic_testandset_long		atomic_testandset_long
 #define	atomic_testandset_acq_long	atomic_testandset_acq_long
 
-static __inline void
+static inline void
 atomic_thread_fence_acq(void)
 {
 
 	powerpc_lwsync();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_rel(void)
 {
 
 	powerpc_lwsync();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_acq_rel(void)
 {
 
 	powerpc_lwsync();
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_seq_cst(void)
 {
 

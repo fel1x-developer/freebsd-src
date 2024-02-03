@@ -167,7 +167,7 @@ static struct kproc_desc random_proc_kp = {
 };
 
 /* Pass the given event straight through to Fortuna/Whatever. */
-static __inline void
+static inline void
 random_harvestq_fast_process_event(struct harvest_event *event)
 {
 	p_random_alg_context->ra_event_processor(event);

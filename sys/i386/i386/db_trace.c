@@ -75,7 +75,7 @@ struct db_variable db_regs[] = {
 };
 struct db_variable *db_eregs = db_regs + nitems(db_regs);
 
-static __inline int
+static inline int
 get_esp(struct trapframe *tf)
 {
 	return (TF_HAS_STACKREGS(tf) ? tf->tf_esp : (intptr_t)&tf->tf_esp);

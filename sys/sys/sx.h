@@ -153,7 +153,7 @@ struct sx_args {
 
 #if	(LOCK_DEBUG == 0)
 /* Acquire an exclusive lock. */
-static __inline int
+static inline int
 __sx_xlock(struct sx *sx, struct thread *td, int opts, const char *file,
     int line)
 {
@@ -169,7 +169,7 @@ __sx_xlock(struct sx *sx, struct thread *td, int opts, const char *file,
 }
 
 /* Release an exclusive lock. */
-static __inline void
+static inline void
 __sx_xunlock(struct sx *sx, struct thread *td, const char *file, int line)
 {
 	uintptr_t x = (uintptr_t)td;
@@ -308,13 +308,13 @@ __sx_xunlock(struct sx *sx, struct thread *td, const char *file, int line)
 #define SX_NEW 0
 #define SX_NOWITNESS 0
 
-static __inline void
+static inline void
 sx_init_flags(struct sx *sx, const char *description, int opts)
 {
 
 }
 
-static __inline void
+static inline void
 sx_destroy(struct sx *sx)
 {
 

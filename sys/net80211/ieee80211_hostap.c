@@ -449,7 +449,7 @@ hostap_deliver_data(struct ieee80211vap *vap,
  * of the less interesting frames that come frequently
  * (e.g. beacons).
  */
-static __inline int
+static inline int
 doprint(struct ieee80211vap *vap, int subtype)
 {
 	switch (subtype) {
@@ -1729,7 +1729,7 @@ authalgreject(struct ieee80211_node *ni, const struct ieee80211_frame *wh,
 	    seq | (status << 16));
 }
 
-static __inline int
+static inline int
 ishtmixed(const uint8_t *ie)
 {
 	const struct ieee80211_ie_htinfo *ht =

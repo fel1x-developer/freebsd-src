@@ -61,7 +61,7 @@
 	defined(__WATCOMC__) || defined(__SUNPRO_C)
 #define FASTLZ_INLINE inline
 #elif defined(__BORLANDC__) || defined(_MSC_VER) || defined(__LCC__)
-#define FASTLZ_INLINE __inline
+#define FASTLZ_INLINE inline
 #else
 #define FASTLZ_INLINE
 #endif

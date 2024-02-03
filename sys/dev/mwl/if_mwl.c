@@ -271,14 +271,14 @@ struct mwltxrec {
  * there should be no reference to them here.
  */
 #ifdef MWL_DEBUG
-static __inline uint32_t
+static inline uint32_t
 RD4(struct mwl_softc *sc, bus_size_t off)
 {
 	return bus_space_read_4(sc->sc_io0t, sc->sc_io0h, off);
 }
 #endif
 
-static __inline void
+static inline void
 WR4(struct mwl_softc *sc, bus_size_t off, uint32_t val)
 {
 	bus_space_write_4(sc->sc_io0t, sc->sc_io0h, off, val);
@@ -1584,7 +1584,7 @@ mwl_key_delete(struct ieee80211vap *vap, const struct ieee80211_key *k)
 	return (mwl_hal_keyreset(hvap, &hk, bcastaddr) == 0);	/*XXX*/
 }
 
-static __inline int
+static inline int
 addgroupflags(MWL_HAL_KEYVAL *hk, const struct ieee80211_key *k)
 {
 	if (k->wk_flags & IEEE80211_KEY_GROUP) {
@@ -2442,7 +2442,7 @@ mwl_node_getmimoinfo(const struct ieee80211_node *ni,
 #undef CVT
 }
 
-static __inline void *
+static inline void *
 mwl_getrxdma(struct mwl_softc *sc)
 {
 	struct mwl_jumbo *buf;
@@ -2467,7 +2467,7 @@ mwl_getrxdma(struct mwl_softc *sc)
 	return data;
 }
 
-static __inline void
+static inline void
 mwl_putrxdma(struct mwl_softc *sc, void *data)
 {
 	struct mwl_jumbo *buf;
@@ -2549,7 +2549,7 @@ struct mwl_frame_bar {
  * specially so the logic below to piece the 802.11
  * header together works.
  */
-static __inline int
+static inline int
 mwl_anyhdrsize(const void *data)
 {
 	const struct ieee80211_frame *wh = data;
@@ -2591,7 +2591,7 @@ mwl_handlemicerror(struct ieee80211com *ic, const uint8_t *data)
  * offset is already set as part of the initial gain.  This
  * will give at least +/- 3dB for 2.4GHz and +/- 5dB for 5GHz.
  */
-static __inline int
+static inline int
 cvtrssi(uint8_t ssi)
 {
 	int rssi = (int) ssi + 8;
@@ -3003,7 +3003,7 @@ mwl_tx_dmasetup(struct mwl_softc *sc, struct mwl_txbuf *bf, struct mbuf *m0)
 	return 0;
 }
 
-static __inline int
+static inline int
 mwl_cvtlegacyrate(int rate)
 {
 	switch (rate) {
@@ -3300,7 +3300,7 @@ mwl_tx_start(struct mwl_softc *sc, struct ieee80211_node *ni, struct mwl_txbuf *
 	return 0;
 }
 
-static __inline int
+static inline int
 mwl_cvtlegacyrix(int rix)
 {
 	static const int ieeerates[] =

@@ -256,7 +256,7 @@ struct g_eli_metadata {
 	u_char		md_hash[16];	/* MD5 hash. */
 } __packed;
 #ifndef _OpenSSL_
-static __inline void
+static inline void
 eli_metadata_encode_v0(struct g_eli_metadata *md, u_char **datap)
 {
 	u_char *p;
@@ -273,7 +273,7 @@ eli_metadata_encode_v0(struct g_eli_metadata *md, u_char **datap)
 	bcopy(md->md_mkeys, p, sizeof(md->md_mkeys)); p += sizeof(md->md_mkeys);
 	*datap = p;
 }
-static __inline void
+static inline void
 eli_metadata_encode_v1v2v3v4v5v6v7(struct g_eli_metadata *md, u_char **datap)
 {
 	u_char *p;
@@ -291,7 +291,7 @@ eli_metadata_encode_v1v2v3v4v5v6v7(struct g_eli_metadata *md, u_char **datap)
 	bcopy(md->md_mkeys, p, sizeof(md->md_mkeys)); p += sizeof(md->md_mkeys);
 	*datap = p;
 }
-static __inline void
+static inline void
 eli_metadata_encode(struct g_eli_metadata *md, u_char *data)
 {
 	uint32_t hash[4];
@@ -330,7 +330,7 @@ eli_metadata_encode(struct g_eli_metadata *md, u_char *data)
 	bcopy(hash, md->md_hash, sizeof(md->md_hash));
 	bcopy(md->md_hash, p, sizeof(md->md_hash));
 }
-static __inline int
+static inline int
 eli_metadata_decode_v0(const u_char *data, struct g_eli_metadata *md)
 {
 	uint32_t hash[4];
@@ -356,7 +356,7 @@ eli_metadata_decode_v0(const u_char *data, struct g_eli_metadata *md)
 	return (0);
 }
 
-static __inline int
+static inline int
 eli_metadata_decode_v1v2v3v4v5v6v7(const u_char *data, struct g_eli_metadata *md)
 {
 	uint32_t hash[4];
@@ -382,7 +382,7 @@ eli_metadata_decode_v1v2v3v4v5v6v7(const u_char *data, struct g_eli_metadata *md
 		return (EINVAL);
 	return (0);
 }
-static __inline int
+static inline int
 eli_metadata_decode(const u_char *data, struct g_eli_metadata *md)
 {
 	int error;
@@ -412,7 +412,7 @@ eli_metadata_decode(const u_char *data, struct g_eli_metadata *md)
 }
 #endif	/* !_OpenSSL */
 
-static __inline u_int
+static inline u_int
 g_eli_str2ealgo(const char *name)
 {
 
@@ -433,7 +433,7 @@ g_eli_str2ealgo(const char *name)
 	return (CRYPTO_ALGORITHM_MIN - 1);
 }
 
-static __inline u_int
+static inline u_int
 g_eli_str2aalgo(const char *name)
 {
 
@@ -450,7 +450,7 @@ g_eli_str2aalgo(const char *name)
 	return (CRYPTO_ALGORITHM_MIN - 1);
 }
 
-static __inline const char *
+static inline const char *
 g_eli_algo2str(u_int algo)
 {
 
@@ -477,7 +477,7 @@ g_eli_algo2str(u_int algo)
 	return ("unknown");
 }
 
-static __inline void
+static inline void
 eli_metadata_dump(const struct g_eli_metadata *md)
 {
 	static const char hex[] = "0123456789abcdef";
@@ -516,7 +516,7 @@ eli_metadata_dump(const struct g_eli_metadata *md)
 }
 
 #ifdef _KERNEL
-static __inline bool
+static inline bool
 eli_metadata_crypto_supported(const struct g_eli_metadata *md)
 {
 
@@ -545,7 +545,7 @@ eli_metadata_crypto_supported(const struct g_eli_metadata *md)
 }
 #endif
 
-static __inline u_int
+static inline u_int
 g_eli_keylen(u_int algo, u_int keylen)
 {
 
@@ -585,7 +585,7 @@ g_eli_keylen(u_int algo, u_int keylen)
 	}
 }
 
-static __inline u_int
+static inline u_int
 g_eli_ivlen(u_int algo)
 {
 
@@ -600,7 +600,7 @@ g_eli_ivlen(u_int algo)
 	return (0);
 }
 
-static __inline u_int
+static inline u_int
 g_eli_hashlen(u_int algo)
 {
 
@@ -619,7 +619,7 @@ g_eli_hashlen(u_int algo)
 	return (0);
 }
 
-static __inline off_t
+static inline off_t
 eli_mediasize(const struct g_eli_softc *sc, off_t mediasize, u_int sectorsize)
 {
 
@@ -636,7 +636,7 @@ eli_mediasize(const struct g_eli_softc *sc, off_t mediasize, u_int sectorsize)
 	return (mediasize);
 }
 
-static __inline void
+static inline void
 eli_metadata_softc(struct g_eli_softc *sc, const struct g_eli_metadata *md,
     u_int sectorsize, off_t mediasize)
 {

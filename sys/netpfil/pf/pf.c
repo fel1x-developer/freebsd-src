@@ -305,7 +305,7 @@ static int		 pf_state_key_attach(struct pf_state_key *,
 static void		 pf_state_key_detach(struct pf_kstate *, int);
 static int		 pf_state_key_ctor(void *, int, void *, int);
 static u_int32_t	 pf_tcp_iss(struct pf_pdesc *);
-static __inline void	 pf_dummynet_flag_remove(struct mbuf *m,
+static inline void	 pf_dummynet_flag_remove(struct mbuf *m,
 			    struct pf_mtag *pf_mtag);
 static int		 pf_dummynet(struct pf_pdesc *, struct pf_kstate *,
 			    struct pf_krule *, struct mbuf **);
@@ -382,7 +382,7 @@ static void		 pf_route6(struct mbuf **, struct pf_krule *,
 			    struct ifnet *, struct pf_kstate *,
 			    struct pf_pdesc *, struct inpcb *);
 #endif /* INET6 */
-static __inline void pf_set_protostate(struct pf_kstate *, int, u_int8_t);
+static inline void pf_set_protostate(struct pf_kstate *, int, u_int8_t);
 
 int in4_cksum(struct mbuf *m, u_int8_t nxt, int off, int len);
 
@@ -649,7 +649,7 @@ pf_packet_rework_nat(struct mbuf *m, struct pf_pdesc *pd, int off,
 	}
 }
 
-static __inline uint32_t
+static inline uint32_t
 pf_hashkey(struct pf_state_key *sk)
 {
 	uint32_t h;
@@ -661,7 +661,7 @@ pf_hashkey(struct pf_state_key *sk)
 	return (h & pf_hashmask);
 }
 
-static __inline uint32_t
+static inline uint32_t
 pf_hashsrc(struct pf_addr *addr, sa_family_t af)
 {
 	uint32_t h;
@@ -696,7 +696,7 @@ pf_state_hash(struct pf_kstate *s)
 }
 #endif
 
-static __inline void
+static inline void
 pf_set_protostate(struct pf_kstate *s, int which, u_int8_t newstate)
 {
 	if (which == PF_PEER_DST || which == PF_PEER_BOTH)
@@ -7894,7 +7894,7 @@ pf_test_eth(int dir, int pflags, struct ifnet *ifp, struct mbuf **m0,
 	return (pf_test_eth_rule(dir, kif, m0));
 }
 
-static __inline void
+static inline void
 pf_dummynet_flag_remove(struct mbuf *m, struct pf_mtag *pf_mtag)
 {
 	struct m_tag *mtag;

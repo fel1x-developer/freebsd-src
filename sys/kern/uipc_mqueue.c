@@ -376,25 +376,25 @@ mqfs_fileno_free(struct mqfs_info *mi, struct mqfs_node *mn)
 	}
 }
 
-static __inline struct mqfs_node *
+static inline struct mqfs_node *
 mqnode_alloc(void)
 {
 	return uma_zalloc(mqnode_zone, M_WAITOK | M_ZERO);
 }
 
-static __inline void
+static inline void
 mqnode_free(struct mqfs_node *node)
 {
 	uma_zfree(mqnode_zone, node);
 }
 
-static __inline void
+static inline void
 mqnode_addref(struct mqfs_node *node)
 {
 	atomic_add_int(&node->mn_refcount, 1);
 }
 
-static __inline void
+static inline void
 mqnode_release(struct mqfs_node *node)
 {
 	struct mqfs_info *mqfs;
@@ -1670,7 +1670,7 @@ mqueue_savemsg(struct mqueue_msg *msg, char *msg_ptr, int *msg_prio)
 /*
  * Free a message's memory
  */
-static __inline void
+static inline void
 mqueue_freemsg(struct mqueue_msg *msg)
 {
 	free(msg, M_MQUEUEDATA);
@@ -1945,13 +1945,13 @@ _mqueue_recv(struct mqueue *mq, struct mqueue_msg **msg, int timo)
 	return (error);
 }
 
-static __inline struct mqueue_notifier *
+static inline struct mqueue_notifier *
 notifier_alloc(void)
 {
 	return (uma_zalloc(mqnoti_zone, M_WAITOK | M_ZERO));
 }
 
-static __inline void
+static inline void
 notifier_free(struct mqueue_notifier *p)
 {
 	uma_zfree(mqnoti_zone, p);
@@ -1969,13 +1969,13 @@ notifier_search(struct proc *p, int fd)
 	return (nt);
 }
 
-static __inline void
+static inline void
 notifier_insert(struct proc *p, struct mqueue_notifier *nt)
 {
 	LIST_INSERT_HEAD(&p->p_mqnotifier, nt, nt_link);
 }
 
-static __inline void
+static inline void
 notifier_delete(struct proc *p, struct mqueue_notifier *nt)
 {
 	LIST_REMOVE(nt, nt_link);
@@ -2182,7 +2182,7 @@ _getmq(struct thread *td, int fd, cap_rights_t *rightsp, _fgetf func,
 	return (0);
 }
 
-static __inline int
+static inline int
 getmq(struct thread *td, int fd, struct file **fpp, struct mqfs_node **ppn,
 	struct mqueue **pmq)
 {
@@ -2191,7 +2191,7 @@ getmq(struct thread *td, int fd, struct file **fpp, struct mqfs_node **ppn,
 	    fpp, ppn, pmq);
 }
 
-static __inline int
+static inline int
 getmq_read(struct thread *td, int fd, struct file **fpp,
 	 struct mqfs_node **ppn, struct mqueue **pmq)
 {
@@ -2200,7 +2200,7 @@ getmq_read(struct thread *td, int fd, struct file **fpp,
 	    fpp, ppn, pmq);
 }
 
-static __inline int
+static inline int
 getmq_write(struct thread *td, int fd, struct file **fpp,
 	struct mqfs_node **ppn, struct mqueue **pmq)
 {

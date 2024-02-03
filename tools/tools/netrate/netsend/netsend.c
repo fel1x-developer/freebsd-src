@@ -65,7 +65,7 @@ usage(void)
 
 #define	MAX_RATE	100000000
 
-static __inline void
+static inline void
 timespec_add(struct timespec *tsa, struct timespec *tsb)
 {
 
@@ -77,7 +77,7 @@ timespec_add(struct timespec *tsa, struct timespec *tsb)
 	}
 }
 
-static __inline int
+static inline int
 timespec_ge(struct timespec *a, struct timespec *b)
 {
 

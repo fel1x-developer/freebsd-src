@@ -115,7 +115,7 @@ static struct isa_pnp_id atpic_ids[] = {
 DRIVER_MODULE(atpic, isa, atpic_isa_driver, 0, 0);
 ISA_PNP_INFO(atpic_ids);
 
-static __inline uint8_t
+static inline uint8_t
 atpic_read(struct atpic_softc *sc, int icu, int ofs)
 {
 	uint8_t val;
@@ -124,7 +124,7 @@ atpic_read(struct atpic_softc *sc, int icu, int ofs)
 	return (val);
 }
 
-static __inline void
+static inline void
 atpic_write(struct atpic_softc *sc, int icu, int ofs, uint8_t val)
 {
 

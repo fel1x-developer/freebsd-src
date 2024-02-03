@@ -59,7 +59,7 @@ static int	cur_x, cur_y;
 static int	curve;
 static u_char	dragon_pal[3*256];	/* zero-filled by the compiler */
 
-static __inline int
+static inline int
 gpset(int x, int y, int val)
 {
 	if (x < 0 || y < 0 || SCRW <= x || SCRH <= y) {

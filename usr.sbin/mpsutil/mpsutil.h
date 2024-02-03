@@ -128,7 +128,7 @@ int	mps_firmware_send(int fd, unsigned char *buf, uint32_t len, bool bios);
 int	mps_firmware_get(int fd, unsigned char **buf, bool bios);
 int	mps_set_slot_status(int fd, U16 handle, U16 slot, U32 status);
 
-static __inline void *
+static inline void *
 mps_read_man_page(int fd, U8 PageNumber, U16 *IOCStatus)
 {
 
@@ -136,7 +136,7 @@ mps_read_man_page(int fd, U8 PageNumber, U16 *IOCStatus)
 	    PageNumber, 0, IOCStatus));
 }
 
-static __inline void *
+static inline void *
 mps_read_ioc_page(int fd, U8 PageNumber, U16 *IOCStatus)
 {
 
@@ -144,7 +144,7 @@ mps_read_ioc_page(int fd, U8 PageNumber, U16 *IOCStatus)
 	    0, IOCStatus));
 }
 
-static __inline uint64_t
+static inline uint64_t
 mps_to_u64(U64 *data)
 {
 

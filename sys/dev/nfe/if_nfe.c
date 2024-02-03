@@ -84,14 +84,14 @@ static int  nfe_miibus_writereg(device_t, int, int, int);
 static void nfe_miibus_statchg(device_t);
 static void nfe_mac_config(struct nfe_softc *, struct mii_data *);
 static void nfe_set_intr(struct nfe_softc *);
-static __inline void nfe_enable_intr(struct nfe_softc *);
-static __inline void nfe_disable_intr(struct nfe_softc *);
+static inline void nfe_enable_intr(struct nfe_softc *);
+static inline void nfe_disable_intr(struct nfe_softc *);
 static int  nfe_ioctl(if_t, u_long, caddr_t);
 static void nfe_alloc_msix(struct nfe_softc *, int);
 static int nfe_intr(void *);
 static void nfe_int_task(void *, int);
-static __inline void nfe_discard_rxbuf(struct nfe_softc *, int);
-static __inline void nfe_discard_jrxbuf(struct nfe_softc *, int);
+static inline void nfe_discard_rxbuf(struct nfe_softc *, int);
+static inline void nfe_discard_jrxbuf(struct nfe_softc *, int);
 static int nfe_newbuf(struct nfe_softc *, int);
 static int nfe_jnewbuf(struct nfe_softc *, int);
 static int  nfe_rxeof(struct nfe_softc *, int, int *);
@@ -1655,7 +1655,7 @@ nfe_set_intr(struct nfe_softc *sc)
 }
 
 /* In MSIX, a write to mask reegisters behaves as XOR. */
-static __inline void
+static inline void
 nfe_enable_intr(struct nfe_softc *sc)
 {
 
@@ -1667,7 +1667,7 @@ nfe_enable_intr(struct nfe_softc *sc)
 		NFE_WRITE(sc, sc->nfe_irq_mask, sc->nfe_intrs);
 }
 
-static __inline void
+static inline void
 nfe_disable_intr(struct nfe_softc *sc)
 {
 
@@ -1908,7 +1908,7 @@ nfe_int_task(void *arg, int pending)
 	nfe_enable_intr(sc);
 }
 
-static __inline void
+static inline void
 nfe_discard_rxbuf(struct nfe_softc *sc, int idx)
 {
 	struct nfe_desc32 *desc32;
@@ -1933,7 +1933,7 @@ nfe_discard_rxbuf(struct nfe_softc *sc, int idx)
 	}
 }
 
-static __inline void
+static inline void
 nfe_discard_jrxbuf(struct nfe_softc *sc, int idx)
 {
 	struct nfe_desc32 *desc32;

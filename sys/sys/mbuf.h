@@ -870,7 +870,7 @@ void		 m_snd_tag_destroy(struct m_snd_tag *);
 void		 m_rcvif_serialize(struct mbuf *);
 struct ifnet	*m_rcvif_restore(struct mbuf *);
 
-static __inline int
+static inline int
 m_gettype(int size)
 {
 	int type;
@@ -901,7 +901,7 @@ m_gettype(int size)
 /*
  * Associated an external reference counted buffer with an mbuf.
  */
-static __inline void
+static inline void
 m_extaddref(struct mbuf *m, char *buf, u_int size, u_int *ref_cnt,
     m_ext_free_t freef, void *arg1, void *arg2)
 {
@@ -921,7 +921,7 @@ m_extaddref(struct mbuf *m, char *buf, u_int size, u_int *ref_cnt,
 	m->m_ext.ext_flags = 0;
 }
 
-static __inline uma_zone_t
+static inline uma_zone_t
 m_getzone(int size)
 {
 	uma_zone_t zone;
@@ -953,7 +953,7 @@ m_getzone(int size)
  * initialize or call a function with this many parameters and M_PKTHDR
  * should go away with constant propagation for !MGETHDR.
  */
-static __inline int
+static inline int
 m_init(struct mbuf *m, int how, short type, int flags)
 {
 	int error;
@@ -973,7 +973,7 @@ m_init(struct mbuf *m, int how, short type, int flags)
 	return (error);
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 m_get_raw(int how, short type)
 {
 	struct mbuf *m;
@@ -986,7 +986,7 @@ m_get_raw(int how, short type)
 	return (m);
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 m_get(int how, short type)
 {
 	struct mbuf *m;
@@ -999,7 +999,7 @@ m_get(int how, short type)
 	return (m);
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 m_gethdr_raw(int how, short type)
 {
 	struct mbuf *m;
@@ -1012,7 +1012,7 @@ m_gethdr_raw(int how, short type)
 	return (m);
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 m_gethdr(int how, short type)
 {
 	struct mbuf *m;
@@ -1025,7 +1025,7 @@ m_gethdr(int how, short type)
 	return (m);
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 m_getcl(int how, short type, int flags)
 {
 	struct mbuf *m;
@@ -1043,7 +1043,7 @@ m_getcl(int how, short type, int flags)
  * unreferenced cluster to an mbuf(9).  It is not possible to assert
  * that, so care can be taken only by users of the API.
  */
-static __inline void
+static inline void
 m_cljset(struct mbuf *m, void *cl, int type)
 {
 	int size;
@@ -1076,14 +1076,14 @@ m_cljset(struct mbuf *m, void *cl, int type)
 	MBUF_PROBE3(m__cljset, m, cl, type);
 }
 
-static __inline void
+static inline void
 m_chtype(struct mbuf *m, short new_type)
 {
 
 	m->m_type = new_type;
 }
 
-static __inline void
+static inline void
 m_clrprotoflags(struct mbuf *m)
 {
 
@@ -1093,7 +1093,7 @@ m_clrprotoflags(struct mbuf *m)
 	}
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 m_last(struct mbuf *m)
 {
 
@@ -1200,7 +1200,7 @@ m_extrefcnt(struct mbuf *m)
  * right one.  Rather than require callers to be aware of those layout
  * decisions, we centralize here.
  */
-static __inline void
+static inline void
 m_align(struct mbuf *m, int len)
 {
 #ifdef INVARIANTS
@@ -1283,7 +1283,7 @@ m_align(struct mbuf *m, int len)
 #define	MCHTYPE(m, t)	m_chtype((m), (t))
 
 /* Return the rcvif of a packet header. */
-static __inline struct ifnet *
+static inline struct ifnet *
 m_rcvif(struct mbuf *m)
 {
 
@@ -1400,7 +1400,7 @@ void		 m_tag_delete_nonpersistent(struct mbuf *);
 /*
  * Initialize the list of tags associated with an mbuf.
  */
-static __inline void
+static inline void
 m_tag_init(struct mbuf *m)
 {
 
@@ -1413,7 +1413,7 @@ m_tag_init(struct mbuf *m)
  *
  * XXX probably should be called m_tag_init, but that was already taken.
  */
-static __inline void
+static inline void
 m_tag_setup(struct m_tag *t, uint32_t cookie, uint16_t type, int len)
 {
 
@@ -1425,7 +1425,7 @@ m_tag_setup(struct m_tag *t, uint32_t cookie, uint16_t type, int len)
 /*
  * Reclaim resources associated with a tag.
  */
-static __inline void
+static inline void
 m_tag_free(struct m_tag *t)
 {
 
@@ -1435,7 +1435,7 @@ m_tag_free(struct m_tag *t)
 /*
  * Return the first tag associated with an mbuf.
  */
-static __inline struct m_tag *
+static inline struct m_tag *
 m_tag_first(struct mbuf *m)
 {
 
@@ -1445,7 +1445,7 @@ m_tag_first(struct mbuf *m)
 /*
  * Return the next tag in the list of tags associated with an mbuf.
  */
-static __inline struct m_tag *
+static inline struct m_tag *
 m_tag_next(struct mbuf *m __unused, struct m_tag *t)
 {
 
@@ -1455,7 +1455,7 @@ m_tag_next(struct mbuf *m __unused, struct m_tag *t)
 /*
  * Prepend a tag to the list of tags associated with an mbuf.
  */
-static __inline void
+static inline void
 m_tag_prepend(struct mbuf *m, struct m_tag *t)
 {
 
@@ -1465,7 +1465,7 @@ m_tag_prepend(struct mbuf *m, struct m_tag *t)
 /*
  * Unlink a tag from the list of tags associated with an mbuf.
  */
-static __inline void
+static inline void
 m_tag_unlink(struct mbuf *m, struct m_tag *t)
 {
 
@@ -1475,13 +1475,13 @@ m_tag_unlink(struct mbuf *m, struct m_tag *t)
 /* These are for OpenBSD compatibility. */
 #define	MTAG_ABI_COMPAT		0		/* compatibility ABI */
 
-static __inline struct m_tag *
+static inline struct m_tag *
 m_tag_get(uint16_t type, int length, int wait)
 {
 	return (m_tag_alloc(MTAG_ABI_COMPAT, type, length, wait));
 }
 
-static __inline struct m_tag *
+static inline struct m_tag *
 m_tag_find(struct mbuf *m, uint16_t type, struct m_tag *start)
 {
 	return (SLIST_EMPTY(&m->m_pkthdr.tags) ? (struct m_tag *)NULL :
@@ -1504,7 +1504,7 @@ m_snd_tag_rele(struct m_snd_tag *mst)
 		m_snd_tag_destroy(mst);
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 m_free(struct mbuf *m)
 {
 	struct mbuf *n = m->m_next;
@@ -1523,7 +1523,7 @@ m_free(struct mbuf *m)
 	return (n);
 }
 
-static __inline int
+static inline int
 rt_m_getfib(struct mbuf *m)
 {
 	KASSERT(m->m_flags & M_PKTHDR , ("Attempt to get FIB from non header mbuf."));

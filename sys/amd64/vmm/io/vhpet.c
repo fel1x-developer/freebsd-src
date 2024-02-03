@@ -114,14 +114,14 @@ vhpet_capabilities(void)
 	return (cap);
 }
 
-static __inline bool
+static inline bool
 vhpet_counter_enabled(struct vhpet *vhpet)
 {
 
 	return ((vhpet->config & HPET_CNF_ENABLE) ? true : false);
 }
 
-static __inline bool
+static inline bool
 vhpet_timer_msi_enabled(struct vhpet *vhpet, int n)
 {
 	const uint64_t msi_enable = HPET_TCAP_FSB_INT_DEL | HPET_TCNF_FSB_EN;
@@ -132,7 +132,7 @@ vhpet_timer_msi_enabled(struct vhpet *vhpet, int n)
 		return (false);
 }
 
-static __inline int
+static inline int
 vhpet_timer_ioapic_pin(struct vhpet *vhpet, int n)
 {
 	/*
@@ -184,21 +184,21 @@ vhpet_timer_clear_isr(struct vhpet *vhpet, int n)
 	}
 }
 
-static __inline bool
+static inline bool
 vhpet_periodic_timer(struct vhpet *vhpet, int n)
 {
 
 	return ((vhpet->timer[n].cap_config & HPET_TCNF_TYPE) != 0);
 }
 
-static __inline bool
+static inline bool
 vhpet_timer_interrupt_enabled(struct vhpet *vhpet, int n)
 {
 
 	return ((vhpet->timer[n].cap_config & HPET_TCNF_INT_ENB) != 0);
 }
 
-static __inline bool
+static inline bool
 vhpet_timer_edge_trig(struct vhpet *vhpet, int n)
 {
 
@@ -382,7 +382,7 @@ vhpet_stop_counting(struct vhpet *vhpet, uint32_t counter, sbintime_t now)
 		vhpet_stop_timer(vhpet, i, now);
 }
 
-static __inline void
+static inline void
 update_register(uint64_t *regptr, uint64_t data, uint64_t mask)
 {
 

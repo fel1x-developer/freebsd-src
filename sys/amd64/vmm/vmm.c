@@ -1008,7 +1008,7 @@ vm_free_memmap(struct vm *vm, int ident)
 	}
 }
 
-static __inline bool
+static inline bool
 sysmem_mapping(struct vm *vm, struct mem_map *mm)
 {
 

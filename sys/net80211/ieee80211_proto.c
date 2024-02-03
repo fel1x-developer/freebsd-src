@@ -623,7 +623,7 @@ ieee80211_dump_pkt(struct ieee80211com *ic,
 	}
 }
 
-static __inline int
+static inline int
 findrix(const struct ieee80211_rateset *rs, int r)
 {
 	int i;

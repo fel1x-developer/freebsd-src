@@ -34,21 +34,21 @@
 #include <linux/types.h>
 #include <asm/byteorder.h>
 
-static __inline uint16_t
+static inline uint16_t
 get_unaligned_le16(const void *p)
 {
 
 	return (le16_to_cpup((const __le16 *)p));
 }
 
-static __inline uint32_t
+static inline uint32_t
 get_unaligned_le32(const void *p)
 {
 
 	return (le32_to_cpup((const __le32 *)p));
 }
 
-static __inline void
+static inline void
 put_unaligned_le16(__le16 v, void *p)
 {
 	__le16 x;
@@ -57,7 +57,7 @@ put_unaligned_le16(__le16 v, void *p)
 	memcpy(p, &x, sizeof(x));
 }
 
-static __inline void
+static inline void
 put_unaligned_le32(__le32 v, void *p)
 {
 	__le32 x;
@@ -66,7 +66,7 @@ put_unaligned_le32(__le32 v, void *p)
 	memcpy(p, &x, sizeof(x));
 }
 
-static __inline void
+static inline void
 put_unaligned_le64(__le64 v, void *p)
 {
 	__le64 x;
@@ -75,21 +75,21 @@ put_unaligned_le64(__le64 v, void *p)
 	memcpy(p, &x, sizeof(x));
 }
 
-static __inline uint16_t
+static inline uint16_t
 get_unaligned_be16(const void *p)
 {
 
 	return (be16_to_cpup((const __be16 *)p));
 }
 
-static __inline uint32_t
+static inline uint32_t
 get_unaligned_be32(const void *p)
 {
 
 	return (be32_to_cpup((const __be32 *)p));
 }
 
-static __inline uint64_t
+static inline uint64_t
 get_unaligned_be64(const void *p)
 {
 

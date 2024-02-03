@@ -62,7 +62,7 @@ BEGIN_MAP
 # 	struct _csmapper *csm[ncharset];
 # };
 # 
-# static __inline int
+# static inline int
 # gbkmapper_init(struct gbkmapper *rmp)
 # {
 # 	int i, off, ret;
@@ -78,7 +78,7 @@ BEGIN_MAP
 # 	return ret;
 # }
 # 
-# static __inline int
+# static inline int
 # gbkmapper_uninit(struct gbkmapper *rmp)
 # {
 # 	int i;
@@ -87,7 +87,7 @@ BEGIN_MAP
 # 	  _csmapper_close(rmp->csm[i]);
 # }
 # 
-# static __inline int
+# static inline int
 # gbkmapper_exists(struct gbkmapper *rmp, _index_t src)
 # {
 # 	int i, ret;

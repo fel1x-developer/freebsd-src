@@ -345,7 +345,7 @@ static struct fdt_pm_mask_entry fdt_pm_mask_table[] = {
 	{ NULL, 0 }
 };
 
-static __inline int
+static inline int
 pm_is_disabled(uint32_t mask)
 {
 #if SOC_MV_POWER_STAT_SUPPORTED
@@ -451,7 +451,7 @@ mv_check_soc_family(void)
 	return (soc_family);
 }
 
-static __inline void
+static inline void
 pm_disable_device(int mask)
 {
 #ifdef DIAGNOSTIC

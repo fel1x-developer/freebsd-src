@@ -7463,7 +7463,7 @@ bwn_led_attach(struct bwn_mac *mac)
 	return (0);
 }
 
-static __inline uint16_t
+static inline uint16_t
 bwn_led_onoff(const struct bwn_led *led, uint16_t val, int on)
 {
 

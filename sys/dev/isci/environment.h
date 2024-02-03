@@ -71,7 +71,7 @@ typedef void *		FUNCPTR;
 #define sci_cb_make_physical_address(physical_address, address_upper, address_lower) \
 	((physical_address) = ((U64)(address_upper))<<32 | (address_lower))
 
-#define INLINE __inline
+#define INLINE inline
 
 #define PLACEMENT_HINTS(...)
 

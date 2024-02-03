@@ -434,21 +434,21 @@ vfs_mountroot_shuffle(struct thread *td, struct mount *mpdevfs)
 #define	PE_EOF			-1
 #define	PE_EOL			-2
 
-static __inline int
+static inline int
 parse_peek(char **conf)
 {
 
 	return (**conf);
 }
 
-static __inline void
+static inline void
 parse_poke(char **conf, int c)
 {
 
 	**conf = c;
 }
 
-static __inline void
+static inline void
 parse_advance(char **conf)
 {
 

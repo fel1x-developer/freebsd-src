@@ -64,7 +64,7 @@ mpt_raid_quiesce_disk(struct mpt_softc *, struct mpt_raid_disk *, request_t *);
 
 void	mpt_raid_free_mem(struct mpt_softc *);
 
-static __inline void
+static inline void
 mpt_raid_wakeup(struct mpt_softc *mpt)
 {
 	mpt->raid_wakeup++;

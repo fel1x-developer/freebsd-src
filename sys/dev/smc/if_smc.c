@@ -143,7 +143,7 @@ static const struct mii_bitbang_ops smc_mii_bitbang_ops = {
 	}
 };
 
-static __inline void
+static inline void
 smc_select_bank(struct smc_softc *sc, uint16_t bank)
 {
 
@@ -155,7 +155,7 @@ smc_select_bank(struct smc_softc *sc, uint16_t bank)
 }
 
 /* Never call this when not in bank 2. */
-static __inline void
+static inline void
 smc_mmu_wait(struct smc_softc *sc)
 {
 
@@ -166,35 +166,35 @@ smc_mmu_wait(struct smc_softc *sc)
 		;
 }
 
-static __inline uint8_t
+static inline uint8_t
 smc_read_1(struct smc_softc *sc, bus_size_t offset)
 {
 
 	return (bus_read_1(sc->smc_reg, offset));
 }
 
-static __inline void
+static inline void
 smc_write_1(struct smc_softc *sc, bus_size_t offset, uint8_t val)
 {
 
 	bus_write_1(sc->smc_reg, offset, val);
 }
 
-static __inline uint16_t
+static inline uint16_t
 smc_read_2(struct smc_softc *sc, bus_size_t offset)
 {
 
 	return (bus_read_2(sc->smc_reg, offset));
 }
 
-static __inline void
+static inline void
 smc_write_2(struct smc_softc *sc, bus_size_t offset, uint16_t val)
 {
 
 	bus_write_2(sc->smc_reg, offset, val);
 }
 
-static __inline void
+static inline void
 smc_read_multi_2(struct smc_softc *sc, bus_size_t offset, uint16_t *datap,
     bus_size_t count)
 {
@@ -202,7 +202,7 @@ smc_read_multi_2(struct smc_softc *sc, bus_size_t offset, uint16_t *datap,
 	bus_read_multi_2(sc->smc_reg, offset, datap, count);
 }
 
-static __inline void
+static inline void
 smc_write_multi_2(struct smc_softc *sc, bus_size_t offset, uint16_t *datap,
     bus_size_t count)
 {
@@ -210,7 +210,7 @@ smc_write_multi_2(struct smc_softc *sc, bus_size_t offset, uint16_t *datap,
 	bus_write_multi_2(sc->smc_reg, offset, datap, count);
 }
 
-static __inline void
+static inline void
 smc_barrier(struct smc_softc *sc, bus_size_t offset, bus_size_t length,
     int flags)
 {

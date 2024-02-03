@@ -165,7 +165,7 @@ static	void hifn_alloc_slot(struct hifn_softc *, int *, int *, int *, int *);
 static	void hifn_write_reg_0(struct hifn_softc *, bus_size_t, u_int32_t);
 static	void hifn_write_reg_1(struct hifn_softc *, bus_size_t, u_int32_t);
 
-static __inline u_int32_t
+static inline u_int32_t
 READ_REG_0(struct hifn_softc *sc, bus_size_t reg)
 {
     u_int32_t v = bus_space_read_4(sc->sc_st0, sc->sc_sh0, reg);
@@ -174,7 +174,7 @@ READ_REG_0(struct hifn_softc *sc, bus_size_t reg)
 }
 #define	WRITE_REG_0(sc, reg, val)	hifn_write_reg_0(sc, reg, val)
 
-static __inline u_int32_t
+static inline u_int32_t
 READ_REG_1(struct hifn_softc *sc, bus_size_t reg)
 {
     u_int32_t v = bus_space_read_4(sc->sc_st1, sc->sc_sh1, reg);
@@ -1648,7 +1648,7 @@ hifn_dmamap_aligned(struct hifn_operand *op)
 	return (1);
 }
 
-static __inline int
+static inline int
 hifn_dmamap_dstwrap(struct hifn_softc *sc, int idx)
 {
 	struct hifn_dma *dma = sc->sc_dma;
@@ -1717,7 +1717,7 @@ hifn_dmamap_load_dst(struct hifn_softc *sc, struct hifn_command *cmd)
 	return (idx);
 }
 
-static __inline int
+static inline int
 hifn_dmamap_srcwrap(struct hifn_softc *sc, int idx)
 {
 	struct hifn_dma *dma = sc->sc_dma;

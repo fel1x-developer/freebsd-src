@@ -96,9 +96,9 @@ callout_func_t	aic_platform_timeout;
 int		aic_spawn_recovery_thread(struct aic_softc *aic);
 void		aic_terminate_recovery_thread(struct aic_softc *aic);
 
-static __inline void	aic_wakeup_recovery_thread(struct aic_softc *aic);
+static inline void	aic_wakeup_recovery_thread(struct aic_softc *aic);
 
-static __inline void
+static inline void
 aic_wakeup_recovery_thread(struct aic_softc *aic)
 {
 	wakeup(aic);
@@ -153,12 +153,12 @@ aic_wakeup_recovery_thread(struct aic_softc *aic)
 #define aic_timer_init(timer) callout_init(timer, /*mpsafe*/1)
 #define aic_timer_stop callout_stop
 
-static __inline void aic_timer_reset(aic_timer_t *, u_int,
+static inline void aic_timer_reset(aic_timer_t *, u_int,
 				     aic_callback_t *, void *);
-static __inline u_int aic_get_timeout(struct scb *);
-static __inline void aic_scb_timer_reset(struct scb *, u_int);
+static inline u_int aic_get_timeout(struct scb *);
+static inline void aic_scb_timer_reset(struct scb *, u_int);
 
-static __inline void
+static inline void
 aic_timer_reset(aic_timer_t *timer, u_int msec, aic_callback_t *func, void *arg)
 {
 	uint64_t time;
@@ -169,13 +169,13 @@ aic_timer_reset(aic_timer_t *timer, u_int msec, aic_callback_t *func, void *arg)
 	callout_reset(timer, time, func, arg);
 }
 
-static __inline u_int
+static inline u_int
 aic_get_timeout(struct scb *scb)
 {
 	return (scb->io_ctx->ccb_h.timeout);
 }
 
-static __inline void
+static inline void
 aic_scb_timer_reset(struct scb *scb, u_int msec)
 {
 	uint64_t time;
@@ -186,7 +186,7 @@ aic_scb_timer_reset(struct scb *scb, u_int msec)
 	callout_reset(&scb->io_timer, time, aic_platform_timeout, scb);
 }
 
-static __inline void
+static inline void
 aic_scb_timer_start(struct scb *scb)
 {
 
@@ -197,51 +197,51 @@ aic_scb_timer_start(struct scb *scb)
 }
 
 /************************** Transaction Operations ****************************/
-static __inline void aic_set_transaction_status(struct scb *, uint32_t);
-static __inline void aic_set_scsi_status(struct scb *, uint32_t);
-static __inline uint32_t aic_get_transaction_status(struct scb *);
-static __inline uint32_t aic_get_scsi_status(struct scb *);
-static __inline void aic_set_transaction_tag(struct scb *, int, u_int);
-static __inline u_long aic_get_transfer_length(struct scb *);
-static __inline int aic_get_transfer_dir(struct scb *);
-static __inline void aic_set_residual(struct scb *, u_long);
-static __inline void aic_set_sense_residual(struct scb *, u_long);
-static __inline u_long aic_get_residual(struct scb *);
-static __inline int aic_perform_autosense(struct scb *);
-static __inline uint32_t aic_get_sense_bufsize(struct aic_softc*, struct scb*);
-static __inline void aic_freeze_ccb(union ccb *ccb);
-static __inline void aic_freeze_scb(struct scb *scb);
-static __inline void aic_platform_freeze_devq(struct aic_softc *, struct scb *);
-static __inline int  aic_platform_abort_scbs(struct aic_softc *aic, int target,
+static inline void aic_set_transaction_status(struct scb *, uint32_t);
+static inline void aic_set_scsi_status(struct scb *, uint32_t);
+static inline uint32_t aic_get_transaction_status(struct scb *);
+static inline uint32_t aic_get_scsi_status(struct scb *);
+static inline void aic_set_transaction_tag(struct scb *, int, u_int);
+static inline u_long aic_get_transfer_length(struct scb *);
+static inline int aic_get_transfer_dir(struct scb *);
+static inline void aic_set_residual(struct scb *, u_long);
+static inline void aic_set_sense_residual(struct scb *, u_long);
+static inline u_long aic_get_residual(struct scb *);
+static inline int aic_perform_autosense(struct scb *);
+static inline uint32_t aic_get_sense_bufsize(struct aic_softc*, struct scb*);
+static inline void aic_freeze_ccb(union ccb *ccb);
+static inline void aic_freeze_scb(struct scb *scb);
+static inline void aic_platform_freeze_devq(struct aic_softc *, struct scb *);
+static inline int  aic_platform_abort_scbs(struct aic_softc *aic, int target,
 					     char channel, int lun, u_int tag,
 					     role_t role, uint32_t status);
 
-static __inline
+static inline
 void aic_set_transaction_status(struct scb *scb, uint32_t status)
 {
 	scb->io_ctx->ccb_h.status &= ~CAM_STATUS_MASK;
 	scb->io_ctx->ccb_h.status |= status;
 }
 
-static __inline
+static inline
 void aic_set_scsi_status(struct scb *scb, uint32_t status)
 {
 	scb->io_ctx->csio.scsi_status = status;
 }
 
-static __inline
+static inline
 uint32_t aic_get_transaction_status(struct scb *scb)
 {
 	return (scb->io_ctx->ccb_h.status & CAM_STATUS_MASK);
 }
 
-static __inline
+static inline
 uint32_t aic_get_scsi_status(struct scb *scb)
 {
 	return (scb->io_ctx->csio.scsi_status);
 }
 
-static __inline
+static inline
 void aic_set_transaction_tag(struct scb *scb, int enabled, u_int type)
 {
 	scb->io_ctx->csio.tag_action = type;
@@ -251,49 +251,49 @@ void aic_set_transaction_tag(struct scb *scb, int enabled, u_int type)
 		scb->io_ctx->ccb_h.flags &= ~CAM_TAG_ACTION_VALID;
 }
 
-static __inline
+static inline
 u_long aic_get_transfer_length(struct scb *scb)
 {
 	return (scb->io_ctx->csio.dxfer_len);
 }
 
-static __inline
+static inline
 int aic_get_transfer_dir(struct scb *scb)
 {
 	return (scb->io_ctx->ccb_h.flags & CAM_DIR_MASK);
 }
 
-static __inline
+static inline
 void aic_set_residual(struct scb *scb, u_long resid)
 {
 	scb->io_ctx->csio.resid = resid;
 }
 
-static __inline
+static inline
 void aic_set_sense_residual(struct scb *scb, u_long resid)
 {
 	scb->io_ctx->csio.sense_resid = resid;
 }
 
-static __inline
+static inline
 u_long aic_get_residual(struct scb *scb)
 {
 	return (scb->io_ctx->csio.resid);
 }
 
-static __inline
+static inline
 int aic_perform_autosense(struct scb *scb)
 {
 	return (!(scb->io_ctx->ccb_h.flags & CAM_DIS_AUTOSENSE));
 }
 
-static __inline uint32_t
+static inline uint32_t
 aic_get_sense_bufsize(struct aic_softc *aic, struct scb *scb)
 {
 	return (sizeof(struct scsi_sense_data));
 }
 
-static __inline void
+static inline void
 aic_freeze_ccb(union ccb *ccb)
 {
 	if ((ccb->ccb_h.status & CAM_DEV_QFRZN) == 0) {
@@ -302,19 +302,19 @@ aic_freeze_ccb(union ccb *ccb)
 	}
 }
 
-static __inline void
+static inline void
 aic_freeze_scb(struct scb *scb)
 {
 	aic_freeze_ccb(scb->io_ctx);
 }
 
-static __inline void
+static inline void
 aic_platform_freeze_devq(struct aic_softc *aic, struct scb *scb)
 {
 	/* Nothing to do here for FreeBSD */
 }
 
-static __inline int
+static inline int
 aic_platform_abort_scbs(struct aic_softc *aic, int target,
 			char channel, int lun, u_int tag,
 			role_t role, uint32_t status)
@@ -323,7 +323,7 @@ aic_platform_abort_scbs(struct aic_softc *aic, int target,
 	return (0);
 }
 
-static __inline void
+static inline void
 aic_platform_scb_free(struct aic_softc *aic, struct scb *scb)
 {
 	/* What do we do to generically handle driver resource shortages??? */
@@ -344,40 +344,40 @@ void aic_calc_geometry(struct ccb_calc_geometry *ccg, int extended);
 
 /********************************** PCI ***************************************/
 #ifdef AIC_PCI_CONFIG
-static __inline uint32_t aic_pci_read_config(aic_dev_softc_t pci,
+static inline uint32_t aic_pci_read_config(aic_dev_softc_t pci,
 					     int reg, int width);
-static __inline void	 aic_pci_write_config(aic_dev_softc_t pci,
+static inline void	 aic_pci_write_config(aic_dev_softc_t pci,
 					      int reg, uint32_t value,
 					      int width);
-static __inline int	 aic_get_pci_function(aic_dev_softc_t);
-static __inline int	 aic_get_pci_slot(aic_dev_softc_t);
-static __inline int	 aic_get_pci_bus(aic_dev_softc_t);
+static inline int	 aic_get_pci_function(aic_dev_softc_t);
+static inline int	 aic_get_pci_slot(aic_dev_softc_t);
+static inline int	 aic_get_pci_bus(aic_dev_softc_t);
 
-static __inline uint32_t
+static inline uint32_t
 aic_pci_read_config(aic_dev_softc_t pci, int reg, int width)
 {
 	return (pci_read_config(pci, reg, width));
 }
 
-static __inline void
+static inline void
 aic_pci_write_config(aic_dev_softc_t pci, int reg, uint32_t value, int width)
 {
 	pci_write_config(pci, reg, value, width);
 }
 
-static __inline int
+static inline int
 aic_get_pci_function(aic_dev_softc_t pci)
 {
 	return (pci_get_function(pci));
 }
 
-static __inline int
+static inline int
 aic_get_pci_slot(aic_dev_softc_t pci)
 {
 	return (pci_get_slot(pci));
 }
 
-static __inline int
+static inline int
 aic_get_pci_bus(aic_dev_softc_t pci)
 {
 	return (pci_get_bus(pci));
@@ -391,10 +391,10 @@ typedef enum
 	AIC_POWER_STATE_D3 = PCI_POWERSTATE_D3
 } aic_power_state;
 
-static __inline int aic_power_state_change(struct aic_softc *aic,
+static inline int aic_power_state_change(struct aic_softc *aic,
 					   aic_power_state new_state);
 
-static __inline int
+static inline int
 aic_power_state_change(struct aic_softc *aic, aic_power_state new_state)
 {
 	return (pci_set_powerstate(aic->dev_softc, new_state));

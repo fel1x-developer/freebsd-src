@@ -106,7 +106,7 @@ static struct timecounter acpi_timer_timecounter = {
 	-1				/* quality (chosen later) */
 };
 
-static __inline uint32_t
+static inline uint32_t
 acpi_timer_read(void)
 {
 

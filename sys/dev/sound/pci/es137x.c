@@ -273,7 +273,7 @@ static const struct {
 	[SOUND_MIXER_OGAIN]	= { 9, 0xf, 0x0, 0, 0x0000, 1 }
 };
 
-static __inline uint32_t
+static inline uint32_t
 es_rd(struct es_info *es, int regno, int size)
 {
 	switch (size) {
@@ -288,7 +288,7 @@ es_rd(struct es_info *es, int regno, int size)
 	}
 }
 
-static __inline void
+static inline void
 es_wr(struct es_info *es, int regno, uint32_t data, int size)
 {
 
@@ -683,7 +683,7 @@ eschan_setblocksize(kobj_t obj, void *data, uint32_t blksz)
 				(es)->ch[ES_DAC2].active + \
 				(es)->ch[ES_ADC].active)
 
-static __inline int
+static inline int
 es_poll_channel(struct es_chinfo *ch)
 {
 	struct es_info *es;

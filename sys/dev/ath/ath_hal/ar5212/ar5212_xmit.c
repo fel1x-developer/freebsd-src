@@ -856,7 +856,7 @@ ar5212FillTxDesc(struct ath_hal *ah, struct ath_desc *ds,
 
 #ifdef AH_NEED_DESC_SWAP
 /* Swap transmit descriptor */
-static __inline void
+static inline void
 ar5212SwapTxDesc(struct ath_desc *ds)
 {
 	ds->ds_data = __bswap32(ds->ds_data);

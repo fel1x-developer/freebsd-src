@@ -48,7 +48,7 @@
 static const uint8_t ridx2rate[] =
 	{ 2, 4, 11, 22, 12, 18, 24, 36, 48, 72, 96, 108 };
 
-static __inline uint8_t
+static inline uint8_t
 rate2ridx(uint8_t rate)
 {
 	if (rate & IEEE80211_RATE_MCS) {
@@ -74,7 +74,7 @@ rate2ridx(uint8_t rate)
 }
 
 /* XXX move to net80211 */
-static __inline__ uint8_t
+static inline__ uint8_t
 rtwn_ctl_mcsrate(const struct ieee80211_rate_table *rt, uint8_t ridx)
 {
 	uint8_t cix, rate;

@@ -156,13 +156,13 @@ struct vm_map_entry {
 	    MAP_ENTRY_SPLIT_BOUNDARY_SHIFT)
 
 #ifdef	_KERNEL
-static __inline u_char
+static inline u_char
 vm_map_entry_behavior(vm_map_entry_t entry)
 {
 	return (entry->eflags & MAP_ENTRY_BEHAV_MASK);
 }
 
-static __inline int
+static inline int
 vm_map_entry_user_wired_count(vm_map_entry_t entry)
 {
 	if (entry->eflags & MAP_ENTRY_USER_WIRED)
@@ -170,7 +170,7 @@ vm_map_entry_user_wired_count(vm_map_entry_t entry)
 	return (0);
 }
 
-static __inline int
+static inline int
 vm_map_entry_system_wired_count(vm_map_entry_t entry)
 {
 	return (entry->wired_count - vm_map_entry_user_wired_count(entry));
@@ -240,27 +240,27 @@ struct vm_map {
 #define	vm_map_range_valid(map, start, end)	\
 	vm_map_range_valid_KBI((map), (start), (end))
 #else
-static __inline vm_offset_t
+static inline vm_offset_t
 vm_map_max(const struct vm_map *map)
 {
 
 	return (map->header.start);
 }
 
-static __inline vm_offset_t
+static inline vm_offset_t
 vm_map_min(const struct vm_map *map)
 {
 
 	return (map->header.end);
 }
 
-static __inline pmap_t
+static inline pmap_t
 vm_map_pmap(vm_map_t map)
 {
 	return (map->pmap);
 }
 
-static __inline void
+static inline void
 vm_map_modflags(vm_map_t map, vm_flags_t set, vm_flags_t clear)
 {
 	map->flags = (map->flags | set) & ~clear;
@@ -307,7 +307,7 @@ struct vmspace {
 };
 
 #ifdef	_KERNEL
-static __inline pmap_t
+static inline pmap_t
 vmspace_pmap(struct vmspace *vmspace)
 {
 	return &vmspace->vm_pmap;

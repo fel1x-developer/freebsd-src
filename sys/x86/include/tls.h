@@ -55,7 +55,7 @@ struct tcb {
 #define	TLS_TCB_SIZE	sizeof(struct tcb)
 #define	TLS_TP_OFFSET	0
 
-static __inline void
+static inline void
 _tcb_set(struct tcb *tcb)
 {
 #ifdef __amd64__
@@ -65,7 +65,7 @@ _tcb_set(struct tcb *tcb)
 #endif
 }
 
-static __inline struct tcb *
+static inline struct tcb *
 _tcb_get(void)
 {
 	struct tcb *tcb;

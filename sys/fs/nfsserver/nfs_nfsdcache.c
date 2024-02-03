@@ -290,7 +290,7 @@ static void nfsrc_marksametcpconn(u_int64_t);
 /*
  * Return the correct mutex for this cache entry.
  */
-static __inline struct mtx *
+static inline struct mtx *
 nfsrc_cachemutex(struct nfsrvcache *rp)
 {
 

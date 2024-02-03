@@ -23,7 +23,7 @@ NO_PIC=	yes
 CFLAGS.event.c=	-D_WANT_KEVENT32 -D_WANT_FREEBSD11_KEVENT
 
 # We currently support C89 and newer compilers. Catch the odd little fussy
-# details like __inline that the header files must follow to support C89.
+# details like inline that the header files must follow to support C89.
 CFLAGS+=-ansi
 
 .include "badfiles.inc"

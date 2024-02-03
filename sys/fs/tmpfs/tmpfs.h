@@ -506,7 +506,7 @@ struct tmpfs_dirent *tmpfs_dir_next(struct tmpfs_node *dnode,
 	    struct tmpfs_dir_cursor *dc);
 bool	tmpfs_pages_check_avail(struct tmpfs_mount *tmp, size_t req_pages);
 void	tmpfs_extattr_free(struct tmpfs_extattr* ea);
-static __inline void
+static inline void
 tmpfs_update(struct vnode *vp)
 {
 

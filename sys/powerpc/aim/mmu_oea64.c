@@ -376,7 +376,7 @@ static int64_t moea64_sp_query(struct pvo_entry *pvo, uint64_t ptebit);
 static int64_t moea64_sp_clear(struct pvo_entry *pvo, vm_page_t m,
     uint64_t ptebit);
 
-static __inline bool moea64_sp_pvo_in_range(struct pvo_entry *pvo,
+static inline bool moea64_sp_pvo_in_range(struct pvo_entry *pvo,
     vm_offset_t sva, vm_offset_t eva);
 
 /*
@@ -618,7 +618,7 @@ moea64_pte_from_pvo(const struct pvo_entry *pvo, struct lpte *lpte)
 		lpte->pte_lo |= LPTE_NOEXEC;
 }
 
-static __inline uint64_t
+static inline uint64_t
 moea64_calc_wimg(vm_paddr_t pa, vm_memattr_t ma)
 {
 	uint64_t pte_lo;
@@ -1438,7 +1438,7 @@ moea64_mincore(pmap_t pmap, vm_offset_t addr, vm_paddr_t *pap)
  * the UMA allocator), we can't use most other utility functions here
  */
 
-static __inline
+static inline
 void moea64_set_scratchpage_pa(int which, vm_paddr_t pa)
 {
 	struct pvo_entry *pvo;
@@ -3594,7 +3594,7 @@ moea64_align_superpage(vm_object_t object, vm_ooffset_t offset,
 
 /* Helpers */
 
-static __inline void
+static inline void
 moea64_pvo_cleanup(struct pvo_dlist *tofree)
 {
 	struct pvo_entry *pvo;
@@ -3609,7 +3609,7 @@ moea64_pvo_cleanup(struct pvo_dlist *tofree)
 	}
 }
 
-static __inline uint16_t
+static inline uint16_t
 pvo_to_vmpage_flags(struct pvo_entry *pvo)
 {
 	uint16_t flags;
@@ -3626,7 +3626,7 @@ pvo_to_vmpage_flags(struct pvo_entry *pvo)
 /*
  * Check if the given pvo and its superpage are in sva-eva range.
  */
-static __inline bool
+static inline bool
 moea64_sp_pvo_in_range(struct pvo_entry *pvo, vm_offset_t sva, vm_offset_t eva)
 {
 	vm_offset_t spva;

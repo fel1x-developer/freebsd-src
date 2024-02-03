@@ -333,13 +333,13 @@ extern NMG_LOCK_T	netmap_global_lock;
 
 enum txrx { NR_RX = 0, NR_TX = 1, NR_TXRX };
 
-static __inline const char*
+static inline const char*
 nm_txrx2str(enum txrx t)
 {
 	return (t== NR_RX ? "RX" : "TX");
 }
 
-static __inline enum txrx
+static inline enum txrx
 nm_txrx_swap(enum txrx t)
 {
 	return (t== NR_RX ? NR_TX : NR_RX);
@@ -930,13 +930,13 @@ struct netmap_adapter {
 #endif
 };
 
-static __inline u_int
+static inline u_int
 nma_get_ndesc(struct netmap_adapter *na, enum txrx t)
 {
 	return (t == NR_TX ? na->num_tx_desc : na->num_rx_desc);
 }
 
-static __inline void
+static inline void
 nma_set_ndesc(struct netmap_adapter *na, enum txrx t, u_int v)
 {
 	if (t == NR_TX)
@@ -945,19 +945,19 @@ nma_set_ndesc(struct netmap_adapter *na, enum txrx t, u_int v)
 		na->num_rx_desc = v;
 }
 
-static __inline u_int
+static inline u_int
 nma_get_nrings(struct netmap_adapter *na, enum txrx t)
 {
 	return (t == NR_TX ? na->num_tx_rings : na->num_rx_rings);
 }
 
-static __inline u_int
+static inline u_int
 nma_get_host_nrings(struct netmap_adapter *na, enum txrx t)
 {
 	return (t == NR_TX ? na->num_host_tx_rings : na->num_host_rx_rings);
 }
 
-static __inline void
+static inline void
 nma_set_nrings(struct netmap_adapter *na, enum txrx t, u_int v)
 {
 	if (t == NR_TX)
@@ -966,7 +966,7 @@ nma_set_nrings(struct netmap_adapter *na, enum txrx t, u_int v)
 		na->num_rx_rings = v;
 }
 
-static __inline void
+static inline void
 nma_set_host_nrings(struct netmap_adapter *na, enum txrx t, u_int v)
 {
 	if (t == NR_TX)
@@ -975,7 +975,7 @@ nma_set_host_nrings(struct netmap_adapter *na, enum txrx t, u_int v)
 		na->num_host_rx_rings = v;
 }
 
-static __inline struct netmap_kring**
+static inline struct netmap_kring**
 NMR(struct netmap_adapter *na, enum txrx t)
 {
 	return (t == NR_TX ? na->tx_rings : na->rx_rings);
@@ -1061,7 +1061,7 @@ struct netmap_generic_adapter {	/* emulated device */
 };
 #endif  /* WITH_GENERIC */
 
-static __inline u_int
+static inline u_int
 netmap_real_rings(struct netmap_adapter *na, enum txrx t)
 {
 	return nma_get_nrings(na, t) +
@@ -1069,7 +1069,7 @@ netmap_real_rings(struct netmap_adapter *na, enum txrx t)
 }
 
 /* account for fake rings */
-static __inline u_int
+static inline u_int
 netmap_all_rings(struct netmap_adapter *na, enum txrx t)
 {
 	return max(nma_get_nrings(na, t) + 1, netmap_real_rings(na, t));
@@ -1231,7 +1231,7 @@ nm_kr_wouldblock(struct netmap_kring *kring)
 
 
 /* release the previously acquired right to use the *sync() methods of the ring */
-static __inline void nm_kr_put(struct netmap_kring *kr)
+static inline void nm_kr_put(struct netmap_kring *kr)
 {
 	NM_ATOMIC_CLEAR(&kr->nr_busy);
 }
@@ -1255,7 +1255,7 @@ static inline int nm_iszombie(struct netmap_adapter *na);
  * In the latter case, the function may also return NM_KR_LOCKED and leave *perr
  * untouched: ideally, the caller should try again at a later time.
  */
-static __inline int nm_kr_tryget(struct netmap_kring *kr, int can_sleep, int *perr)
+static inline int nm_kr_tryget(struct netmap_kring *kr, int can_sleep, int *perr)
 {
 	int busy = 1, stopped;
 	/* check a first time without taking the lock
@@ -1308,7 +1308,7 @@ stop:
 /* put the ring in the 'stopped' state and wait for the current user (if any) to
  * notice. stopped must be either NM_KR_STOPPED or NM_KR_LOCKED
  */
-static __inline void nm_kr_stop(struct netmap_kring *kr, int stopped)
+static inline void nm_kr_stop(struct netmap_kring *kr, int stopped)
 {
 	kr->nkr_stopped = stopped;
 	while (NM_ATOMIC_TEST_AND_SET(&kr->nr_busy))
@@ -1316,7 +1316,7 @@ static __inline void nm_kr_stop(struct netmap_kring *kr, int stopped)
 }
 
 /* restart a ring after a stop */
-static __inline void nm_kr_start(struct netmap_kring *kr)
+static inline void nm_kr_start(struct netmap_kring *kr)
 {
 	kr->nkr_stopped = 0;
 	nm_kr_put(kr);
@@ -2085,7 +2085,7 @@ static inline int nm_kring_pending(struct netmap_priv_d *np)
 }
 
 /* call with NMG_LOCK held */
-static __inline int
+static inline int
 nm_si_user(struct netmap_priv_d *priv, enum txrx t)
 {
 	return (priv->np_na != NULL &&

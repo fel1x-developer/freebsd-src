@@ -92,7 +92,7 @@ static struct resource_spec res_spec[] = {
 	{ -1, 0 }
 };
 
-static __inline uint32_t
+static inline uint32_t
 TWSI_READ(struct twsi_softc *sc, bus_size_t off)
 {
 	uint32_t val;
@@ -103,7 +103,7 @@ TWSI_READ(struct twsi_softc *sc, bus_size_t off)
 	return (val);
 }
 
-static __inline void
+static inline void
 TWSI_WRITE(struct twsi_softc *sc, bus_size_t off, uint32_t val)
 {
 
@@ -112,7 +112,7 @@ TWSI_WRITE(struct twsi_softc *sc, bus_size_t off, uint32_t val)
 	bus_write_4(sc->res[0], off, val);
 }
 
-static __inline void
+static inline void
 twsi_control_clear(struct twsi_softc *sc, uint32_t mask)
 {
 	uint32_t val;
@@ -125,7 +125,7 @@ twsi_control_clear(struct twsi_softc *sc, uint32_t mask)
 	TWSI_WRITE(sc, sc->reg_control, val);
 }
 
-static __inline void
+static inline void
 twsi_control_set(struct twsi_softc *sc, uint32_t mask)
 {
 	uint32_t val;
@@ -138,7 +138,7 @@ twsi_control_set(struct twsi_softc *sc, uint32_t mask)
 	TWSI_WRITE(sc, sc->reg_control, val);
 }
 
-static __inline void
+static inline void
 twsi_clear_iflg(struct twsi_softc *sc)
 {
 

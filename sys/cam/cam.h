@@ -411,7 +411,7 @@ void	cam_error_print(struct cam_device *device, union ccb *ccb,
 __END_DECLS
 
 #ifdef _KERNEL
-static __inline void cam_init_pinfo(cam_pinfo *pinfo)
+static inline void cam_init_pinfo(cam_pinfo *pinfo)
 {
 	pinfo->priority = CAM_PRIORITY_NONE;
 	pinfo->index = CAM_UNQUEUED_INDEX;

@@ -124,7 +124,7 @@ static MALLOC_DEFINE(M_BUSDMA, "busdma", "busdma metadata");
  * NB: vm_paddr_t is required here since bus_addr_t is only 32 bits in
  * i386 kernels without 'options PAE'.
  */
-static __inline bool
+static inline bool
 must_bounce(bus_dma_tag_t dmat, vm_paddr_t paddr)
 {
 #if defined(__i386__) && !defined(PAE)

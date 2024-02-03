@@ -61,14 +61,14 @@
 		unsigned long zt;						\
 	};									\
 										\
-	static __inline void							\
+	static inline void							\
 	ewma_ ## _name ## _init(struct ewma_ ## _name *ewma)			\
 	{									\
 		/* No target (no historical data). */				\
 		ewma->zt = 0;							\
 	}									\
 										\
-	static __inline void							\
+	static inline void							\
 	ewma_ ## _name ## _add(struct ewma_ ## _name *ewma, unsigned long x)	\
 	{									\
 		unsigned long ztm1 = ewma->zt;	/* Z_(t-1). */			\
@@ -81,7 +81,7 @@
 			    (((ztm1 << d) - ztm1) >> d);			\
 	}									\
 										\
-	static __inline unsigned long						\
+	static inline unsigned long						\
 	ewma_ ## _name ## _read(struct ewma_ ## _name *ewma)			\
 	{									\
 		return (ewma->zt >> (_p));					\

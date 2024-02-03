@@ -149,7 +149,7 @@ dtrace_debug_output(void)
  * buffering debug strings for output when the probe completes on the current CPU.
  */
 
-static __inline void
+static inline void
 dtrace_debug__putc(int cpu, char c)
 {
 	struct dtrace_debug_data *d;

@@ -127,7 +127,7 @@ acl_detach(struct ieee80211vap *vap)
 	IEEE80211_FREE(as, M_80211_ACL);
 }
 
-static __inline struct acl *
+static inline struct acl *
 _find_acl(struct aclstate *as, const uint8_t *macaddr)
 {
 	struct acl *acl;

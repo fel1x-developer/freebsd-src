@@ -158,7 +158,7 @@ elf_is_ifunc_reloc(Elf_Size r_info __unused)
 #define	RELOC_ALIGNED_P(x) \
 	(((uintptr_t)(x) & (sizeof(void *) - 1)) == 0)
 
-static __inline Elf_Addr
+static inline Elf_Addr
 load_ptr(Elf_Addr *where)
 {
 	Elf_Addr res;
@@ -169,7 +169,7 @@ load_ptr(Elf_Addr *where)
 	return (res);
 }
 
-static __inline void
+static inline void
 store_ptr(Elf_Addr *where, Elf_Addr val)
 {
 	if (RELOC_ALIGNED_P(where))

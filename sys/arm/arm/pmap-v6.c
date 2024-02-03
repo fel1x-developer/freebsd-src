@@ -141,7 +141,7 @@
 #endif
 
 #ifndef DIAGNOSTIC
-#define PMAP_INLINE	__inline
+#define PMAP_INLINE	inline
 #else
 #define PMAP_INLINE
 #endif
@@ -323,7 +323,7 @@ static struct mtx PMAP2mutex;
 #define	PMAP_ENTER_NORECLAIM	0x1000000	/* Don't reclaim PV entries. */
 #define	PMAP_ENTER_NOREPLACE	0x2000000	/* Don't replace mappings. */
 
-static __inline void pt2_wirecount_init(vm_page_t m);
+static inline void pt2_wirecount_init(vm_page_t m);
 static bool pmap_demote_pte1(pmap_t pmap, pt1_entry_t *pte1p,
     vm_offset_t va);
 static int pmap_enter_pte1(pmap_t pmap, vm_offset_t va, pt1_entry_t pte1,
@@ -613,7 +613,7 @@ CTASSERT(NPG_IN_PT2TAB == 1);
  *  Get offset of PT2 in a page
  *  associated with given PT1 index.
  */
-static __inline u_int
+static inline u_int
 page_pt2off(u_int pt1_idx)
 {
 
@@ -624,7 +624,7 @@ page_pt2off(u_int pt1_idx)
  *  Get physical address of PT2
  *  associated with given PT2s page and PT1 index.
  */
-static __inline vm_paddr_t
+static inline vm_paddr_t
 page_pt2pa(vm_paddr_t pgpa, u_int pt1_idx)
 {
 
@@ -635,7 +635,7 @@ page_pt2pa(vm_paddr_t pgpa, u_int pt1_idx)
  *  Get first entry of PT2
  *  associated with given PT2s page and PT1 index.
  */
-static __inline pt2_entry_t *
+static inline pt2_entry_t *
 page_pt2(vm_offset_t pgva, u_int pt1_idx)
 {
 
@@ -646,7 +646,7 @@ page_pt2(vm_offset_t pgva, u_int pt1_idx)
  *  Get virtual address of PT2s page (mapped in PT2MAP)
  *  which holds PT2 which holds entry which maps given virtual address.
  */
-static __inline vm_offset_t
+static inline vm_offset_t
 pt2map_pt2pg(vm_offset_t va)
 {
 
@@ -908,7 +908,7 @@ pmap_bootstrap_prepare(vm_paddr_t last)
  *  enough. Vectors and devices need L2 page tables too. Note that they are
  *  even above VM_MAX_KERNEL_ADDRESS.
  */
-static __inline vm_paddr_t
+static inline vm_paddr_t
 pmap_preboot_pt2pg_setup(vm_offset_t va)
 {
 	pt2_entry_t *pte2p, pte2;
@@ -962,7 +962,7 @@ pmap_preboot_pt2_setup(vm_offset_t va)
  *  Get L2 page entry associated with given KVA.
  *  Used in pre-bootstrap epoch.
  */
-static __inline pt2_entry_t*
+static inline pt2_entry_t*
 pmap_preboot_vtopte2(vm_offset_t va)
 {
 	pt1_entry_t *pte1p;
@@ -1282,7 +1282,7 @@ SYSINIT(rpages_init, SI_SUB_CPU, SI_ORDER_ANY, pmap_init_reserved_pages, NULL);
  *  Add a wired page to the kva.
  *  Note: not SMP coherent.
  */
-static __inline void
+static inline void
 pmap_kenter_prot_attr(vm_offset_t va, vm_paddr_t pa, uint32_t prot,
     uint32_t attr)
 {
@@ -1593,7 +1593,7 @@ static u_long pmap_pte1_kern_promotions;
 SYSCTL_ULONG(_vm_pmap_pte1, OID_AUTO, kern_promotions, CTLFLAG_RD,
     &pmap_pte1_kern_promotions, 0, "1MB page kernel promotions");
 
-static __inline ttb_entry_t
+static inline ttb_entry_t
 pmap_ttb_get(pmap_t pmap)
 {
 
@@ -1621,7 +1621,7 @@ pmap_page_init(vm_page_t m)
 /*
  *  Virtualization for faster way how to zero whole page.
  */
-static __inline void
+static inline void
 pagezero(void *page)
 {
 
@@ -1632,7 +1632,7 @@ pagezero(void *page)
  *  Zero L2 page table page.
  *  Use same KVA as in pmap_zero_page().
  */
-static __inline vm_paddr_t
+static inline vm_paddr_t
 pmap_pt2pg_zero(vm_page_t m)
 {
 	pt2_entry_t *cmap2_pte2p;
@@ -1675,7 +1675,7 @@ pmap_pt2pg_zero(vm_page_t m)
  *  Init just allocated page as L2 page table(s) holder
  *  and return its physical address.
  */
-static __inline vm_paddr_t
+static inline vm_paddr_t
 pmap_pt2pg_init(pmap_t pmap, vm_offset_t va, vm_page_t m)
 {
 	vm_paddr_t pa;
@@ -1844,7 +1844,7 @@ pmap_qremove(vm_offset_t sva, int count)
 /*
  *  Are we current address space or kernel?
  */
-static __inline int
+static inline int
 pmap_is_current(pmap_t pmap)
 {
 
@@ -1885,7 +1885,7 @@ pmap_pte2(pmap_t pmap, vm_offset_t va)
  *  Releases a pte2 that was obtained from pmap_pte2().
  *  Be prepared for the pte2p being NULL.
  */
-static __inline void
+static inline void
 pmap_pte2_release(pt2_entry_t *pte2p)
 {
 
@@ -2151,7 +2151,7 @@ pmap_pinit0(pmap_t pmap)
 	CPU_SET(0, &pmap->pm_active);
 }
 
-static __inline void
+static inline void
 pte1_copy_nosync(pt1_entry_t *spte1p, pt1_entry_t *dpte1p, vm_offset_t sva,
     vm_offset_t eva)
 {
@@ -2162,7 +2162,7 @@ pte1_copy_nosync(pt1_entry_t *spte1p, pt1_entry_t *dpte1p, vm_offset_t sva,
 	bcopy(spte1p + idx, dpte1p + idx, count);
 }
 
-static __inline void
+static inline void
 pt2tab_copy_nosync(pt2_entry_t *spte2p, pt2_entry_t *dpte2p, vm_offset_t sva,
     vm_offset_t eva)
 {
@@ -2365,7 +2365,7 @@ pmap_release(pmap_t pmap)
  *  table in the page and the page itself is only mapped in PT2TAB.
  */
 
-static __inline void
+static inline void
 pt2_wirecount_init(vm_page_t m)
 {
 	u_int i;
@@ -2379,7 +2379,7 @@ pt2_wirecount_init(vm_page_t m)
 		m->md.pt2_wirecount[i] = 0;
 }
 
-static __inline void
+static inline void
 pt2_wirecount_inc(vm_page_t m, uint32_t pte1_idx)
 {
 
@@ -2399,7 +2399,7 @@ pt2_wirecount_inc(vm_page_t m, uint32_t pte1_idx)
 	m->md.pt2_wirecount[pte1_idx & PT2PG_MASK]++;
 }
 
-static __inline void
+static inline void
 pt2_wirecount_dec(vm_page_t m, uint32_t pte1_idx)
 {
 
@@ -2412,7 +2412,7 @@ pt2_wirecount_dec(vm_page_t m, uint32_t pte1_idx)
 	m->md.pt2_wirecount[pte1_idx & PT2PG_MASK]--;
 }
 
-static __inline void
+static inline void
 pt2_wirecount_set(vm_page_t m, uint32_t pte1_idx, uint16_t count)
 {
 
@@ -2430,21 +2430,21 @@ pt2_wirecount_set(vm_page_t m, uint32_t pte1_idx, uint16_t count)
 	    ("%s: PT2PG is overflowed (%u) ...", __func__, m->ref_count));
 }
 
-static __inline uint32_t
+static inline uint32_t
 pt2_wirecount_get(vm_page_t m, uint32_t pte1_idx)
 {
 
 	return (m->md.pt2_wirecount[pte1_idx & PT2PG_MASK]);
 }
 
-static __inline bool
+static inline bool
 pt2_is_empty(vm_page_t m, vm_offset_t va)
 {
 
 	return (m->md.pt2_wirecount[pte1_index(va) & PT2PG_MASK] == 0);
 }
 
-static __inline bool
+static inline bool
 pt2_is_full(vm_page_t m, vm_offset_t va)
 {
 
@@ -2452,7 +2452,7 @@ pt2_is_full(vm_page_t m, vm_offset_t va)
 	    NPTE2_IN_PT2);
 }
 
-static __inline bool
+static inline bool
 pt2pg_is_empty(vm_page_t m)
 {
 
@@ -2567,7 +2567,7 @@ retry:
  *  add the page to the specified list of pages that will be released to the
  *  physical memory manager after the TLB has been updated.
  */
-static __inline void
+static inline void
 pmap_add_delayed_free_list(vm_page_t m, struct spglist *free)
 {
 
@@ -2648,7 +2648,7 @@ pmap_unwire_pt2pg(pmap_t pmap, vm_offset_t va, vm_page_t m)
  *  drops to zero, then the page table page is unmapped.  Returns true if the
  *  page table page was unmapped and false otherwise.
  */
-static __inline bool
+static inline bool
 pmap_unwire_pt2(pmap_t pmap, vm_offset_t va, vm_page_t m, struct spglist *free)
 {
 	pt2_wirecount_dec(m, pte1_index(va));
@@ -2671,7 +2671,7 @@ pmap_unwire_pt2(pmap_t pmap, vm_offset_t va, vm_page_t m, struct spglist *free)
  *  the number of valid L2 page table entries within the page. If the wire
  *  count drops to zero, then the L2 page table page is unmapped.
  */
-static __inline void
+static inline void
 pmap_unwire_pt2_all(pmap_t pmap, vm_offset_t va, vm_page_t m,
     struct spglist *free)
 {
@@ -2769,7 +2769,7 @@ SYSCTL_INT(_vm_pmap, OID_AUTO, pv_entry_spare, CTLFLAG_RD, &pv_entry_spare, 0,
 /*
  *  Is given page managed?
  */
-static __inline bool
+static inline bool
 is_managed(vm_paddr_t pa)
 {
 	vm_page_t m;
@@ -2780,14 +2780,14 @@ is_managed(vm_paddr_t pa)
 	return ((m->oflags & VPO_UNMANAGED) == 0);
 }
 
-static __inline bool
+static inline bool
 pte1_is_managed(pt1_entry_t pte1)
 {
 
 	return (is_managed(pte1_pa(pte1)));
 }
 
-static __inline bool
+static inline bool
 pte2_is_managed(pt2_entry_t pte2)
 {
 
@@ -3082,7 +3082,7 @@ pmap_insert_entry(pmap_t pmap, vm_offset_t va, vm_page_t m)
 	TAILQ_INSERT_TAIL(&m->md.pv_list, pv, pv_next);
 }
 
-static __inline pv_entry_t
+static inline pv_entry_t
 pmap_pvh_remove(struct md_page *pvh, pmap_t pmap, vm_offset_t va)
 {
 	pv_entry_t pv;
@@ -3530,7 +3530,7 @@ pmap_promote_pte1(pmap_t pmap, pt1_entry_t *pte1p, vm_offset_t va)
 /*
  *  Zero L2 page table page.
  */
-static __inline void
+static inline void
 pmap_clear_pt2(pt2_entry_t *fpte2p)
 {
 	pt2_entry_t *pte2p;
@@ -3647,7 +3647,7 @@ pmap_remove_pte1(pmap_t pmap, pt1_entry_t *pte1p, vm_offset_t sva,
 /*
  *  Fills L2 page table page with mappings to consecutive physical pages.
  */
-static __inline void
+static inline void
 pmap_fill_pt2(pt2_entry_t *fpte2p, pt2_entry_t npte2)
 {
 	pt2_entry_t *pte2p;
@@ -4312,7 +4312,7 @@ small_mappings:
  *  Just subroutine for pmap_remove_pages() to reasonably satisfy
  *  good coding style, a.k.a. 80 character line width limit hell.
  */
-static __inline void
+static inline void
 pmap_remove_pte1_quick(pmap_t pmap, pt1_entry_t pte1, pv_entry_t pv,
     struct spglist *free)
 {
@@ -4351,7 +4351,7 @@ pmap_remove_pte1_quick(pmap_t pmap, pt1_entry_t pte1, pv_entry_t pv,
  *  Just subroutine for pmap_remove_pages() to reasonably satisfy
  *  good coding style, a.k.a. 80 character line width limit hell.
  */
-static __inline void
+static inline void
 pmap_remove_pte2_quick(pmap_t pmap, pt2_entry_t pte2, pv_entry_t pv,
     struct spglist *free)
 {
@@ -6788,7 +6788,7 @@ dump_link(pmap_t pmap, uint32_t pte1_idx, bool invalid_ok)
 	}
 }
 
-static __inline bool
+static inline bool
 is_pv_chunk_space(vm_offset_t va)
 {
 

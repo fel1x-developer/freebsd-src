@@ -121,13 +121,13 @@ void			keys_add(struct keys *keys,
 void			keys_add_int(struct keys *keys,
 			    const char *name, int value);
 
-static __inline void
+static inline void
 keys_load_pdu(struct keys *keys, const struct pdu *pdu)
 {
 	keys_load(keys, pdu->pdu_data, pdu->pdu_data_len);
 }
 
-static __inline void
+static inline void
 keys_save_pdu(struct keys *keys, struct pdu *pdu)
 {
 	keys_save(keys, &pdu->pdu_data, &pdu->pdu_data_len);

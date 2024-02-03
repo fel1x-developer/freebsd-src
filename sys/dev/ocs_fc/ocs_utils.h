@@ -198,7 +198,7 @@ typedef enum {
 	OCS_Q_HIST_TYPE_MISC,
 } ocs_q_hist_type_t;
 
-static __inline const char *
+static inline const char *
 ocs_queue_history_type_name(ocs_q_hist_type_t type)
 {
 	switch (type) {

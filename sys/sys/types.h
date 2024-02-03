@@ -325,19 +325,19 @@ typedef	_Bool	bool;
  * minor() is achieved iff the upper m byte is 0.
  */
 #define	major(d)	__major(d)
-static __inline int
+static inline int
 __major(dev_t _d)
 {
 	return (((_d >> 32) & 0xffffff00) | ((_d >> 8) & 0xff));
 }
 #define	minor(d)	__minor(d)
-static __inline int
+static inline int
 __minor(dev_t _d)
 {
 	return (((_d >> 24) & 0xff00) | (_d & 0xffff00ff));
 }
 #define	makedev(M, m)	__makedev((M), (m))
-static __inline dev_t
+static inline dev_t
 __makedev(int _Major, int _Minor)
 {
 	return (((dev_t)(_Major & 0xffffff00) << 32) | ((_Major & 0xff) << 8) |

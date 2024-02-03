@@ -49,14 +49,14 @@ void		*_citrus_memory_stream_chr(struct _citrus_memory_stream *,
 void		_citrus_memory_stream_skip_ws(struct _citrus_memory_stream *);
 __END_DECLS
 
-static __inline int
+static inline int
 _citrus_memory_stream_iseof(struct _citrus_memory_stream *ms)
 {
 
 	return (ms->ms_pos >= _citrus_region_size(&ms->ms_region));
 }
 
-static __inline void
+static inline void
 _citrus_memory_stream_bind(struct _citrus_memory_stream * __restrict ms,
     const struct _citrus_region * __restrict r)
 {
@@ -65,7 +65,7 @@ _citrus_memory_stream_bind(struct _citrus_memory_stream * __restrict ms,
 	ms->ms_pos = 0;
 }
 
-static __inline void
+static inline void
 _citrus_memory_stream_bind_ptr(struct _citrus_memory_stream * __restrict ms,
     void *ptr, size_t sz)
 {
@@ -75,21 +75,21 @@ _citrus_memory_stream_bind_ptr(struct _citrus_memory_stream * __restrict ms,
 	_citrus_memory_stream_bind(ms, &r);
 }
 
-static __inline void
+static inline void
 _citrus_memory_stream_rewind(struct _citrus_memory_stream *ms)
 {
 
 	ms->ms_pos = 0;
 }
 
-static __inline size_t
+static inline size_t
 _citrus_memory_stream_tell(struct _citrus_memory_stream *ms)
 {
 
 	return (ms->ms_pos);
 }
 
-static __inline size_t
+static inline size_t
 _citrus_memory_stream_remainder(struct _citrus_memory_stream *ms)
 {
 	size_t sz;
@@ -100,7 +100,7 @@ _citrus_memory_stream_remainder(struct _citrus_memory_stream *ms)
 	return (sz-ms->ms_pos);
 }
 
-static __inline int
+static inline int
 _citrus_memory_stream_seek(struct _citrus_memory_stream *ms, size_t pos, int w)
 {
 	size_t sz;
@@ -128,7 +128,7 @@ _citrus_memory_stream_seek(struct _citrus_memory_stream *ms, size_t pos, int w)
 	return (0);
 }
 
-static __inline int
+static inline int
 _citrus_memory_stream_getc(struct _citrus_memory_stream *ms)
 {
 
@@ -137,7 +137,7 @@ _citrus_memory_stream_getc(struct _citrus_memory_stream *ms)
 	return (_citrus_region_peek8(&ms->ms_region, ms->ms_pos++));
 }
 
-static __inline void
+static inline void
 _citrus_memory_stream_ungetc(struct _citrus_memory_stream *ms, int ch)
 {
 
@@ -145,7 +145,7 @@ _citrus_memory_stream_ungetc(struct _citrus_memory_stream *ms, int ch)
 		ms->ms_pos--;
 }
 
-static __inline int
+static inline int
 _citrus_memory_stream_peek(struct _citrus_memory_stream *ms)
 {
 
@@ -154,7 +154,7 @@ _citrus_memory_stream_peek(struct _citrus_memory_stream *ms)
 	return (_citrus_region_peek8(&ms->ms_region, ms->ms_pos));
 }
 
-static __inline void *
+static inline void *
 _citrus_memory_stream_getregion(struct _citrus_memory_stream *ms,
     struct _citrus_region *r, size_t sz)
 {
@@ -171,7 +171,7 @@ _citrus_memory_stream_getregion(struct _citrus_memory_stream *ms,
 	return (ret);
 }
 
-static __inline int
+static inline int
 _citrus_memory_stream_get8(struct _citrus_memory_stream *ms, uint8_t *rval)
 {
 
@@ -184,7 +184,7 @@ _citrus_memory_stream_get8(struct _citrus_memory_stream *ms, uint8_t *rval)
 	return (0);
 }
 
-static __inline int
+static inline int
 _citrus_memory_stream_get16(struct _citrus_memory_stream *ms, uint16_t *rval)
 {
 
@@ -197,7 +197,7 @@ _citrus_memory_stream_get16(struct _citrus_memory_stream *ms, uint16_t *rval)
 	return (0);
 }
 
-static __inline int
+static inline int
 _citrus_memory_stream_get32(struct _citrus_memory_stream *ms, uint32_t *rval)
 {
 
@@ -210,7 +210,7 @@ _citrus_memory_stream_get32(struct _citrus_memory_stream *ms, uint32_t *rval)
 	return (0);
 }
 
-static __inline int
+static inline int
 _citrus_memory_stream_getln_region(struct _citrus_memory_stream *ms,
     struct _citrus_region *r)
 {

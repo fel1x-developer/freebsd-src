@@ -56,21 +56,21 @@ const struct xsave_limits *vmm_get_xsave_limits(void);
 /*
  * Inline access to host state that is used on every VM entry
  */
-static __inline uint64_t
+static inline uint64_t
 vmm_get_host_trbase(void)
 {
 
 	return ((uint64_t)PCPU_GET(tssp));
 }
 
-static __inline uint64_t
+static inline uint64_t
 vmm_get_host_gdtrbase(void)
 {
 
 	return ((uint64_t)*PCPU_PTR(gdt));
 }
 
-static __inline uint64_t
+static inline uint64_t
 vmm_get_host_gsbase(void)
 {
 

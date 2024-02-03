@@ -202,7 +202,7 @@ sysctl_kern_timecounter_freq(SYSCTL_HANDLER_ARGS)
  * Return the difference between the timehands' counter value now and what
  * was when we copied it to the timehands' offset_count.
  */
-static __inline u_int
+static inline u_int
 tc_delta(struct timehands *th)
 {
 	struct timecounter *tc;
@@ -212,7 +212,7 @@ tc_delta(struct timehands *th)
 	    tc->tc_counter_mask);
 }
 
-static __inline void
+static inline void
 bintime_add_tc_delta(struct bintime *bt, uint64_t scale,
     uint64_t large_delta, uint64_t delta)
 {
@@ -235,7 +235,7 @@ bintime_add_tc_delta(struct bintime *bt, uint64_t scale,
  * the comment in <sys/time.h> for a description of these 12 functions.
  */
 
-static __inline void
+static inline void
 bintime_off(struct bintime *bt, u_int off)
 {
 	struct timehands *th;
@@ -264,7 +264,7 @@ do {									\
 	bintime_off(dst, __offsetof(struct timehands, member));		\
 } while (0)
 
-static __inline void
+static inline void
 getthmember(void *out, size_t out_size, u_int off)
 {
 	struct timehands *th;
@@ -1930,7 +1930,7 @@ tc_ticktock(int cnt)
 	}
 }
 
-static void __inline
+static void inline
 tc_adjprecision(void)
 {
 	int t;

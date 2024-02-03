@@ -134,14 +134,14 @@ static driver_t pbio_driver = {
 
 DRIVER_MODULE(pbio, isa, pbio_driver, 0, 0);
 
-static __inline uint8_t
+static inline uint8_t
 pbinb(struct pbio_softc *scp, int off)
 {
 
 	return (bus_read_1(scp->res, off));
 }
 
-static __inline void
+static inline void
 pboutb(struct pbio_softc *scp, int off, uint8_t val)
 {
 

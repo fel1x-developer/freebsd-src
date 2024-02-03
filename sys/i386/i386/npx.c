@@ -89,7 +89,7 @@
 #define	ldmxcsr(csr)		__asm __volatile("ldmxcsr %0" : : "m" (csr))
 #define	stmxcsr(addr)		__asm __volatile("stmxcsr %0" : : "m" (*(addr)))
 
-static __inline void
+static inline void
 xrstor(char *addr, uint64_t mask)
 {
 	uint32_t low, hi;
@@ -99,7 +99,7 @@ xrstor(char *addr, uint64_t mask)
 	__asm __volatile("xrstor %0" : : "m" (*addr), "a" (low), "d" (hi));
 }
 
-static __inline void
+static inline void
 xsave(char *addr, uint64_t mask)
 {
 	uint32_t low, hi;
@@ -110,7 +110,7 @@ xsave(char *addr, uint64_t mask)
 	    "memory");
 }
 
-static __inline void
+static inline void
 xsaveopt(char *addr, uint64_t mask)
 {
 	uint32_t low, hi;

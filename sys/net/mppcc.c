@@ -52,7 +52,7 @@ struct MPPC_comp_state {
 };
 
 /* Inserts 1 to 8 bits into the output buffer. */
-static void __inline 
+static void inline 
 putbits8(uint8_t *buf, uint32_t val, const uint32_t n, uint32_t *i, uint32_t *l)
 {
     buf += *i;
@@ -75,7 +75,7 @@ putbits8(uint8_t *buf, uint32_t val, const uint32_t n, uint32_t *i, uint32_t *l)
 }
 
 /* Inserts 9 to 16 bits into the output buffer. */
-static void __inline
+static void inline
 putbits16(uint8_t *buf, uint32_t val, const uint32_t n, uint32_t *i, uint32_t *l)
 {
     buf += *i;
@@ -101,7 +101,7 @@ putbits16(uint8_t *buf, uint32_t val, const uint32_t n, uint32_t *i, uint32_t *l
 }
 
 /* Inserts 17 to 24 bits into the output buffer. */
-static void __inline
+static void inline
 putbits24(uint8_t *buf, uint32_t val, const uint32_t n, uint32_t *i, uint32_t *l)
 {
     buf += *i;

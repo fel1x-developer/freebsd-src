@@ -46,7 +46,7 @@
  * therefore always exactly five 32-bit words.
  */
 #if defined(IPVERSION) && (IPVERSION == 4)
-static __inline u_int
+static inline u_int
 in_cksum_hdr(const struct ip *ip)
 {
 	u_int sum = 0;
@@ -74,7 +74,7 @@ in_cksum_hdr(const struct ip *ip)
 }
 #endif
 
-static __inline u_short
+static inline u_short
 in_addword(u_short sum, u_short b)
 {
 	__asm(
@@ -87,7 +87,7 @@ in_addword(u_short sum, u_short b)
 	return (sum);
 }
 
-static __inline u_short
+static inline u_short
 in_pseudo(u_int sum, u_int b, u_int c)
 {
 	__asm(

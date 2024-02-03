@@ -617,7 +617,7 @@ smb_smb_treedisconnect(struct smb_share *ssp, struct smb_cred *scred)
 	return error;
 }
 
-static __inline int
+static inline int
 smb_smb_readx(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
 	      struct uio *uio, struct smb_cred *scred)
 {
@@ -698,7 +698,7 @@ smb_smb_readx(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
 	return (error);
 }
 
-static __inline int
+static inline int
 smb_smb_writex(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
 	struct uio *uio, struct smb_cred *scred)
 {
@@ -755,7 +755,7 @@ smb_smb_writex(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
 	return (error);
 }
 
-static __inline int
+static inline int
 smb_smb_read(struct smb_share *ssp, u_int16_t fid,
 	int *len, int *rresid, struct uio *uio, struct smb_cred *scred)
 {
@@ -834,7 +834,7 @@ smb_read(struct smb_share *ssp, u_int16_t fid, struct uio *uio,
 	return error;
 }
 
-static __inline int
+static inline int
 smb_smb_write(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
 	struct uio *uio, struct smb_cred *scred)
 {

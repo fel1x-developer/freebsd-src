@@ -47,49 +47,49 @@
  */
 #define powerpc_iomb() __asm __volatile("sync" : : : "memory")
 
-static __inline void
+static inline void
 __outb(volatile u_int8_t *a, u_int8_t v)
 {
 	*a = v;
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outw(volatile u_int16_t *a, u_int16_t v)
 {
 	*a = v;
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outl(volatile u_int32_t *a, u_int32_t v)
 {
 	*a = v;
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outll(volatile u_int64_t *a, u_int64_t v)
 {
 	*a = v;
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outwrb(volatile u_int16_t *a, u_int16_t v)
 {
 	__asm__ volatile("sthbrx %0, 0, %1" :: "r"(v), "r"(a));
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outlrb(volatile u_int32_t *a, u_int32_t v)
 {
 	__asm__ volatile("stwbrx %0, 0, %1" :: "r"(v), "r"(a));
 	powerpc_iomb();
 }
 
-static __inline u_int8_t
+static inline u_int8_t
 __inb(volatile u_int8_t *a)
 {
 	u_int8_t _v_;
@@ -99,7 +99,7 @@ __inb(volatile u_int8_t *a)
 	return _v_;
 }
 
-static __inline u_int16_t
+static inline u_int16_t
 __inw(volatile u_int16_t *a)
 {
 	u_int16_t _v_;
@@ -109,7 +109,7 @@ __inw(volatile u_int16_t *a)
 	return _v_;
 }
 
-static __inline u_int32_t
+static inline u_int32_t
 __inl(volatile u_int32_t *a)
 {
 	u_int32_t _v_;
@@ -119,7 +119,7 @@ __inl(volatile u_int32_t *a)
 	return _v_;
 }
 
-static __inline u_int64_t
+static inline u_int64_t
 __inll(volatile u_int64_t *a)
 {
 	u_int64_t _v_;
@@ -129,7 +129,7 @@ __inll(volatile u_int64_t *a)
 	return _v_;
 }
 
-static __inline u_int16_t
+static inline u_int16_t
 __inwrb(volatile u_int16_t *a)
 {
 	u_int16_t _v_;
@@ -139,7 +139,7 @@ __inwrb(volatile u_int16_t *a)
 	return _v_;
 }
 
-static __inline u_int32_t
+static inline u_int32_t
 __inlrb(volatile u_int32_t *a)
 {
 	u_int32_t _v_;
@@ -177,7 +177,7 @@ __inlrb(volatile u_int32_t *a)
 #define	inlrb(a)	(__inlrb((volatile u_int32_t *)(a)))
 #define	in32rb(a)	inlrb(a)
 
-static __inline void
+static inline void
 __outsb(volatile u_int8_t *a, const u_int8_t *s, size_t c)
 {
 	while (c--)
@@ -185,7 +185,7 @@ __outsb(volatile u_int8_t *a, const u_int8_t *s, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outsw(volatile u_int16_t *a, const u_int16_t *s, size_t c)
 {
 	while (c--)
@@ -193,7 +193,7 @@ __outsw(volatile u_int16_t *a, const u_int16_t *s, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outsl(volatile u_int32_t *a, const u_int32_t *s, size_t c)
 {
 	while (c--)
@@ -201,7 +201,7 @@ __outsl(volatile u_int32_t *a, const u_int32_t *s, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outsll(volatile u_int64_t *a, const u_int64_t *s, size_t c)
 {
 	while (c--)
@@ -209,7 +209,7 @@ __outsll(volatile u_int64_t *a, const u_int64_t *s, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outswrb(volatile u_int16_t *a, const u_int16_t *s, size_t c)
 {
 	while (c--)
@@ -217,7 +217,7 @@ __outswrb(volatile u_int16_t *a, const u_int16_t *s, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __outslrb(volatile u_int32_t *a, const u_int32_t *s, size_t c)
 {
 	while (c--)
@@ -225,7 +225,7 @@ __outslrb(volatile u_int32_t *a, const u_int32_t *s, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __insb(volatile u_int8_t *a, u_int8_t *d, size_t c)
 {
 	while (c--)
@@ -233,7 +233,7 @@ __insb(volatile u_int8_t *a, u_int8_t *d, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __insw(volatile u_int16_t *a, u_int16_t *d, size_t c)
 {
 	while (c--)
@@ -241,7 +241,7 @@ __insw(volatile u_int16_t *a, u_int16_t *d, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __insl(volatile u_int32_t *a, u_int32_t *d, size_t c)
 {
 	while (c--)
@@ -249,7 +249,7 @@ __insl(volatile u_int32_t *a, u_int32_t *d, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __insll(volatile u_int64_t *a, u_int64_t *d, size_t c)
 {
 	while (c--)
@@ -257,7 +257,7 @@ __insll(volatile u_int64_t *a, u_int64_t *d, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __inswrb(volatile u_int16_t *a, u_int16_t *d, size_t c)
 {
 	while (c--)
@@ -265,7 +265,7 @@ __inswrb(volatile u_int16_t *a, u_int16_t *d, size_t c)
 	powerpc_iomb();
 }
 
-static __inline void
+static inline void
 __inslrb(volatile u_int32_t *a, u_int32_t *d, size_t c)
 {
 	while (c--)

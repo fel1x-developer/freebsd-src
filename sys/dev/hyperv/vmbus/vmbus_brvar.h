@@ -81,7 +81,7 @@ struct vmbus_txbr {
 struct sysctl_ctx_list;
 struct sysctl_oid;
 
-static __inline int
+static inline int
 vmbus_txbr_maxpktsz(const struct vmbus_txbr *tbr)
 {
 
@@ -93,7 +93,7 @@ vmbus_txbr_maxpktsz(const struct vmbus_txbr *tbr)
 	return (tbr->txbr_dsize - sizeof(uint64_t) - 1);
 }
 
-static __inline bool
+static inline bool
 vmbus_txbr_empty(const struct vmbus_txbr *tbr)
 {
 
@@ -101,7 +101,7 @@ vmbus_txbr_empty(const struct vmbus_txbr *tbr)
 	    atomic_load_acq_32(&tbr->txbr_rindex) ? true : false);
 }
 
-static __inline bool
+static inline bool
 vmbus_rxbr_empty(const struct vmbus_rxbr *rbr)
 {
 
@@ -109,7 +109,7 @@ vmbus_rxbr_empty(const struct vmbus_rxbr *rbr)
 	    atomic_load_acq_32(&rbr->rxbr_rindex) ? true : false);
 }
 
-static __inline int
+static inline int
 vmbus_br_nelem(int br_size, int elem_size)
 {
 

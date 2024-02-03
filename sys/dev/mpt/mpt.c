@@ -139,12 +139,12 @@ static int mpt_enable_ioc(struct mpt_softc *mpt, int);
  * to simplify our itterator.
  */
 static struct mpt_personality *mpt_personalities[MPT_MAX_PERSONALITIES + 1];
-static __inline struct mpt_personality*
+static inline struct mpt_personality*
 	mpt_pers_find(struct mpt_softc *, u_int);
-static __inline struct mpt_personality*
+static inline struct mpt_personality*
 	mpt_pers_find_reverse(struct mpt_softc *, u_int);
 
-static __inline struct mpt_personality *
+static inline struct mpt_personality *
 mpt_pers_find(struct mpt_softc *mpt, u_int start_at)
 {
 	KASSERT(start_at <= MPT_MAX_PERSONALITIES,
@@ -162,7 +162,7 @@ mpt_pers_find(struct mpt_softc *mpt, u_int start_at)
  * traversal where we use the MAX+1 is guaranteed to be NULL
  * trick.
  */
-static __inline struct mpt_personality *
+static inline struct mpt_personality *
 mpt_pers_find_reverse(struct mpt_softc *mpt, u_int start_at)
 {
 	while (start_at < MPT_MAX_PERSONALITIES
@@ -885,17 +885,17 @@ mpt_dump_reply_frame(struct mpt_softc *mpt, MSG_DEFAULT_REPLY *reply_frame)
 }
 
 /******************************* Doorbell Access ******************************/
-static __inline uint32_t mpt_rd_db(struct mpt_softc *mpt);
-static __inline  uint32_t mpt_rd_intr(struct mpt_softc *mpt);
+static inline uint32_t mpt_rd_db(struct mpt_softc *mpt);
+static inline  uint32_t mpt_rd_intr(struct mpt_softc *mpt);
 
-static __inline uint32_t
+static inline uint32_t
 mpt_rd_db(struct mpt_softc *mpt)
 {
 
 	return mpt_read(mpt, MPT_OFFSET_DOORBELL);
 }
 
-static __inline uint32_t
+static inline uint32_t
 mpt_rd_intr(struct mpt_softc *mpt)
 {
 

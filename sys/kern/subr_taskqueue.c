@@ -115,7 +115,7 @@ _timeout_task_init(struct taskqueue *queue, struct timeout_task *timeout_task,
 	timeout_task->f = 0;
 }
 
-static __inline int
+static inline int
 TQ_SLEEP(struct taskqueue *tq, void *p, const char *wm)
 {
 	if (tq->tq_spin)

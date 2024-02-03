@@ -272,42 +272,42 @@ int	pci_pause(struct pci_devinst *pdi);
 int	pci_resume(struct pci_devinst *pdi);
 #endif
 
-static __inline void
+static inline void
 pci_set_cfgdata8(struct pci_devinst *pi, int offset, uint8_t val)
 {
 	assert(offset <= PCI_REGMAX);
 	*(uint8_t *)(pi->pi_cfgdata + offset) = val;
 }
 
-static __inline void
+static inline void
 pci_set_cfgdata16(struct pci_devinst *pi, int offset, uint16_t val)
 {
 	assert(offset <= (PCI_REGMAX - 1) && (offset & 1) == 0);
 	*(uint16_t *)(pi->pi_cfgdata + offset) = val;
 }
 
-static __inline void
+static inline void
 pci_set_cfgdata32(struct pci_devinst *pi, int offset, uint32_t val)
 {
 	assert(offset <= (PCI_REGMAX - 3) && (offset & 3) == 0);
 	*(uint32_t *)(pi->pi_cfgdata + offset) = val;
 }
 
-static __inline uint8_t
+static inline uint8_t
 pci_get_cfgdata8(struct pci_devinst *pi, int offset)
 {
 	assert(offset <= PCI_REGMAX);
 	return (*(uint8_t *)(pi->pi_cfgdata + offset));
 }
 
-static __inline uint16_t
+static inline uint16_t
 pci_get_cfgdata16(struct pci_devinst *pi, int offset)
 {
 	assert(offset <= (PCI_REGMAX - 1) && (offset & 1) == 0);
 	return (*(uint16_t *)(pi->pi_cfgdata + offset));
 }
 
-static __inline uint32_t
+static inline uint32_t
 pci_get_cfgdata32(struct pci_devinst *pi, int offset)
 {
 	assert(offset <= (PCI_REGMAX - 3) && (offset & 3) == 0);

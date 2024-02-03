@@ -2001,7 +2001,7 @@ bad:
  * sb->sb_mb->m_nextpkt which must be restored when the lead mbuf changes.
  * NOTE: 'nextrecord' may be NULL.
  */
-static __inline void
+static inline void
 sockbuf_pushsync(struct sockbuf *sb, struct mbuf *nextrecord)
 {
 

@@ -44,7 +44,7 @@ static const chip_pci_attach rtwn_chip_pci_attach[RTWN_CHIP_MAX_PCI] = {
 	[RTWN_CHIP_RTL8188EE] = r88ee_attach
 };
 
-static __inline void
+static inline void
 rtwn_pci_attach_private(struct rtwn_pci_softc *pc, int chip)
 {
 	rtwn_chip_pci_attach[chip](pc);

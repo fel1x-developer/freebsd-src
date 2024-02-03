@@ -178,7 +178,7 @@ int linux_alloc_current_noop(struct thread *, int);
 #define critical_enter() critical_enter_KBI()
 #define critical_exit() critical_exit_KBI()
 #else
-static __inline void
+static inline void
 critical_enter(void)
 {
 	struct thread_lite *td;
@@ -188,7 +188,7 @@ critical_enter(void)
 	atomic_interrupt_fence();
 }
 
-static __inline void
+static inline void
 critical_exit(void)
 {
 	struct thread_lite *td;
@@ -449,11 +449,11 @@ void	kern_reboot(int) __dead2;
 void	shutdown_nice(int);
 
 /* Stubs for obsolete functions that used to be for interrupt management */
-static __inline intrmask_t	splhigh(void)		{ return 0; }
-static __inline intrmask_t	splimp(void)		{ return 0; }
-static __inline intrmask_t	splnet(void)		{ return 0; }
-static __inline intrmask_t	spltty(void)		{ return 0; }
-static __inline void		splx(intrmask_t ipl __unused)	{ return; }
+static inline intrmask_t	splhigh(void)		{ return 0; }
+static inline intrmask_t	splimp(void)		{ return 0; }
+static inline intrmask_t	splnet(void)		{ return 0; }
+static inline intrmask_t	spltty(void)		{ return 0; }
+static inline void		splx(intrmask_t ipl __unused)	{ return; }
 
 /*
  * Common `proc' functions are declared here so that proc.h can be included
@@ -474,7 +474,7 @@ int	msleep_spin_sbt(const void * _Nonnull chan, struct mtx *mtx,
 	    0, C_HARDCLOCK)
 int	pause_sbt(const char *wmesg, sbintime_t sbt, sbintime_t pr,
 	    int flags);
-static __inline int
+static inline int
 pause(const char *wmesg, int timo)
 {
 	return (pause_sbt(wmesg, tick_sbt * timo, 0, C_HARDCLOCK));
@@ -545,14 +545,14 @@ struct unrhdr64 {
         uint64_t	counter;
 };
 
-static __inline void
+static inline void
 new_unrhdr64(struct unrhdr64 *unr64, uint64_t low)
 {
 
 	unr64->counter = low;
 }
 
-static __inline uint64_t
+static inline uint64_t
 alloc_unr64(struct unrhdr64 *unr64)
 {
 

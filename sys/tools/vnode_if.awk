@@ -327,7 +327,7 @@ while ((getline < srcfile) > 0) {
 		printh("int " uname "_AP(struct " name "_args *);");
 		printh("int " uname "_APV(struct vop_vector *vop, struct " name "_args *);");
 		printh("");
-		printh("static __inline int " uname "(");
+		printh("static inline int " uname "(");
 		for (i = 0; i < numargs; ++i) {
 			printh("\t" t_spc(types[i]) args[i] \
 			    (i < numargs - 1 ? "," : ")"));

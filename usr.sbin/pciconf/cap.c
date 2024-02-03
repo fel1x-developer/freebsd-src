@@ -842,7 +842,7 @@ list_caps(int fd, struct pci_conf *p, int level)
 }
 
 /* From <sys/systm.h>. */
-static __inline uint32_t
+static inline uint32_t
 bitcount32(uint32_t x)
 {
 

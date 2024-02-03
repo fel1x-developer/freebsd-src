@@ -39,7 +39,7 @@ struct _citrus_region {
 	size_t	 r_size;
 };
 
-static __inline void
+static inline void
 _citrus_region_init(struct _citrus_region *r, void *h, size_t sz)
 {
 
@@ -47,42 +47,42 @@ _citrus_region_init(struct _citrus_region *r, void *h, size_t sz)
 	r->r_size = sz;
 }
 
-static __inline void *
+static inline void *
 _citrus_region_head(const struct _citrus_region *r)
 {
 
 	return (r->r_head);
 }
 
-static __inline size_t
+static inline size_t
 _citrus_region_size(const struct _citrus_region *r)
 {
 
 	return (r->r_size);
 }
 
-static __inline int
+static inline int
 _citrus_region_check(const struct _citrus_region *r, size_t ofs, size_t sz)
 {
 
 	return (r->r_size >= ofs + sz ? 0 : -1);
 }
 
-static __inline void *
+static inline void *
 _citrus_region_offset(const struct _citrus_region *r, size_t pos)
 {
 
 	return ((void *)((uint8_t *)r->r_head + pos));
 }
 
-static __inline uint8_t
+static inline uint8_t
 _citrus_region_peek8(const struct _citrus_region *r, size_t pos)
 {
 
 	return (*(uint8_t *)_citrus_region_offset(r, pos));
 }
 
-static __inline uint16_t
+static inline uint16_t
 _citrus_region_peek16(const struct _citrus_region *r, size_t pos)
 {
 	uint16_t val;
@@ -91,7 +91,7 @@ _citrus_region_peek16(const struct _citrus_region *r, size_t pos)
 	return (val);
 }
 
-static __inline uint32_t
+static inline uint32_t
 _citrus_region_peek32(const struct _citrus_region *r, size_t pos)
 {
 	uint32_t val;
@@ -100,7 +100,7 @@ _citrus_region_peek32(const struct _citrus_region *r, size_t pos)
 	return (val);
 }
 
-static __inline int
+static inline int
 _citrus_region_get_subregion(struct _citrus_region *subr,
     const struct _citrus_region *r, size_t ofs, size_t sz)
 {

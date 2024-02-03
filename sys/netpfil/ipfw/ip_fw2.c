@@ -256,7 +256,7 @@ SYSEND
 #define	ICMP(p)		((struct icmphdr *)(p))
 #define	ICMP6(p)	((struct icmp6_hdr *)(p))
 
-static __inline int
+static inline int
 icmptype_match(struct icmphdr *icmp, ipfw_insn_u32 *cmd)
 {
 	int type = icmp->icmp_type;
@@ -767,7 +767,7 @@ ipfw_send_pkt(struct mbuf *replyto, struct ipfw_flow_id *id, u_int32_t seq,
 /*
  * ipv6 specific rules here...
  */
-static __inline int
+static inline int
 icmp6type_match(int type, ipfw_insn_u32 *cmd)
 {
 	return (type <= ICMP6_MAXTYPE && (cmd->d[type/32] & (1<<(type%32)) ) );

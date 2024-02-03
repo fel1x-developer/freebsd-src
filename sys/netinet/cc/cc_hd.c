@@ -112,7 +112,7 @@ hd_data_sz(void)
 /*
  * Hamilton backoff function. Returns 1 if we should backoff or 0 otherwise.
  */
-static __inline int
+static inline int
 should_backoff(int qdly, int maxqdly)
 {
 	unsigned long p;

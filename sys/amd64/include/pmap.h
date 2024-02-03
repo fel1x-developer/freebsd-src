@@ -503,7 +503,7 @@ void	pmap_san_enter(vm_offset_t);
  * Note that the set can be modified without any mutual exclusion, so a copy
  * must be made if a stable value is required.
  */
-static __inline volatile cpuset_t *
+static inline volatile cpuset_t *
 pmap_invalidate_cpu_mask(pmap_t pmap)
 {
 	return (&pmap->pm_active);
@@ -516,7 +516,7 @@ pmap_invalidate_cpu_mask(pmap_t pmap)
  * global TLB entries when PCID is enabled.  Work around it for now,
  * by doing global invalidation on small cores instead of INVLPG.
  */
-static __inline void
+static inline void
 pmap_invlpg(pmap_t pmap, vm_offset_t va)
 {
 	if (pmap == kernel_pmap && PCPU_GET(pcid_invlpg_workaround)) {
@@ -531,7 +531,7 @@ pmap_invlpg(pmap_t pmap, vm_offset_t va)
 
 #if defined(_SYS_PCPU_H_)
 /* Return pcid for the pmap pmap on current cpu */
-static __inline uint32_t
+static inline uint32_t
 pmap_get_pcid(pmap_t pmap)
 {
 	struct pmap_pcid *pcidp;
@@ -545,35 +545,35 @@ pmap_get_pcid(pmap_t pmap)
 #endif /* _KERNEL */
 
 /* Return various clipped indexes for a given VA */
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pte_index(vm_offset_t va)
 {
 
 	return ((va >> PAGE_SHIFT) & ((1ul << NPTEPGSHIFT) - 1));
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pde_index(vm_offset_t va)
 {
 
 	return ((va >> PDRSHIFT) & ((1ul << NPDEPGSHIFT) - 1));
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pdpe_index(vm_offset_t va)
 {
 
 	return ((va >> PDPSHIFT) & ((1ul << NPDPEPGSHIFT) - 1));
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pml4e_index(vm_offset_t va)
 {
 
 	return ((va >> PML4SHIFT) & ((1ul << NPML4EPGSHIFT) - 1));
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pml5e_index(vm_offset_t va)
 {
 

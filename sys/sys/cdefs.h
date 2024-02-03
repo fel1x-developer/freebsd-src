@@ -116,10 +116,10 @@
 #define	__signed	signed
 #define	__volatile	volatile
 #if defined(__cplusplus)
-#define	__inline	inline		/* convert to C++ keyword */
+#define	inline	inline		/* convert to C++ keyword */
 #else
 #if !(defined(__CC_SUPPORTS___INLINE))
-#define	__inline			/* delete GCC keyword */
+#define	inline			/* delete GCC keyword */
 #endif /* ! __CC_SUPPORTS___INLINE */
 #endif /* !__cplusplus */
 
@@ -130,7 +130,7 @@
 
 #if !defined(__CC_SUPPORTS___INLINE)
 #define	__const				/* delete pseudo-ANSI C keywords */
-#define	__inline
+#define	inline
 #define	__signed
 #define	__volatile
 /*

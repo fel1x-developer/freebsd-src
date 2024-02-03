@@ -290,7 +290,7 @@ static MALLOC_DEFINE(M_NETGRAPH_ITEM, "netgraph_item",
  * after they have been freed.
  * We use this scheme for nodes and hooks, and to some extent for items.
  */
-static __inline hook_p
+static inline hook_p
 ng_alloc_hook(void)
 {
 	hook_p hook;
@@ -317,7 +317,7 @@ ng_alloc_hook(void)
 	return (hook);
 }
 
-static __inline node_p
+static inline node_p
 ng_alloc_node(void)
 {
 	node_p node;
@@ -1857,12 +1857,12 @@ ng_path2noderef(node_p here, const char *address, node_p *destp,
 * read-write queue locking inline functions			*
 \***************************************************************/
 
-static __inline void	ng_queue_rw(node_p node, item_p  item, int rw);
-static __inline item_p	ng_dequeue(node_p node, int *rw);
-static __inline item_p	ng_acquire_read(node_p node, item_p  item);
-static __inline item_p	ng_acquire_write(node_p node, item_p  item);
-static __inline void	ng_leave_read(node_p node);
-static __inline void	ng_leave_write(node_p node);
+static inline void	ng_queue_rw(node_p node, item_p  item, int rw);
+static inline item_p	ng_dequeue(node_p node, int *rw);
+static inline item_p	ng_acquire_read(node_p node, item_p  item);
+static inline item_p	ng_acquire_write(node_p node, item_p  item);
+static inline void	ng_leave_read(node_p node);
+static inline void	ng_leave_write(node_p node);
 
 /*
  * Definition of the bits fields in the ng_queue flag word.
@@ -1944,7 +1944,7 @@ Node queue has such semantics:
  * because the node was in a state where it cannot yet process the next item
  * on the queue.
  */
-static __inline item_p
+static inline item_p
 ng_dequeue(node_p node, int *rw)
 {
 	item_p item;
@@ -2013,7 +2013,7 @@ ng_dequeue(node_p node, int *rw)
  * Queue a packet to be picked up later by someone else.
  * If the queue could be run now, add node to the queue handler's worklist.
  */
-static __inline void
+static inline void
 ng_queue_rw(node_p node, item_p  item, int rw)
 {
 	struct ng_queue *ngq = &node->nd_input_queue;
@@ -2041,7 +2041,7 @@ ng_queue_rw(node_p node, item_p  item, int rw)
 }
 
 /* Acquire reader lock on node. If node is busy, queue the packet. */
-static __inline item_p
+static inline item_p
 ng_acquire_read(node_p node, item_p item)
 {
 	KASSERT(node != &ng_deadnode,
@@ -2069,7 +2069,7 @@ ng_acquire_read(node_p node, item_p item)
 }
 
 /* Acquire writer lock on node. If node is busy, queue the packet. */
-static __inline item_p
+static inline item_p
 ng_acquire_write(node_p node, item_p item)
 {
 	KASSERT(node != &ng_deadnode,
@@ -2091,7 +2091,7 @@ ng_acquire_write(node_p node, item_p item)
 }
 
 #if 0
-static __inline item_p
+static inline item_p
 ng_upgrade_write(node_p node, item_p item)
 {
 	struct ng_queue *ngq = &node->nd_input_queue;
@@ -2158,14 +2158,14 @@ ng_upgrade_write(node_p node, item_p item)
 #endif
 
 /* Release reader lock. */
-static __inline void
+static inline void
 ng_leave_read(node_p node)
 {
 	atomic_subtract_rel_int(&node->nd_input_queue.q_flags, READER_INCREMENT);
 }
 
 /* Release writer lock. */
-static __inline void
+static inline void
 ng_leave_write(node_p node)
 {
 	atomic_clear_rel_int(&node->nd_input_queue.q_flags, WRITER_ACTIVE);
@@ -2981,7 +2981,7 @@ static int allocated;	/* number of items malloc'd */
  * Users are not so important, but try be quick for the times that it's
  * an interrupt.
  */
-static __inline item_p
+static inline item_p
 ng_alloc_item(int type, int flags)
 {
 	item_p item;
@@ -3053,7 +3053,7 @@ ng_free_item(item_p item)
  * Change type of the queue entry.
  * Possibly reallocates it from another UMA zone.
  */
-static __inline item_p
+static inline item_p
 ng_realloc_item(item_p pitem, int type, int flags)
 {
 	item_p item;

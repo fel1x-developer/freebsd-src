@@ -53,13 +53,13 @@
 #define	GDB_REG_SS	19
 _Static_assert(GDB_BUFSZ >= (GDB_NREGS * 16), "buffer fits 'g' regs");
 
-static __inline size_t
+static inline size_t
 gdb_cpu_regsz(int regnum)
 {
 	return ((regnum > 16 && regnum < 24) ? 4 : 8);
 }
 
-static __inline int
+static inline int
 gdb_cpu_query(void)
 {
 	return (0);

@@ -563,13 +563,13 @@ struct aac_code_lookup {
 	} while (0)
 
 #define AACQ_COMMAND_QUEUE(name, index)					\
-static __inline void							\
+static inline void							\
 aac_initq_ ## name (struct aac_softc *sc)				\
 {									\
 	TAILQ_INIT(&sc->aac_ ## name);					\
 	AACQ_INIT(sc, index);						\
 }									\
-static __inline void							\
+static inline void							\
 aac_enqueue_ ## name (struct aac_command *cm)				\
 {									\
 	if ((cm->cm_flags & AAC_ON_AACQ_MASK) != 0) {			\
@@ -581,7 +581,7 @@ aac_enqueue_ ## name (struct aac_command *cm)				\
 	cm->cm_flags |= AAC_ON_ ## index;				\
 	AACQ_ADD(cm->cm_sc, index);					\
 }									\
-static __inline void							\
+static inline void							\
 aac_requeue_ ## name (struct aac_command *cm)				\
 {									\
 	if ((cm->cm_flags & AAC_ON_AACQ_MASK) != 0) {			\
@@ -593,7 +593,7 @@ aac_requeue_ ## name (struct aac_command *cm)				\
 	cm->cm_flags |= AAC_ON_ ## index;				\
 	AACQ_ADD(cm->cm_sc, index);					\
 }									\
-static __inline struct aac_command *					\
+static inline struct aac_command *					\
 aac_dequeue_ ## name (struct aac_softc *sc)				\
 {									\
 	struct aac_command *cm;						\
@@ -611,7 +611,7 @@ aac_dequeue_ ## name (struct aac_softc *sc)				\
 	}								\
 	return(cm);							\
 }									\
-static __inline void							\
+static inline void							\
 aac_remove_ ## name (struct aac_command *cm)				\
 {									\
 	if ((cm->cm_flags & AAC_ON_ ## index) == 0) {			\
@@ -630,7 +630,7 @@ AACQ_COMMAND_QUEUE(free, AACQ_FREE);
 AACQ_COMMAND_QUEUE(ready, AACQ_READY);
 AACQ_COMMAND_QUEUE(busy, AACQ_BUSY);
 
-static __inline void
+static inline void
 aac_print_printf(struct aac_softc *sc)
 {
 	/*
@@ -643,7 +643,7 @@ aac_print_printf(struct aac_softc *sc)
 	AAC_QNOTIFY(sc, AAC_DB_PRINTF);
 }
 
-static __inline int
+static inline int
 aac_alloc_sync_fib(struct aac_softc *sc, struct aac_fib **fib)
 {
 
@@ -652,7 +652,7 @@ aac_alloc_sync_fib(struct aac_softc *sc, struct aac_fib **fib)
 	return (0);
 }
 
-static __inline void
+static inline void
 aac_release_sync_fib(struct aac_softc *sc)
 {
 

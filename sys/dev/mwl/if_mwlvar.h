@@ -187,14 +187,14 @@ struct mwl_bastate {
 	const MWL_HAL_BASTREAM *bastream; /* A-MPDU BA stream */
 };
 
-static __inline__ void
+static inline__ void
 mwl_bastream_setup(struct mwl_bastate *bas, int tid, int txq)
 {
 	bas->txq = txq;
 	bas->qos = htole16(tid | IEEE80211_QOS_ACKPOLICY_BA);
 }
 
-static __inline__ void
+static inline__ void
 mwl_bastream_free(struct mwl_bastate *bas)
 {
 	bas->qos = 0;
@@ -209,7 +209,7 @@ mwl_bastream_free(struct mwl_bastate *bas)
  * frames.  The bits from the frame are assumed in network byte
  * order, hence the potential byte swap.
  */
-static __inline__ int
+static inline__ int
 mwl_bastream_match(const struct mwl_bastate *bas, uint16_t qos)
 {
 	return (qos & htole16(IEEE80211_QOS_TID|IEEE80211_QOS_ACKPOLICY)) ==

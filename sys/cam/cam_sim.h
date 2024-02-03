@@ -94,37 +94,37 @@ struct cam_sim {
 	int			refcount; /* References to the SIM. */
 };
 
-static __inline uint32_t
+static inline uint32_t
 cam_sim_path(const struct cam_sim *sim)
 {
 	return (sim->path_id);
 }
 
-static __inline const char *
+static inline const char *
 cam_sim_name(const struct cam_sim *sim)
 {
 	return (sim->sim_name);
 }
 
-static __inline void *
+static inline void *
 cam_sim_softc(const struct cam_sim *sim)
 {
 	return (sim->softc);
 }
 
-static __inline uint32_t
+static inline uint32_t
 cam_sim_unit(const struct cam_sim *sim)
 {
 	return (sim->unit_number);
 }
 
-static __inline uint32_t
+static inline uint32_t
 cam_sim_bus(const struct cam_sim *sim)
 {
 	return (sim->bus_id);
 }
 
-static __inline bool
+static inline bool
 cam_sim_pollable(const struct cam_sim *sim)
 {
 	return (sim->sim_poll != NULL);

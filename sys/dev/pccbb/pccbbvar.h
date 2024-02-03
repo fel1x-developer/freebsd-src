@@ -141,25 +141,25 @@ int	cbb_write_ivar(device_t brdev, device_t child, int which,
 
 /*
  */
-static __inline void
+static inline void
 cbb_set(struct cbb_softc *sc, uint32_t reg, uint32_t val)
 {
 	bus_space_write_4(sc->bst, sc->bsh, reg, val);
 }
 
-static __inline uint32_t
+static inline uint32_t
 cbb_get(struct cbb_softc *sc, uint32_t reg)
 {
 	return (bus_space_read_4(sc->bst, sc->bsh, reg));
 }
 
-static __inline void
+static inline void
 cbb_setb(struct cbb_softc *sc, uint32_t reg, uint32_t bits)
 {
 	cbb_set(sc, reg, cbb_get(sc, reg) | bits);
 }
 
-static __inline void
+static inline void
 cbb_clrb(struct cbb_softc *sc, uint32_t reg, uint32_t bits)
 {
 	cbb_set(sc, reg, cbb_get(sc, reg) & ~bits);

@@ -116,7 +116,7 @@ typedef int32_t aqm_stime_t;
  * positive len -> enqueue
  * positive len + drop -> drop during enqueue
  */
-__inline static void
+inline static void
 update_stats(struct dn_queue *q, int len, int drop)
 {
 	int inc = 0;

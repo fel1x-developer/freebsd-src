@@ -697,7 +697,7 @@ ar5416SetupLastTxDesc(struct ath_hal *ah, struct ath_desc *ds,
 
 #ifdef AH_NEED_DESC_SWAP
 /* Swap transmit descriptor */
-static __inline void
+static inline void
 ar5416SwapTxDesc(struct ath_desc *ds)
 {
 	ds->ds_data = __bswap32(ds->ds_data);

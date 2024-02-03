@@ -300,7 +300,7 @@ macs_mac2(struct cookie_macs *macs, const void *buf, size_t len,
 	blake2s_final(&state, macs->mac2);
 }
 
-static __inline int
+static inline int
 timer_expired(sbintime_t timer, uint32_t sec, uint32_t nsec)
 {
 	sbintime_t now = getsbinuptime();

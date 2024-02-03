@@ -102,7 +102,7 @@ err:
 	return (err);
 }
 
-static __inline void
+static inline void
 get_addr_size_cells(phandle_t node, pcell_t *addr_cells, pcell_t *size_cells)
 {
 

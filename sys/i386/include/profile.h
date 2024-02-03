@@ -38,7 +38,7 @@
 
 #define	FUNCTION_ALIGNMENT	4
 
-#define	_MCOUNT_DECL static __inline void _mcount
+#define	_MCOUNT_DECL static inline void _mcount
 
 #define	MCOUNT								\
 void									\

@@ -605,7 +605,7 @@ cluster_callback(struct buf *bp)
  *		write_behind = 2	write behind backed-off
  */
 
-static __inline int
+static inline int
 cluster_wbuild_wb(struct vnode *vp, long size, daddr_t start_lbn, int len,
     int gbflags)
 {

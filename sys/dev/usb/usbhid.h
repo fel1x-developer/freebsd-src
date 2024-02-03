@@ -73,13 +73,13 @@ struct usb_config_descriptor;
 /* FreeBSD <= 12 compat shims */
 #define	hid_report_size(buf, len, kind, id)	\
 	hid_report_size_max(buf, len, kind, id)
-static __inline uint32_t
+static inline uint32_t
 hid_get_data_unsigned(const uint8_t *buf, hid_size_t len,
     struct hid_location *loc)
 {
 	return (hid_get_udata(buf, len, loc));
 }
-static __inline void
+static inline void
 hid_put_data_unsigned(uint8_t *buf, hid_size_t len, struct hid_location *loc,
     unsigned value)
 {

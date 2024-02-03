@@ -352,7 +352,7 @@ enum alias_tcp_state {
 };
 
 #if defined(_NETINET_IP_H_)
-static __inline void *
+static inline void *
 ip_next(struct ip *iphdr)
 {
 	char *p = (char *)iphdr;
@@ -361,7 +361,7 @@ ip_next(struct ip *iphdr)
 #endif
 
 #if defined(_NETINET_TCP_H_)
-static __inline void *
+static inline void *
 tcp_next(struct tcphdr *tcphdr)
 {
 	char *p = (char *)tcphdr;
@@ -370,7 +370,7 @@ tcp_next(struct tcphdr *tcphdr)
 #endif
 
 #if defined(_NETINET_UDP_H_)
-static __inline void *
+static inline void *
 udp_next(struct udphdr *udphdr)
 {
 	return ((void *)(udphdr + 1));

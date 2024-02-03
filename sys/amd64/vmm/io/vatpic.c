@@ -115,7 +115,7 @@ struct vatpic {
 
 static void vatpic_set_pinstate(struct vatpic *vatpic, int pin, bool newstate);
 
-static __inline bool
+static inline bool
 master_atpic(struct vatpic *vatpic, struct atpic *atpic)
 {
 
@@ -125,7 +125,7 @@ master_atpic(struct vatpic *vatpic, struct atpic *atpic)
 		return (false);
 }
 
-static __inline int
+static inline int
 vatpic_get_highest_isrpin(struct atpic *atpic)
 {
 	int bit, pin;
@@ -149,7 +149,7 @@ vatpic_get_highest_isrpin(struct atpic *atpic)
 	return (-1);
 }
 
-static __inline int
+static inline int
 vatpic_get_highest_irrpin(struct atpic *atpic)
 {
 	int serviced;

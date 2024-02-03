@@ -443,7 +443,7 @@ SYSCTL_PROC(_vfs_tmpfs, OID_AUTO, memory_percent,
     sysctl_mem_percent, "I",
     "Percent of available memory that can be used if no size limit");
 
-static __inline int tmpfs_dirtree_cmp(struct tmpfs_dirent *a,
+static inline int tmpfs_dirtree_cmp(struct tmpfs_dirent *a,
     struct tmpfs_dirent *b);
 RB_PROTOTYPE_STATIC(tmpfs_dir, tmpfs_dirent, uh.td_entries, tmpfs_dirtree_cmp);
 
@@ -842,7 +842,7 @@ tmpfs_free_node_locked(struct tmpfs_mount *tmp, struct tmpfs_node *node,
 	return (true);
 }
 
-static __inline uint32_t
+static inline uint32_t
 tmpfs_dirent_hash(const char *name, u_int len)
 {
 	uint32_t hash;
@@ -857,7 +857,7 @@ tmpfs_dirent_hash(const char *name, u_int len)
 	return (hash);
 }
 
-static __inline off_t
+static inline off_t
 tmpfs_dirent_cookie(struct tmpfs_dirent *de)
 {
 	if (de == NULL)
@@ -868,13 +868,13 @@ tmpfs_dirent_cookie(struct tmpfs_dirent *de)
 	return (de->td_cookie);
 }
 
-static __inline boolean_t
+static inline boolean_t
 tmpfs_dirent_dup(struct tmpfs_dirent *de)
 {
 	return ((de->td_cookie & TMPFS_DIRCOOKIE_DUP) != 0);
 }
 
-static __inline boolean_t
+static inline boolean_t
 tmpfs_dirent_duphead(struct tmpfs_dirent *de)
 {
 	return ((de->td_cookie & TMPFS_DIRCOOKIE_DUPHEAD) != 0);
@@ -2392,7 +2392,7 @@ tmpfs_truncate(struct vnode *vp, off_t length)
 	return (error);
 }
 
-static __inline int
+static inline int
 tmpfs_dirtree_cmp(struct tmpfs_dirent *a, struct tmpfs_dirent *b)
 {
 	if (a->td_hash > b->td_hash)

@@ -41,7 +41,7 @@
 
 #include <x86/x86_ieeefp.h>
 
-static __inline fp_rnd_t
+static inline fp_rnd_t
 fpgetround(void)
 {
 	unsigned short _cw;
@@ -50,7 +50,7 @@ fpgetround(void)
 	return ((fp_rnd_t)((_cw & FP_RND_FLD) >> FP_RND_OFF));
 }
 
-static __inline fp_rnd_t
+static inline fp_rnd_t
 fpsetround(fp_rnd_t _m)
 {
 	fp_rnd_t _p;
@@ -64,7 +64,7 @@ fpsetround(fp_rnd_t _m)
 	return (_p);
 }
 
-static __inline fp_prec_t
+static inline fp_prec_t
 fpgetprec(void)
 {
 	unsigned short _cw;
@@ -73,7 +73,7 @@ fpgetprec(void)
 	return ((fp_prec_t)((_cw & FP_PRC_FLD) >> FP_PRC_OFF));
 }
 
-static __inline fp_prec_t
+static inline fp_prec_t
 fpsetprec(fp_prec_t _m)
 {
 	fp_prec_t _p;
@@ -93,7 +93,7 @@ fpsetprec(fp_prec_t _m)
  * means disable for x87 and SSE, but for fp*mask() it means enable.
  */
 
-static __inline fp_except_t
+static inline fp_except_t
 fpgetmask(void)
 {
 	unsigned short _cw;
@@ -102,7 +102,7 @@ fpgetmask(void)
 	return ((~_cw & FP_MSKS_FLD) >> FP_MSKS_OFF);
 }
 
-static __inline fp_except_t
+static inline fp_except_t
 fpsetmask(fp_except_t _m)
 {
 	fp_except_t _p;
@@ -116,7 +116,7 @@ fpsetmask(fp_except_t _m)
 	return (_p);
 }
 
-static __inline fp_except_t
+static inline fp_except_t
 fpgetsticky(void)
 {
 	unsigned _ex;
@@ -127,7 +127,7 @@ fpgetsticky(void)
 	return ((fp_except_t)_ex);
 }
 
-static __inline fp_except_t
+static inline fp_except_t
 fpresetsticky(fp_except_t _m)
 {
 	struct {

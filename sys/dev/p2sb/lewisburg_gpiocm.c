@@ -99,7 +99,7 @@ struct lbggpiocm_softc
 static struct lbggroup *lbggpiocm_get_group(struct lbggpiocm_softc *sc,
     device_t child);
 
-static __inline struct lbggroup *
+static inline struct lbggroup *
 lbggpiocm_get_group(struct lbggpiocm_softc *sc, device_t child)
 {
 	int i;
@@ -111,7 +111,7 @@ lbggpiocm_get_group(struct lbggpiocm_softc *sc, device_t child)
 }
 
 
-static __inline uint32_t
+static inline uint32_t
 lbggpiocm_getpad(struct lbggpiocm_softc *sc, uint32_t pin)
 {
 

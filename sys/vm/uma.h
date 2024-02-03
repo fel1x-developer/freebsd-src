@@ -358,16 +358,16 @@ void *uma_zalloc_domain(uma_zone_t zone, void *arg, int domain, int flags);
  * This is just a wrapper for uma_zalloc_arg for convenience.
  *
  */
-static __inline void *uma_zalloc(uma_zone_t zone, int flags);
-static __inline void *uma_zalloc_pcpu(uma_zone_t zone, int flags);
+static inline void *uma_zalloc(uma_zone_t zone, int flags);
+static inline void *uma_zalloc_pcpu(uma_zone_t zone, int flags);
 
-static __inline void *
+static inline void *
 uma_zalloc(uma_zone_t zone, int flags)
 {
 	return uma_zalloc_arg(zone, NULL, flags);
 }
 
-static __inline void *
+static inline void *
 uma_zalloc_pcpu(uma_zone_t zone, int flags)
 {
 	return uma_zalloc_pcpu_arg(zone, NULL, flags);
@@ -399,16 +399,16 @@ void uma_zfree_smr(uma_zone_t zone, void *item);
  * This is just a wrapper for uma_zfree_arg for convenience.
  *
  */
-static __inline void uma_zfree(uma_zone_t zone, void *item);
-static __inline void uma_zfree_pcpu(uma_zone_t zone, void *item);
+static inline void uma_zfree(uma_zone_t zone, void *item);
+static inline void uma_zfree_pcpu(uma_zone_t zone, void *item);
 
-static __inline void
+static inline void
 uma_zfree(uma_zone_t zone, void *item)
 {
 	uma_zfree_arg(zone, item, NULL);
 }
 
-static __inline void
+static inline void
 uma_zfree_pcpu(uma_zone_t zone, void *item)
 {
 	uma_zfree_pcpu_arg(zone, item, NULL);

@@ -174,21 +174,21 @@
 #define	PMAP_MEMDOM	1
 #endif
 
-static __inline bool
+static inline bool
 pmap_type_guest(pmap_t pmap)
 {
 
 	return ((pmap->pm_type == PT_EPT) || (pmap->pm_type == PT_RVI));
 }
 
-static __inline bool
+static inline bool
 pmap_emulate_ad_bits(pmap_t pmap)
 {
 
 	return ((pmap->pm_flags & PMAP_EMULATE_AD_BITS) != 0);
 }
 
-static __inline pt_entry_t
+static inline pt_entry_t
 pmap_valid_bit(pmap_t pmap)
 {
 	pt_entry_t mask;
@@ -211,7 +211,7 @@ pmap_valid_bit(pmap_t pmap)
 	return (mask);
 }
 
-static __inline pt_entry_t
+static inline pt_entry_t
 pmap_rw_bit(pmap_t pmap)
 {
 	pt_entry_t mask;
@@ -236,7 +236,7 @@ pmap_rw_bit(pmap_t pmap)
 
 static pt_entry_t pg_g;
 
-static __inline pt_entry_t
+static inline pt_entry_t
 pmap_global_bit(pmap_t pmap)
 {
 	pt_entry_t mask;
@@ -256,7 +256,7 @@ pmap_global_bit(pmap_t pmap)
 	return (mask);
 }
 
-static __inline pt_entry_t
+static inline pt_entry_t
 pmap_accessed_bit(pmap_t pmap)
 {
 	pt_entry_t mask;
@@ -279,7 +279,7 @@ pmap_accessed_bit(pmap_t pmap)
 	return (mask);
 }
 
-static __inline pt_entry_t
+static inline pt_entry_t
 pmap_modified_bit(pmap_t pmap)
 {
 	pt_entry_t mask;
@@ -302,14 +302,14 @@ pmap_modified_bit(pmap_t pmap)
 	return (mask);
 }
 
-static __inline pt_entry_t
+static inline pt_entry_t
 pmap_pku_mask_bit(pmap_t pmap)
 {
 
 	return (pmap->pm_type == PT_X86 ? X86_PG_PKU_MASK : 0);
 }
 
-static __inline bool
+static inline bool
 safe_to_clear_referenced(pmap_t pmap, pt_entry_t pte)
 {
 
@@ -489,14 +489,14 @@ static int pmap_initialized;
  * Updates to pv_invl_gen are protected by the pv list lock but reads are not.
  */
 #ifdef NUMA
-static __inline int
+static inline int
 pc_to_domain(struct pv_chunk *pc)
 {
 
 	return (vm_phys_domain(DMAP_TO_PHYS((vm_offset_t)pc)));
 }
 #else
-static __inline int
+static inline int
 pc_to_domain(struct pv_chunk *pc __unused)
 {
 
@@ -1355,31 +1355,31 @@ static void pmap_free_pt_page(pmap_t, vm_page_t, bool);
  * Return a non-clipped indexes for a given VA, which are page table
  * pages indexes at the corresponding level.
  */
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pde_pindex(vm_offset_t va)
 {
 	return (va >> PDRSHIFT);
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pdpe_pindex(vm_offset_t va)
 {
 	return (NUPDE + (va >> PDPSHIFT));
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pml4e_pindex(vm_offset_t va)
 {
 	return (NUPDE + NUPDPE + (va >> PML4SHIFT));
 }
 
-static __inline vm_pindex_t
+static inline vm_pindex_t
 pmap_pml5e_pindex(vm_offset_t va)
 {
 	return (NUPDE + NUPDPE + NUPML4E + (va >> PML5SHIFT));
 }
 
-static __inline pml4_entry_t *
+static inline pml4_entry_t *
 pmap_pml5e(pmap_t pmap, vm_offset_t va)
 {
 
@@ -1387,7 +1387,7 @@ pmap_pml5e(pmap_t pmap, vm_offset_t va)
 	return (&pmap->pm_pmltop[pmap_pml5e_index(va)]);
 }
 
-static __inline pml4_entry_t *
+static inline pml4_entry_t *
 pmap_pml5e_u(pmap_t pmap, vm_offset_t va)
 {
 
@@ -1395,7 +1395,7 @@ pmap_pml5e_u(pmap_t pmap, vm_offset_t va)
 	return (&pmap->pm_pmltopu[pmap_pml5e_index(va)]);
 }
 
-static __inline pml4_entry_t *
+static inline pml4_entry_t *
 pmap_pml5e_to_pml4e(pml5_entry_t *pml5e, vm_offset_t va)
 {
 	pml4_entry_t *pml4e;
@@ -1406,7 +1406,7 @@ pmap_pml5e_to_pml4e(pml5_entry_t *pml5e, vm_offset_t va)
 }
 
 /* Return a pointer to the PML4 slot that corresponds to a VA */
-static __inline pml4_entry_t *
+static inline pml4_entry_t *
 pmap_pml4e(pmap_t pmap, vm_offset_t va)
 {
 	pml5_entry_t *pml5e;
@@ -1425,7 +1425,7 @@ pmap_pml4e(pmap_t pmap, vm_offset_t va)
 	return (&pml4e[pmap_pml4e_index(va)]);
 }
 
-static __inline pml4_entry_t *
+static inline pml4_entry_t *
 pmap_pml4e_u(pmap_t pmap, vm_offset_t va)
 {
 	MPASS(!pmap_is_la57(pmap));
@@ -1433,7 +1433,7 @@ pmap_pml4e_u(pmap_t pmap, vm_offset_t va)
 }
 
 /* Return a pointer to the PDP slot that corresponds to a VA */
-static __inline pdp_entry_t *
+static inline pdp_entry_t *
 pmap_pml4e_to_pdpe(pml4_entry_t *pml4e, vm_offset_t va)
 {
 	pdp_entry_t *pdpe;
@@ -1443,7 +1443,7 @@ pmap_pml4e_to_pdpe(pml4_entry_t *pml4e, vm_offset_t va)
 }
 
 /* Return a pointer to the PDP slot that corresponds to a VA */
-static __inline pdp_entry_t *
+static inline pdp_entry_t *
 pmap_pdpe(pmap_t pmap, vm_offset_t va)
 {
 	pml4_entry_t *pml4e;
@@ -1457,7 +1457,7 @@ pmap_pdpe(pmap_t pmap, vm_offset_t va)
 }
 
 /* Return a pointer to the PD slot that corresponds to a VA */
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_pdpe_to_pde(pdp_entry_t *pdpe, vm_offset_t va)
 {
 	pd_entry_t *pde;
@@ -1469,7 +1469,7 @@ pmap_pdpe_to_pde(pdp_entry_t *pdpe, vm_offset_t va)
 }
 
 /* Return a pointer to the PD slot that corresponds to a VA */
-static __inline pd_entry_t *
+static inline pd_entry_t *
 pmap_pde(pmap_t pmap, vm_offset_t va)
 {
 	pdp_entry_t *pdpe;
@@ -1485,7 +1485,7 @@ pmap_pde(pmap_t pmap, vm_offset_t va)
 }
 
 /* Return a pointer to the PT slot that corresponds to a VA */
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_pde_to_pte(pd_entry_t *pde, vm_offset_t va)
 {
 	pt_entry_t *pte;
@@ -1497,7 +1497,7 @@ pmap_pde_to_pte(pd_entry_t *pde, vm_offset_t va)
 }
 
 /* Return a pointer to the PT slot that corresponds to a VA */
-static __inline pt_entry_t *
+static inline pt_entry_t *
 pmap_pte(pmap_t pmap, vm_offset_t va)
 {
 	pd_entry_t *pde;
@@ -1512,7 +1512,7 @@ pmap_pte(pmap_t pmap, vm_offset_t va)
 	return (pmap_pde_to_pte(pde, va));
 }
 
-static __inline void
+static inline void
 pmap_resident_count_adj(pmap_t pmap, int count)
 {
 
@@ -1523,7 +1523,7 @@ pmap_resident_count_adj(pmap_t pmap, int count)
 	pmap->pm_stats.resident_count += count;
 }
 
-static __inline void
+static inline void
 pmap_pt_page_count_pinit(pmap_t pmap, int count)
 {
 	KASSERT(pmap->pm_stats.resident_count + count >= 0,
@@ -1532,7 +1532,7 @@ pmap_pt_page_count_pinit(pmap_t pmap, int count)
 	pmap->pm_stats.resident_count += count;
 }
 
-static __inline void
+static inline void
 pmap_pt_page_count_adj(pmap_t pmap, int count)
 {
 	if (pmap == kernel_pmap)
@@ -1560,7 +1560,7 @@ pd_entry_t vtopdem __read_mostly = ((1ul << (NPDEPGSHIFT + NPDPEPGSHIFT +
     NPML4EPGSHIFT)) - 1) << 3;
 vm_offset_t PDmap __read_mostly = (vm_offset_t)P4Dmap;
 
-static __inline pd_entry_t *
+static inline pd_entry_t *
 vtopde(vm_offset_t va)
 {
 	KASSERT(va >= VM_MAXUSER_ADDRESS, ("vtopde on a uva/gpa 0x%0lx", va));
@@ -3018,7 +3018,7 @@ pmap_update_pde_invalidate(pmap_t pmap, vm_offset_t va, pd_entry_t newpde)
  * This will force the vcpu to exit and the cached EPT mappings
  * will be invalidated by the host before the next vmresume.
  */
-static __inline void
+static inline void
 pmap_invalidate_ept(pmap_t pmap)
 {
 	smr_seq_t goal;
@@ -3978,7 +3978,7 @@ pmap_kenter(vm_offset_t va, vm_paddr_t pa)
 	    X86_PG_RW | X86_PG_V);
 }
 
-static __inline void
+static inline void
 pmap_kenter_attr(vm_offset_t va, vm_paddr_t pa, int mode)
 {
 	pt_entry_t *pte;
@@ -4083,7 +4083,7 @@ pmap_qremove(vm_offset_t sva, int count)
  * add the page to the specified list of pages that will be released to the
  * physical memory manager after the TLB has been updated.
  */
-static __inline void
+static inline void
 pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
 {
 
@@ -4111,7 +4111,7 @@ pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
  * valid mappings with identical attributes including PG_A; "mpte"'s valid
  * field will be set to VM_PAGE_BITS_ALL.
  */
-static __inline int
+static inline int
 pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte, bool promoted,
     bool allpte_PG_A_set)
 {
@@ -4129,7 +4129,7 @@ pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte, bool promoted,
  * Otherwise, returns NULL if there is no page table page corresponding to the
  * specified virtual address.
  */
-static __inline vm_page_t
+static inline vm_page_t
 pmap_remove_pt_page(pmap_t pmap, vm_offset_t va)
 {
 
@@ -5753,7 +5753,7 @@ retry:
  * otherwise.  This operation can be performed on pv lists for either 4KB or
  * 2MB page mappings.
  */
-static __inline pv_entry_t
+static inline pv_entry_t
 pmap_pvh_remove(struct md_page *pvh, pmap_t pmap, vm_offset_t va)
 {
 	pv_entry_t pv;
@@ -9388,7 +9388,7 @@ restart:
  */
 
 /* Adjust the properties for a leaf page table entry. */
-static __inline void
+static inline void
 pmap_pte_props(pt_entry_t *pte, u_long bits, u_long mask)
 {
 	u_long opte, npte;

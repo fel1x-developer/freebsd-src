@@ -116,7 +116,7 @@ static abort_handler *abort_handlers[] = {
 	[ISS_DATA_DFSC_ECC_L3] =  external_abort,
 };
 
-static __inline void
+static inline void
 call_trapsignal(struct thread *td, int sig, int code, void *addr, int trapno)
 {
 	ksiginfo_t ksi;

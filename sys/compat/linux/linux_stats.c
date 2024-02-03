@@ -205,7 +205,7 @@ linux_newfstat(struct thread *td, struct linux_newfstat_args *args)
 
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 
-static __inline uint16_t
+static inline uint16_t
 linux_old_encode_dev(dev_t _dev)
 {
 

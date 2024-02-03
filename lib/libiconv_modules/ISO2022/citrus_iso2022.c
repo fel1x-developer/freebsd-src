@@ -137,55 +137,55 @@ typedef struct {
 
 #define _ISO2022INVALID (wchar_t)-1
 
-static __inline bool isc0(__uint8_t x)
+static inline bool isc0(__uint8_t x)
 {
 
 	return ((x & 0x1f) == x);
 }
 
-static __inline bool isc1(__uint8_t x)
+static inline bool isc1(__uint8_t x)
 {
 
 	return (0x80 <= x && x <= 0x9f);
 }
 
-static __inline bool iscntl(__uint8_t x)
+static inline bool iscntl(__uint8_t x)
 {
 
 	return (isc0(x) || isc1(x) || x == 0x7f);
 }
 
-static __inline bool is94(__uint8_t x)
+static inline bool is94(__uint8_t x)
 {
 
 	return (0x21 <= x && x <= 0x7e);
 }
 
-static __inline bool is96(__uint8_t x)
+static inline bool is96(__uint8_t x)
 {
 
 	return (0x20 <= x && x <= 0x7f);
 }
 
-static __inline bool isecma(__uint8_t x)
+static inline bool isecma(__uint8_t x)
 {
 
 	return (0x30 <= x && x <= 0x7f);
 }
 
-static __inline bool isinterm(__uint8_t x)
+static inline bool isinterm(__uint8_t x)
 {
 
 	return (0x20 <= x && x <= 0x2f);
 }
 
-static __inline bool isthree(__uint8_t x)
+static inline bool isthree(__uint8_t x)
 {
 
 	return (0x60 <= x && x <= 0x6f);
 }
 
-static __inline int
+static inline int
 getcs(const char * __restrict p, _ISO2022Charset * __restrict cs)
 {
 
@@ -220,7 +220,7 @@ getcs(const char * __restrict p, _ISO2022Charset * __restrict cs)
 #define _MATCH		1
 #define _PARSEFAIL	2
 
-static __inline int
+static inline int
 get_recommend(_ISO2022EncodingInfo * __restrict ei,
     const char * __restrict token)
 {
@@ -277,7 +277,7 @@ get_recommend(_ISO2022EncodingInfo * __restrict ei,
 	return (_MATCH);
 }
 
-static __inline int
+static inline int
 get_initg(_ISO2022EncodingInfo * __restrict ei,
     const char * __restrict token)
 {
@@ -299,7 +299,7 @@ get_initg(_ISO2022EncodingInfo * __restrict ei,
 	return (_MATCH);
 }
 
-static __inline int
+static inline int
 get_max(_ISO2022EncodingInfo * __restrict ei,
     const char * __restrict token)
 {
@@ -316,7 +316,7 @@ get_max(_ISO2022EncodingInfo * __restrict ei,
 }
 
 
-static __inline int
+static inline int
 get_flags(_ISO2022EncodingInfo * __restrict ei,
     const char * __restrict token)
 {
@@ -354,7 +354,7 @@ get_flags(_ISO2022EncodingInfo * __restrict ei,
 }
 
 
-static __inline int
+static inline int
 _citrus_ISO2022_parse_variable(_ISO2022EncodingInfo * __restrict ei,
     const void * __restrict var, size_t lenvar __unused)
 {
@@ -423,7 +423,7 @@ parsefail:
 	return (EFTYPE);
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_ISO2022_init_state(_ISO2022EncodingInfo * __restrict ei,
     _ISO2022State * __restrict s)
@@ -445,7 +445,7 @@ _citrus_ISO2022_init_state(_ISO2022EncodingInfo * __restrict ei,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_ISO2022_pack_state(_ISO2022EncodingInfo * __restrict ei __unused,
     void * __restrict pspriv, const _ISO2022State * __restrict s)
@@ -454,7 +454,7 @@ _citrus_ISO2022_pack_state(_ISO2022EncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)s, sizeof(*s));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_ISO2022_unpack_state(_ISO2022EncodingInfo * __restrict ei __unused,
     _ISO2022State * __restrict s, const void * __restrict pspriv)
@@ -1229,7 +1229,7 @@ _citrus_ISO2022_wcrtomb_priv(_ISO2022EncodingInfo * __restrict ei,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_ISO2022_stdenc_wctocs(_ISO2022EncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -1255,7 +1255,7 @@ _citrus_ISO2022_stdenc_wctocs(_ISO2022EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_ISO2022_stdenc_cstowc(_ISO2022EncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -1266,7 +1266,7 @@ _citrus_ISO2022_stdenc_cstowc(_ISO2022EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_ISO2022_stdenc_get_state_desc_generic(_ISO2022EncodingInfo * __restrict ei __unused,
     _ISO2022State * __restrict psenc, int * __restrict rstate)

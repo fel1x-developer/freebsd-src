@@ -797,7 +797,7 @@ ampdu_rx_stop(struct ieee80211_node *ni, struct ieee80211_rx_ampdu *rap)
  * M_AMPDU_MPDU flag so it doesn't come back to us (it also
  * permits ieee80211_input to optimize re-processing).
  */
-static __inline void
+static inline void
 ampdu_dispatch(struct ieee80211_node *ni, struct mbuf *m)
 {
 	m->m_flags |= M_AMPDU_MPDU;	/* bypass normal processing */
@@ -1830,7 +1830,7 @@ done:
 /*
  * Update 11n MIMO PS state according to received htcap.
  */
-static __inline int
+static inline int
 htcap_update_mimo_ps(struct ieee80211_node *ni)
 {
 	uint16_t oflags = ni->ni_flags;
@@ -1857,7 +1857,7 @@ htcap_update_mimo_ps(struct ieee80211_node *ni)
  * Update short GI state according to received htcap
  * and local settings.
  */
-static __inline void
+static inline void
 htcap_update_shortgi(struct ieee80211_node *ni)
 {
 	struct ieee80211vap *vap = ni->ni_vap;
@@ -1875,7 +1875,7 @@ htcap_update_shortgi(struct ieee80211_node *ni)
  * Update LDPC state according to received htcap
  * and local settings.
  */
-static __inline void
+static inline void
 htcap_update_ldpc(struct ieee80211_node *ni)
 {
 	struct ieee80211vap *vap = ni->ni_vap;

@@ -54,7 +54,7 @@
  * the machine code. The inline functions in lower case can be called
  * directly, bypassing the macro.
  */
-static __inline void *
+static inline void *
 nfsm_build(struct nfsrv_descript *nd, int siz)
 {
 	void *retp;
@@ -90,7 +90,7 @@ nfsm_build(struct nfsrv_descript *nd, int siz)
 
 #define	NFSM_BUILD(a, c, s)	((a) = (c)nfsm_build(nd, (s)))
 
-static __inline void *
+static inline void *
 nfsm_dissect(struct nfsrv_descript *nd, int siz)
 {
 	int tt1; 
@@ -106,7 +106,7 @@ nfsm_dissect(struct nfsrv_descript *nd, int siz)
 	return (retp);
 }
 
-static __inline void *
+static inline void *
 nfsm_dissect_nonblock(struct nfsrv_descript *nd, int siz)
 {
 	int tt1; 

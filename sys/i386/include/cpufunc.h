@@ -48,13 +48,13 @@ struct region_descriptor;
 #define writew(va, d)	(*(volatile uint16_t *) (va) = (d))
 #define writel(va, d)	(*(volatile uint32_t *) (va) = (d))
 
-static __inline void
+static inline void
 breakpoint(void)
 {
 	__asm __volatile("int $3");
 }
 
-static __inline __pure2 u_int
+static inline __pure2 u_int
 bsfl(u_int mask)
 {
 	u_int	result;
@@ -63,7 +63,7 @@ bsfl(u_int mask)
 	return (result);
 }
 
-static __inline __pure2 u_int
+static inline __pure2 u_int
 bsrl(u_int mask)
 {
 	u_int	result;
@@ -72,35 +72,35 @@ bsrl(u_int mask)
 	return (result);
 }
 
-static __inline void
+static inline void
 clflush(u_long addr)
 {
 
 	__asm __volatile("clflush %0" : : "m" (*(char *)addr));
 }
 
-static __inline void
+static inline void
 clflushopt(u_long addr)
 {
 
 	__asm __volatile(".byte 0x66;clflush %0" : : "m" (*(char *)addr));
 }
 
-static __inline void
+static inline void
 clts(void)
 {
 
 	__asm __volatile("clts");
 }
 
-static __inline void
+static inline void
 disable_intr(void)
 {
 	__asm __volatile("cli" : : : "memory");
 }
 
 #ifdef _KERNEL
-static __inline void
+static inline void
 do_cpuid(u_int ax, u_int *p)
 {
 	__asm __volatile("cpuid"
@@ -108,7 +108,7 @@ do_cpuid(u_int ax, u_int *p)
 	    :  "0" (ax));
 }
 
-static __inline void
+static inline void
 cpuid_count(u_int ax, u_int cx, u_int *p)
 {
 	__asm __volatile("cpuid"
@@ -116,7 +116,7 @@ cpuid_count(u_int ax, u_int cx, u_int *p)
 	    :  "0" (ax), "c" (cx));
 }
 #else
-static __inline void
+static inline void
 do_cpuid(u_int ax, u_int *p)
 {
 	__asm __volatile(
@@ -128,7 +128,7 @@ do_cpuid(u_int ax, u_int *p)
 	    :  "0" (ax));
 }
 
-static __inline void
+static inline void
 cpuid_count(u_int ax, u_int cx, u_int *p)
 {
 	__asm __volatile(
@@ -141,50 +141,50 @@ cpuid_count(u_int ax, u_int cx, u_int *p)
 }
 #endif
 
-static __inline void
+static inline void
 enable_intr(void)
 {
 	__asm __volatile("sti");
 }
 
-static __inline void
+static inline void
 cpu_monitor(const void *addr, u_long extensions, u_int hints)
 {
 	__asm __volatile("monitor"
 	    : : "a" (addr), "c" (extensions), "d" (hints));
 }
 
-static __inline void
+static inline void
 cpu_mwait(u_long extensions, u_int hints)
 {
 	__asm __volatile("mwait" : : "a" (hints), "c" (extensions));
 }
 
-static __inline void
+static inline void
 lfence(void)
 {
 	__asm __volatile("lfence" : : : "memory");
 }
 
-static __inline void
+static inline void
 mfence(void)
 {
 	__asm __volatile("mfence" : : : "memory");
 }
 
-static __inline void
+static inline void
 sfence(void)
 {
 	__asm __volatile("sfence" : : : "memory");
 }
 
-static __inline void
+static inline void
 halt(void)
 {
 	__asm __volatile("hlt");
 }
 
-static __inline u_char
+static inline u_char
 inb(u_int port)
 {
 	u_char	data;
@@ -193,7 +193,7 @@ inb(u_int port)
 	return (data);
 }
 
-static __inline u_int
+static inline u_int
 inl(u_int port)
 {
 	u_int	data;
@@ -202,7 +202,7 @@ inl(u_int port)
 	return (data);
 }
 
-static __inline void
+static inline void
 insb(u_int port, void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; insb"
@@ -211,7 +211,7 @@ insb(u_int port, void *addr, size_t count)
 			 : "memory");
 }
 
-static __inline void
+static inline void
 insw(u_int port, void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; insw"
@@ -220,7 +220,7 @@ insw(u_int port, void *addr, size_t count)
 			 : "memory");
 }
 
-static __inline void
+static inline void
 insl(u_int port, void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; insl"
@@ -229,13 +229,13 @@ insl(u_int port, void *addr, size_t count)
 			 : "memory");
 }
 
-static __inline void
+static inline void
 invd(void)
 {
 	__asm __volatile("invd");
 }
 
-static __inline u_short
+static inline u_short
 inw(u_int port)
 {
 	u_short	data;
@@ -244,19 +244,19 @@ inw(u_int port)
 	return (data);
 }
 
-static __inline void
+static inline void
 outb(u_int port, u_char data)
 {
 	__asm __volatile("outb %0, %w1" : : "a" (data), "Nd" (port));
 }
 
-static __inline void
+static inline void
 outl(u_int port, u_int data)
 {
 	__asm __volatile("outl %0, %w1" : : "a" (data), "Nd" (port));
 }
 
-static __inline void
+static inline void
 outsb(u_int port, const void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; outsb"
@@ -264,7 +264,7 @@ outsb(u_int port, const void *addr, size_t count)
 			 : "d" (port));
 }
 
-static __inline void
+static inline void
 outsw(u_int port, const void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; outsw"
@@ -272,7 +272,7 @@ outsw(u_int port, const void *addr, size_t count)
 			 : "d" (port));
 }
 
-static __inline void
+static inline void
 outsl(u_int port, const void *addr, size_t count)
 {
 	__asm __volatile("cld; rep; outsl"
@@ -280,19 +280,19 @@ outsl(u_int port, const void *addr, size_t count)
 			 : "d" (port));
 }
 
-static __inline void
+static inline void
 outw(u_int port, u_short data)
 {
 	__asm __volatile("outw %0, %w1" : : "a" (data), "Nd" (port));
 }
 
-static __inline void
+static inline void
 ia32_pause(void)
 {
 	__asm __volatile("pause");
 }
 
-static __inline u_int
+static inline u_int
 read_eflags(void)
 {
 	u_int	ef;
@@ -301,7 +301,7 @@ read_eflags(void)
 	return (ef);
 }
 
-static __inline uint64_t
+static inline uint64_t
 rdmsr(u_int msr)
 {
 	uint64_t rv;
@@ -310,7 +310,7 @@ rdmsr(u_int msr)
 	return (rv);
 }
 
-static __inline uint32_t
+static inline uint32_t
 rdmsr32(u_int msr)
 {
 	uint32_t low;
@@ -319,7 +319,7 @@ rdmsr32(u_int msr)
 	return (low);
 }
 
-static __inline uint64_t
+static inline uint64_t
 rdpmc(u_int pmc)
 {
 	uint64_t rv;
@@ -328,7 +328,7 @@ rdpmc(u_int pmc)
 	return (rv);
 }
 
-static __inline uint64_t
+static inline uint64_t
 rdtsc(void)
 {
 	uint64_t rv;
@@ -337,21 +337,21 @@ rdtsc(void)
 	return (rv);
 }
 
-static __inline uint64_t
+static inline uint64_t
 rdtsc_ordered_lfence(void)
 {
 	lfence();
 	return (rdtsc());
 }
 
-static __inline uint64_t
+static inline uint64_t
 rdtsc_ordered_mfence(void)
 {
 	mfence();
 	return (rdtsc());
 }
 
-static __inline uint64_t
+static inline uint64_t
 rdtscp(void)
 {
 	uint64_t rv;
@@ -360,7 +360,7 @@ rdtscp(void)
 	return (rv);
 }
 
-static __inline uint64_t
+static inline uint64_t
 rdtscp_aux(uint32_t *aux)
 {
 	uint64_t rv;
@@ -369,7 +369,7 @@ rdtscp_aux(uint32_t *aux)
 	return (rv);
 }
 
-static __inline uint32_t
+static inline uint32_t
 rdtsc32(void)
 {
 	uint32_t rv;
@@ -378,7 +378,7 @@ rdtsc32(void)
 	return (rv);
 }
 
-static __inline uint32_t
+static inline uint32_t
 rdtscp32(void)
 {
 	uint32_t rv;
@@ -387,32 +387,32 @@ rdtscp32(void)
 	return (rv);
 }
 
-static __inline void
+static inline void
 wbinvd(void)
 {
 	__asm __volatile("wbinvd");
 }
 
-static __inline void
+static inline void
 write_eflags(u_int ef)
 {
 	__asm __volatile("pushl %0; popfl" : : "r" (ef));
 }
 
-static __inline void
+static inline void
 wrmsr(u_int msr, uint64_t newval)
 {
 	__asm __volatile("wrmsr" : : "A" (newval), "c" (msr));
 }
 
-static __inline void
+static inline void
 load_cr0(u_int data)
 {
 
 	__asm __volatile("movl %0,%%cr0" : : "r" (data));
 }
 
-static __inline u_int
+static inline u_int
 rcr0(void)
 {
 	u_int	data;
@@ -421,7 +421,7 @@ rcr0(void)
 	return (data);
 }
 
-static __inline u_int
+static inline u_int
 rcr2(void)
 {
 	u_int	data;
@@ -430,14 +430,14 @@ rcr2(void)
 	return (data);
 }
 
-static __inline void
+static inline void
 load_cr3(u_int data)
 {
 
 	__asm __volatile("movl %0,%%cr3" : : "r" (data) : "memory");
 }
 
-static __inline u_int
+static inline u_int
 rcr3(void)
 {
 	u_int	data;
@@ -446,13 +446,13 @@ rcr3(void)
 	return (data);
 }
 
-static __inline void
+static inline void
 load_cr4(u_int data)
 {
 	__asm __volatile("movl %0,%%cr4" : : "r" (data));
 }
 
-static __inline u_int
+static inline u_int
 rcr4(void)
 {
 	u_int	data;
@@ -461,7 +461,7 @@ rcr4(void)
 	return (data);
 }
 
-static __inline uint64_t
+static inline uint64_t
 rxcr(u_int reg)
 {
 	u_int low, high;
@@ -470,7 +470,7 @@ rxcr(u_int reg)
 	return (low | ((uint64_t)high << 32));
 }
 
-static __inline void
+static inline void
 load_xcr(u_int reg, uint64_t val)
 {
 	u_int low, high;
@@ -483,7 +483,7 @@ load_xcr(u_int reg, uint64_t val)
 /*
  * Global TLB flush (except for thise for pages marked PG_G)
  */
-static __inline void
+static inline void
 invltlb(void)
 {
 
@@ -494,14 +494,14 @@ invltlb(void)
  * TLB flush for an individual page (even if it has PG_G).
  * Only works on 486+ CPUs (i386 does not have PG_G).
  */
-static __inline void
+static inline void
 invlpg(u_int addr)
 {
 
 	__asm __volatile("invlpg %0" : : "m" (*(char *)addr) : "memory");
 }
 
-static __inline u_short
+static inline u_short
 rfs(void)
 {
 	u_short sel;
@@ -509,7 +509,7 @@ rfs(void)
 	return (sel);
 }
 
-static __inline uint64_t
+static inline uint64_t
 rgdt(void)
 {
 	uint64_t gdtr;
@@ -517,7 +517,7 @@ rgdt(void)
 	return (gdtr);
 }
 
-static __inline u_short
+static inline u_short
 rgs(void)
 {
 	u_short sel;
@@ -525,7 +525,7 @@ rgs(void)
 	return (sel);
 }
 
-static __inline uint64_t
+static inline uint64_t
 ridt(void)
 {
 	uint64_t idtr;
@@ -533,7 +533,7 @@ ridt(void)
 	return (idtr);
 }
 
-static __inline u_short
+static inline u_short
 rldt(void)
 {
 	u_short ldtr;
@@ -541,7 +541,7 @@ rldt(void)
 	return (ldtr);
 }
 
-static __inline u_short
+static inline u_short
 rss(void)
 {
 	u_short sel;
@@ -549,7 +549,7 @@ rss(void)
 	return (sel);
 }
 
-static __inline u_short
+static inline u_short
 rtr(void)
 {
 	u_short tr;
@@ -557,37 +557,37 @@ rtr(void)
 	return (tr);
 }
 
-static __inline void
+static inline void
 load_fs(u_short sel)
 {
 	__asm __volatile("movw %0,%%fs" : : "rm" (sel));
 }
 
-static __inline void
+static inline void
 load_gs(u_short sel)
 {
 	__asm __volatile("movw %0,%%gs" : : "rm" (sel));
 }
 
-static __inline void
+static inline void
 lidt(struct region_descriptor *addr)
 {
 	__asm __volatile("lidt (%0)" : : "r" (addr));
 }
 
-static __inline void
+static inline void
 lldt(u_short sel)
 {
 	__asm __volatile("lldt %0" : : "r" (sel));
 }
 
-static __inline void
+static inline void
 ltr(u_short sel)
 {
 	__asm __volatile("ltr %0" : : "r" (sel));
 }
 
-static __inline u_int
+static inline u_int
 rdr0(void)
 {
 	u_int	data;
@@ -595,13 +595,13 @@ rdr0(void)
 	return (data);
 }
 
-static __inline void
+static inline void
 load_dr0(u_int dr0)
 {
 	__asm __volatile("movl %0,%%dr0" : : "r" (dr0));
 }
 
-static __inline u_int
+static inline u_int
 rdr1(void)
 {
 	u_int	data;
@@ -609,13 +609,13 @@ rdr1(void)
 	return (data);
 }
 
-static __inline void
+static inline void
 load_dr1(u_int dr1)
 {
 	__asm __volatile("movl %0,%%dr1" : : "r" (dr1));
 }
 
-static __inline u_int
+static inline u_int
 rdr2(void)
 {
 	u_int	data;
@@ -623,13 +623,13 @@ rdr2(void)
 	return (data);
 }
 
-static __inline void
+static inline void
 load_dr2(u_int dr2)
 {
 	__asm __volatile("movl %0,%%dr2" : : "r" (dr2));
 }
 
-static __inline u_int
+static inline u_int
 rdr3(void)
 {
 	u_int	data;
@@ -637,13 +637,13 @@ rdr3(void)
 	return (data);
 }
 
-static __inline void
+static inline void
 load_dr3(u_int dr3)
 {
 	__asm __volatile("movl %0,%%dr3" : : "r" (dr3));
 }
 
-static __inline u_int
+static inline u_int
 rdr6(void)
 {
 	u_int	data;
@@ -651,13 +651,13 @@ rdr6(void)
 	return (data);
 }
 
-static __inline void
+static inline void
 load_dr6(u_int dr6)
 {
 	__asm __volatile("movl %0,%%dr6" : : "r" (dr6));
 }
 
-static __inline u_int
+static inline u_int
 rdr7(void)
 {
 	u_int	data;
@@ -665,27 +665,27 @@ rdr7(void)
 	return (data);
 }
 
-static __inline void
+static inline void
 load_dr7(u_int dr7)
 {
 	__asm __volatile("movl %0,%%dr7" : : "r" (dr7));
 }
 
-static __inline u_char
+static inline u_char
 read_cyrix_reg(u_char reg)
 {
 	outb(0x22, reg);
 	return inb(0x23);
 }
 
-static __inline void
+static inline void
 write_cyrix_reg(u_char reg, u_char data)
 {
 	outb(0x22, reg);
 	outb(0x23, data);
 }
 
-static __inline register_t
+static inline register_t
 intr_disable(void)
 {
 	register_t eflags;
@@ -695,13 +695,13 @@ intr_disable(void)
 	return (eflags);
 }
 
-static __inline void
+static inline void
 intr_restore(register_t eflags)
 {
 	write_eflags(eflags);
 }
 
-static __inline uint32_t
+static inline uint32_t
 rdpkru(void)
 {
 	uint32_t res;
@@ -710,7 +710,7 @@ rdpkru(void)
 	return (res);
 }
 
-static __inline void
+static inline void
 wrpkru(uint32_t mask)
 {
 

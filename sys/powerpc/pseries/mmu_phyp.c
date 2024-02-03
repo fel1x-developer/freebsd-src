@@ -426,7 +426,7 @@ mphyp_pte_spillable_ident(uintptr_t ptegbase, struct lpte *to_evict)
 	return (k);
 }
 
-static __inline int64_t
+static inline int64_t
 mphyp_pte_insert_locked(struct pvo_entry *pvo, struct lpte *pte)
 {
 	struct lpte evicted;
@@ -467,7 +467,7 @@ mphyp_pte_insert_locked(struct pvo_entry *pvo, struct lpte *pte)
 }
 
 
-static __inline int64_t
+static inline int64_t
 mphyp_pte_evict_and_insert_locked(struct pvo_entry *pvo, struct lpte *pte)
 {
 	struct lpte evicted;

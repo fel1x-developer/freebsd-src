@@ -77,7 +77,7 @@ extern _Bool lse_supported;
 #endif
 
 #define	_ATOMIC_OP_PROTO(t, op, bar, flav)				\
-static __inline void							\
+static inline void							\
 atomic_##op##_##bar##t##flav(volatile uint##t##_t *p, uint##t##_t val)
 
 #define	_ATOMIC_OP_IMPL(t, w, s, op, llsc_asm_op, lse_asm_op, pre, bar, a, l) \
@@ -142,12 +142,12 @@ _ATOMIC_OP(set,      orr, set, )
 _ATOMIC_OP(subtract, add, add, val = -val)
 
 #define	_ATOMIC_CMPSET_PROTO(t, bar, flav)				\
-static __inline int							\
+static inline int							\
 atomic_cmpset_##bar##t##flav(volatile uint##t##_t *p,			\
     uint##t##_t cmpval, uint##t##_t newval)
 
 #define	_ATOMIC_FCMPSET_PROTO(t, bar, flav)				\
-static __inline int							\
+static inline int							\
 atomic_fcmpset_##bar##t##flav(volatile uint##t##_t *p,			\
     uint##t##_t *cmpval, uint##t##_t newval)
 
@@ -272,7 +272,7 @@ _ATOMIC_CMPSET(acq_, a, )
 _ATOMIC_CMPSET(rel_,  ,l)
 
 #define	_ATOMIC_FETCHADD_PROTO(t, flav)					\
-static __inline uint##t##_t						\
+static inline uint##t##_t						\
 atomic_fetchadd_##t##flav(volatile uint##t##_t *p, uint##t##_t val)
 
 #define	_ATOMIC_FETCHADD_IMPL(t, w)					\
@@ -322,11 +322,11 @@ _ATOMIC_FETCHADD_IMPL(32, w)
 _ATOMIC_FETCHADD_IMPL(64,  )
 
 #define	_ATOMIC_SWAP_PROTO(t, flav)					\
-static __inline uint##t##_t						\
+static inline uint##t##_t						\
 atomic_swap_##t##flav(volatile uint##t##_t *p, uint##t##_t val)
 
 #define	_ATOMIC_READANDCLEAR_PROTO(t, flav)				\
-static __inline uint##t##_t						\
+static inline uint##t##_t						\
 atomic_readandclear_##t##flav(volatile uint##t##_t *p)
 
 #define	_ATOMIC_SWAP_IMPL(t, w, zreg)					\
@@ -405,7 +405,7 @@ _ATOMIC_SWAP_IMPL(32, w, wzr)
 _ATOMIC_SWAP_IMPL(64,  , xzr)
 
 #define	_ATOMIC_TEST_OP_PROTO(t, op, bar, flav)				\
-static __inline int							\
+static inline int							\
 atomic_testand##op##_##bar##t##flav(volatile uint##t##_t *p, u_int val)
 
 #define	_ATOMIC_TEST_OP_IMPL(t, w, op, llsc_asm_op, lse_asm_op, bar, a)	\
@@ -463,7 +463,7 @@ _ATOMIC_TEST_OP(clear, bic, clr)
 _ATOMIC_TEST_OP(set,   orr, set)
 
 #define	_ATOMIC_LOAD_ACQ_IMPL(t, w, s)					\
-static __inline uint##t##_t						\
+static inline uint##t##_t						\
 atomic_load_acq_##t(volatile uint##t##_t *p)				\
 {									\
 	uint##t##_t ret;						\
@@ -485,7 +485,7 @@ _ATOMIC_LOAD_ACQ_IMPL(32, w,  )
 _ATOMIC_LOAD_ACQ_IMPL(64,  ,  )
 
 #define	_ATOMIC_STORE_REL_IMPL(t, w, s)					\
-static __inline void							\
+static inline void							\
 atomic_store_rel_##t(volatile uint##t##_t *p, uint##t##_t val)		\
 {									\
 	__asm __volatile(						\
@@ -642,28 +642,28 @@ _ATOMIC_STORE_REL_IMPL(64,  ,  )
 #define	atomic_subtract_rel_ptr		atomic_subtract_rel_64
 #define	atomic_store_rel_ptr		atomic_store_rel_64
 
-static __inline void
+static inline void
 atomic_thread_fence_acq(void)
 {
 
 	dmb(ld);
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_rel(void)
 {
 
 	dmb(sy);
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_acq_rel(void)
 {
 
 	dmb(sy);
 }
 
-static __inline void
+static inline void
 atomic_thread_fence_seq_cst(void)
 {
 

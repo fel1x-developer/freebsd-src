@@ -181,7 +181,7 @@ SYSCTL_INT(_machdep, OID_AUTO, uprintf_signal, CTLFLAG_RW,
 
 
 #ifdef INVARIANTS
-static __inline register_t
+static inline register_t
 read_esp(void)
 {
 	register_t res;

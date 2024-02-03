@@ -82,7 +82,7 @@ void	fork_trampoline(void);
  * Return contents of in-cpu fast counter as a sort of "bogo-time"
  * for random-harvesting purposes.
  */
-static __inline u_int64_t
+static inline u_int64_t
 get_cyclecount(void)
 {
 

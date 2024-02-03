@@ -99,7 +99,7 @@ attrcopy(pthread_attr_t *src, pthread_attr_t *dst)
 	_pthread_attr_setguardsize(dst, u);
 }
 
-static __inline int
+static inline int
 have_threads(void)
 {
 	return (&_pthread_create != NULL);

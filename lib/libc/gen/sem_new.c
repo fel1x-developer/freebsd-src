@@ -333,14 +333,14 @@ _sem_getvalue(sem_t * __restrict sem, int * __restrict sval)
 	return (0);
 }
 
-static __inline int
+static inline int
 usem_wake(struct _usem2 *sem)
 {
 
 	return (_umtx_op(sem, UMTX_OP_SEM2_WAKE, 0, NULL, NULL));
 }
 
-static __inline int
+static inline int
 usem_wait(struct _usem2 *sem, clockid_t clock_id, int flags,
     const struct timespec *rqtp, struct timespec *rmtp)
 {

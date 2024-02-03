@@ -1353,7 +1353,7 @@ ar5212InitNfCalHistBuffer(struct ath_hal *ah)
 /*
  * Add a noise floor value to the ring buffer.
  */
-static __inline void
+static inline void
 updateNFHistBuff(struct ar5212NfCalHist *h, int16_t nf)
 {
  	h->nfCalBuffer[h->currIndex] = nf;

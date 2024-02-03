@@ -352,7 +352,7 @@ static void *pmap_pdpt_allocf(uma_zone_t zone, vm_size_t bytes, int domain,
 static void pmap_init_trm(void);
 static void pmap_invalidate_all_int(pmap_t pmap);
 
-static __inline void pagezero(void *page);
+static inline void pagezero(void *page);
 
 CTASSERT(1 << PDESHIFT == sizeof(pd_entry_t));
 CTASSERT(1 << PTESHIFT == sizeof(pt_entry_t));
@@ -1487,7 +1487,7 @@ pmap_invalidate_pde_page(pmap_t pmap, vm_offset_t va, pd_entry_t pde)
 /*
  * Are we current address space or kernel?
  */
-static __inline int
+static inline int
 pmap_is_current(pmap_t pmap)
 {
 
@@ -1527,7 +1527,7 @@ __CONCAT(PMTYPE, pte)(pmap_t pmap, vm_offset_t va)
  * Releases a pte that was obtained from pmap_pte().  Be prepared for the pte
  * being NULL.
  */
-static __inline void
+static inline void
 pmap_pte_release(pt_entry_t *pte)
 {
 
@@ -1542,7 +1542,7 @@ pmap_pte_release(pt_entry_t *pte)
  * "7.3.1 Special Coherency Considerations".  Therefore, issuing the INVLPG
  * right after modifying the PTE bits is crucial.
  */
-static __inline void
+static inline void
 invlcaddr(void *caddr)
 {
 
@@ -1759,7 +1759,7 @@ __CONCAT(PMTYPE, kenter)(vm_offset_t va, vm_paddr_t pa)
 	pte_store(pte, pa | PG_RW | PG_V);
 }
 
-static __inline void
+static inline void
 pmap_kenter_attr(vm_offset_t va, vm_paddr_t pa, int mode)
 {
 	pt_entry_t *pte;
@@ -1900,7 +1900,7 @@ __CONCAT(PMTYPE, qremove)(vm_offset_t sva, int count)
  * add the page to the specified list of pages that will be released to the
  * physical memory manager after the TLB has been updated.
  */
-static __inline void
+static inline void
 pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
 {
 
@@ -1928,7 +1928,7 @@ pmap_add_delayed_free_list(vm_page_t m, struct spglist *free, bool set_PG_ZERO)
  * valid mappings with identical attributes including PG_A; "mpte"'s valid
  * field will be set to VM_PAGE_BITS_ALL.
  */
-static __inline int
+static inline int
 pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte, bool promoted,
     bool allpte_PG_A_set)
 {
@@ -1946,7 +1946,7 @@ pmap_insert_pt_page(pmap_t pmap, vm_page_t mpte, bool promoted,
  * Otherwise, returns NULL if there is no page table page corresponding to the
  * specified virtual address.
  */
-static __inline vm_page_t
+static inline vm_page_t
 pmap_remove_pt_page(pmap_t pmap, vm_offset_t va)
 {
 
@@ -2572,7 +2572,7 @@ retry:
 	return (pv);
 }
 
-static __inline pv_entry_t
+static inline pv_entry_t
 pmap_pvh_remove(struct md_page *pvh, pmap_t pmap, vm_offset_t va)
 {
 	pv_entry_t pv;
@@ -4566,7 +4566,7 @@ out:
 /*
  * Zero 1 page of virtual memory mapped from a hardware page by the caller.
  */
-static __inline void
+static inline void
 pagezero(void *page)
 {
 #if defined(I686_CPU)
@@ -5477,7 +5477,7 @@ small_mappings:
  */
 
 /* Adjust the cache mode for a 4KB page mapped via a PTE. */
-static __inline void
+static inline void
 pmap_pte_attr(pt_entry_t *pte, int cache_bits)
 {
 	u_int opte, npte;
@@ -5494,7 +5494,7 @@ pmap_pte_attr(pt_entry_t *pte, int cache_bits)
 }
 
 /* Adjust the cache mode for a 2/4MB page mapped via a PDE. */
-static __inline void
+static inline void
 pmap_pde_attr(pd_entry_t *pde, int cache_bits)
 {
 	u_int opde, npde;

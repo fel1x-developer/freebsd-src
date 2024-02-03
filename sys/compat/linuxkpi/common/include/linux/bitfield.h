@@ -39,7 +39,7 @@ static inline uint64_t ___lsb(uint64_t f) { return (f & -f); }
 static inline uint64_t ___bitmask(uint64_t f) { return (f / ___lsb(f)); }
 
 #define	_uX_get_bits(_n)						\
-	static __inline uint ## _n ## _t				\
+	static inline uint ## _n ## _t				\
 	u ## _n ## _get_bits(uint ## _n ## _t v, uint ## _n ## _t f)	\
 	{								\
 		return ((v & f) / ___lsb(f));				\
@@ -51,7 +51,7 @@ _uX_get_bits(16)
 _uX_get_bits(8)
 
 #define	_leX_get_bits(_n)						\
-	static __inline uint ## _n ## _t				\
+	static inline uint ## _n ## _t				\
 	le ## _n ## _get_bits(__le ## _n v, uint ## _n ## _t f)		\
 	{								\
 		return ((le ## _n ## _to_cpu(v) & f) / ___lsb(f));	\
@@ -62,7 +62,7 @@ _leX_get_bits(32)
 _leX_get_bits(16)
 
 #define	_uX_encode_bits(_n)						\
-	static __inline uint ## _n ## _t				\
+	static inline uint ## _n ## _t				\
 	u ## _n ## _encode_bits(uint ## _n ## _t v, uint ## _n ## _t f)	\
 	{								\
 		return ((v & ___bitmask(f)) * ___lsb(f));		\
@@ -74,7 +74,7 @@ _uX_encode_bits(16)
 _uX_encode_bits(8)
 
 #define	_leX_encode_bits(_n)						\
-	static __inline uint ## _n ## _t				\
+	static inline uint ## _n ## _t				\
 	le ## _n ## _encode_bits(__le ## _n v, uint ## _n ## _t f)	\
 	{								\
 		return (cpu_to_le ## _n((v & ___bitmask(f)) * ___lsb(f))); \
@@ -85,7 +85,7 @@ _leX_encode_bits(32)
 _leX_encode_bits(16)
 
 #define	_leXp_replace_bits(_n)						\
-	static __inline void						\
+	static inline void						\
 	le ## _n ## p_replace_bits(uint ## _n ## _t *p,			\
 	    uint ## _n ## _t v, uint ## _n ## _t f)			\
 	{								\
@@ -98,7 +98,7 @@ _leXp_replace_bits(32)
 _leXp_replace_bits(16)
 
 #define	_uXp_replace_bits(_n)						\
-	static __inline void						\
+	static inline void						\
 	u ## _n ## p_replace_bits(uint ## _n ## _t *p,			\
 	    uint ## _n ## _t v, uint ## _n ## _t f)			\
 	{								\
@@ -111,7 +111,7 @@ _uXp_replace_bits(16)
 _uXp_replace_bits(8)
 
 #define	_uX_replace_bits(_n)						\
-	static __inline uint ## _n ## _t				\
+	static inline uint ## _n ## _t				\
 	u ## _n ## _replace_bits(uint ## _n ## _t p,			\
 	    uint ## _n ## _t v, uint ## _n ## _t f)			\
 	{								\

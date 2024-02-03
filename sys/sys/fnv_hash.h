@@ -17,7 +17,7 @@ typedef u_int64_t Fnv64_t;
 #define FNV_32_PRIME ((Fnv32_t) 0x01000193UL)
 #define FNV_64_PRIME ((Fnv64_t) 0x100000001b3ULL)
 
-static __inline Fnv32_t
+static inline Fnv32_t
 fnv_32_buf(const void *buf, size_t len, Fnv32_t hval)
 {
 	const u_int8_t *s = (const u_int8_t *)buf;
@@ -29,7 +29,7 @@ fnv_32_buf(const void *buf, size_t len, Fnv32_t hval)
 	return hval;
 }
 
-static __inline Fnv32_t
+static inline Fnv32_t
 fnv_32_str(const char *str, Fnv32_t hval)
 {
 	const u_int8_t *s = (const u_int8_t *)str;
@@ -42,7 +42,7 @@ fnv_32_str(const char *str, Fnv32_t hval)
 	return hval;
 }
 
-static __inline Fnv64_t
+static inline Fnv64_t
 fnv_64_buf(const void *buf, size_t len, Fnv64_t hval)
 {
 	const u_int8_t *s = (const u_int8_t *)buf;
@@ -54,7 +54,7 @@ fnv_64_buf(const void *buf, size_t len, Fnv64_t hval)
 	return hval;
 }
 
-static __inline Fnv64_t
+static inline Fnv64_t
 fnv_64_str(const char *str, Fnv64_t hval)
 {
 	const u_int8_t *s = (const u_int8_t *)str;

@@ -347,7 +347,7 @@ static struct ichwd_device ichwd_smb_devices[] = {
  * (by clearing the SMI_TCO_EN bit of the SMI_EN register) to prevent this
  * from happening.
  */
-static __inline void
+static inline void
 ichwd_smi_disable(struct ichwd_softc *sc)
 {
 	ichwd_write_smi_4(sc, SMI_EN, ichwd_read_smi_4(sc, SMI_EN) & ~SMI_TCO_EN);
@@ -356,7 +356,7 @@ ichwd_smi_disable(struct ichwd_softc *sc)
 /*
  * Enable the watchdog timeout SMI handler.  See above for details.
  */
-static __inline void
+static inline void
 ichwd_smi_enable(struct ichwd_softc *sc)
 {
 	ichwd_write_smi_4(sc, SMI_EN, ichwd_read_smi_4(sc, SMI_EN) | SMI_TCO_EN);
@@ -365,7 +365,7 @@ ichwd_smi_enable(struct ichwd_softc *sc)
 /*
  * Check if the watchdog SMI triggering is enabled.
  */
-static __inline int
+static inline int
 ichwd_smi_is_enabled(struct ichwd_softc *sc)
 {
 	return ((ichwd_read_smi_4(sc, SMI_EN) & SMI_TCO_EN) != 0);
@@ -374,7 +374,7 @@ ichwd_smi_is_enabled(struct ichwd_softc *sc)
 /*
  * Reset the watchdog status bits.
  */
-static __inline void
+static inline void
 ichwd_sts_reset(struct ichwd_softc *sc)
 {
 	/*
@@ -398,7 +398,7 @@ ichwd_sts_reset(struct ichwd_softc *sc)
  * of that same register, and the requirement that all other bits must be
  * written back as zero.
  */
-static __inline void
+static inline void
 ichwd_tmr_enable(struct ichwd_softc *sc)
 {
 	uint16_t cnt;
@@ -412,7 +412,7 @@ ichwd_tmr_enable(struct ichwd_softc *sc)
 /*
  * Disable the watchdog timer.  See above for details.
  */
-static __inline void
+static inline void
 ichwd_tmr_disable(struct ichwd_softc *sc)
 {
 	uint16_t cnt;
@@ -428,7 +428,7 @@ ichwd_tmr_disable(struct ichwd_softc *sc)
  * bits of the TCO_RLD register reloads the timer from the last value
  * written to TCO_TMR.
  */
-static __inline void
+static inline void
 ichwd_tmr_reload(struct ichwd_softc *sc)
 {
 	if (sc->tco_version == 1)
@@ -441,7 +441,7 @@ ichwd_tmr_reload(struct ichwd_softc *sc)
  * Set the initial timeout value.  Note that this must always be followed
  * by a reload.
  */
-static __inline void
+static inline void
 ichwd_tmr_set(struct ichwd_softc *sc, unsigned int timeout)
 {
 
@@ -471,7 +471,7 @@ ichwd_tmr_set(struct ichwd_softc *sc, unsigned int timeout)
 	ichwd_verbose_printf(sc->device, "timeout set to %u ticks\n", timeout);
 }
 
-static __inline int
+static inline int
 ichwd_clear_noreboot(struct ichwd_softc *sc)
 {
 	uint32_t status;

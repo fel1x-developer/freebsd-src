@@ -79,28 +79,28 @@ extern pt2_entry_t *PT2MAP;
  *  Virtual interface for L1 page table management.
  */
 
-static __inline u_int
+static inline u_int
 pte1_index(vm_offset_t va)
 {
 
 	return (va >> PTE1_SHIFT);
 }
 
-static __inline pt1_entry_t *
+static inline pt1_entry_t *
 pte1_ptr(pt1_entry_t *pt1, vm_offset_t va)
 {
 
 	return (pt1 + pte1_index(va));
 }
 
-static __inline vm_offset_t
+static inline vm_offset_t
 pte1_trunc(vm_offset_t va)
 {
 
 	return (va & PTE1_FRAME);
 }
 
-static __inline vm_offset_t
+static inline vm_offset_t
 pte1_roundup(vm_offset_t va)
 {
 
@@ -115,7 +115,7 @@ pte1_roundup(vm_offset_t va)
  *  One with the barrier and one without the barrier. In this case, pure
  *  barrier pte1_sync() should be implemented as well.
  */
-static __inline void
+static inline void
 pte1_sync(pt1_entry_t *pte1p)
 {
 
@@ -126,7 +126,7 @@ pte1_sync(pt1_entry_t *pte1p)
 #endif
 }
 
-static __inline void
+static inline void
 pte1_sync_range(pt1_entry_t *pte1p, vm_size_t size)
 {
 
@@ -137,7 +137,7 @@ pte1_sync_range(pt1_entry_t *pte1p, vm_size_t size)
 #endif
 }
 
-static __inline void
+static inline void
 pte1_store(pt1_entry_t *pte1p, pt1_entry_t pte1)
 {
 
@@ -146,14 +146,14 @@ pte1_store(pt1_entry_t *pte1p, pt1_entry_t pte1)
 	pte1_sync(pte1p);
 }
 
-static __inline void
+static inline void
 pte1_clear(pt1_entry_t *pte1p)
 {
 
 	pte1_store(pte1p, 0);
 }
 
-static __inline void
+static inline void
 pte1_clear_bit(pt1_entry_t *pte1p, uint32_t bit)
 {
 
@@ -161,35 +161,35 @@ pte1_clear_bit(pt1_entry_t *pte1p, uint32_t bit)
 	pte1_sync(pte1p);
 }
 
-static __inline bool
+static inline bool
 pte1_is_link(pt1_entry_t pte1)
 {
 
 	return ((pte1 & L1_TYPE_MASK) == L1_TYPE_C);
 }
 
-static __inline int
+static inline int
 pte1_is_section(pt1_entry_t pte1)
 {
 
 	return ((pte1 & L1_TYPE_MASK) == L1_TYPE_S);
 }
 
-static __inline bool
+static inline bool
 pte1_is_dirty(pt1_entry_t pte1)
 {
 
 	return ((pte1 & (PTE1_NM | PTE1_RO)) == 0);
 }
 
-static __inline bool
+static inline bool
 pte1_is_global(pt1_entry_t pte1)
 {
 
 	return ((pte1 & PTE1_NG) == 0);
 }
 
-static __inline bool
+static inline bool
 pte1_is_valid(pt1_entry_t pte1)
 {
 	int l1_type;
@@ -198,14 +198,14 @@ pte1_is_valid(pt1_entry_t pte1)
 	return ((l1_type == L1_TYPE_C) || (l1_type == L1_TYPE_S));
 }
 
-static __inline bool
+static inline bool
 pte1_is_wired(pt1_entry_t pte1)
 {
 
 	return (pte1 & PTE1_W);
 }
 
-static __inline pt1_entry_t
+static inline pt1_entry_t
 pte1_load(pt1_entry_t *pte1p)
 {
 	pt1_entry_t pte1;
@@ -214,7 +214,7 @@ pte1_load(pt1_entry_t *pte1p)
 	return (pte1);
 }
 
-static __inline pt1_entry_t
+static inline pt1_entry_t
 pte1_load_clear(pt1_entry_t *pte1p)
 {
 	pt1_entry_t opte1;
@@ -225,7 +225,7 @@ pte1_load_clear(pt1_entry_t *pte1p)
 	return (opte1);
 }
 
-static __inline void
+static inline void
 pte1_set_bit(pt1_entry_t *pte1p, uint32_t bit)
 {
 
@@ -233,14 +233,14 @@ pte1_set_bit(pt1_entry_t *pte1p, uint32_t bit)
 	pte1_sync(pte1p);
 }
 
-static __inline vm_paddr_t
+static inline vm_paddr_t
 pte1_pa(pt1_entry_t pte1)
 {
 
 	return ((vm_paddr_t)(pte1 & PTE1_FRAME));
 }
 
-static __inline vm_paddr_t
+static inline vm_paddr_t
 pte1_link_pa(pt1_entry_t pte1)
 {
 
@@ -255,7 +255,7 @@ pte1_link_pa(pt1_entry_t pte1)
  *  One with the barrier and one without the barrier.
  */
 
-static __inline void
+static inline void
 pte2_sync(pt2_entry_t *pte2p)
 {
 
@@ -266,7 +266,7 @@ pte2_sync(pt2_entry_t *pte2p)
 #endif
 }
 
-static __inline void
+static inline void
 pte2_sync_range(pt2_entry_t *pte2p, vm_size_t size)
 {
 
@@ -277,7 +277,7 @@ pte2_sync_range(pt2_entry_t *pte2p, vm_size_t size)
 #endif
 }
 
-static __inline void
+static inline void
 pte2_store(pt2_entry_t *pte2p, pt2_entry_t pte2)
 {
 
@@ -286,14 +286,14 @@ pte2_store(pt2_entry_t *pte2p, pt2_entry_t pte2)
 	pte2_sync(pte2p);
 }
 
-static __inline void
+static inline void
 pte2_clear(pt2_entry_t *pte2p)
 {
 
 	pte2_store(pte2p, 0);
 }
 
-static __inline void
+static inline void
 pte2_clear_bit(pt2_entry_t *pte2p, uint32_t bit)
 {
 
@@ -301,35 +301,35 @@ pte2_clear_bit(pt2_entry_t *pte2p, uint32_t bit)
 	pte2_sync(pte2p);
 }
 
-static __inline bool
+static inline bool
 pte2_is_dirty(pt2_entry_t pte2)
 {
 
 	return ((pte2 & (PTE2_NM | PTE2_RO)) == 0);
 }
 
-static __inline bool
+static inline bool
 pte2_is_global(pt2_entry_t pte2)
 {
 
 	return ((pte2 & PTE2_NG) == 0);
 }
 
-static __inline bool
+static inline bool
 pte2_is_valid(pt2_entry_t pte2)
 {
 
 	return (pte2 & PTE2_V);
 }
 
-static __inline bool
+static inline bool
 pte2_is_wired(pt2_entry_t pte2)
 {
 
 	return (pte2 & PTE2_W);
 }
 
-static __inline pt2_entry_t
+static inline pt2_entry_t
 pte2_load(pt2_entry_t *pte2p)
 {
 	pt2_entry_t pte2;
@@ -338,7 +338,7 @@ pte2_load(pt2_entry_t *pte2p)
 	return (pte2);
 }
 
-static __inline pt2_entry_t
+static inline pt2_entry_t
 pte2_load_clear(pt2_entry_t *pte2p)
 {
 	pt2_entry_t opte2;
@@ -349,7 +349,7 @@ pte2_load_clear(pt2_entry_t *pte2p)
 	return (opte2);
 }
 
-static __inline void
+static inline void
 pte2_set_bit(pt2_entry_t *pte2p, uint32_t bit)
 {
 
@@ -357,7 +357,7 @@ pte2_set_bit(pt2_entry_t *pte2p, uint32_t bit)
 	pte2_sync(pte2p);
 }
 
-static __inline void
+static inline void
 pte2_set_wired(pt2_entry_t *pte2p, bool wired)
 {
 
@@ -371,14 +371,14 @@ pte2_set_wired(pt2_entry_t *pte2p, bool wired)
 		*pte2p &= ~PTE2_W;
 }
 
-static __inline vm_paddr_t
+static inline vm_paddr_t
 pte2_pa(pt2_entry_t pte2)
 {
 
 	return ((vm_paddr_t)(pte2 & PTE2_FRAME));
 }
 
-static __inline u_int
+static inline u_int
 pte2_attr(pt2_entry_t pte2)
 {
 
@@ -389,49 +389,49 @@ pte2_attr(pt2_entry_t pte2)
  *  Virtual interface for L2 page tables mapping management.
  */
 
-static __inline u_int
+static inline u_int
 pt2tab_index(vm_offset_t va)
 {
 
 	return (va >> PT2TAB_SHIFT);
 }
 
-static __inline pt2_entry_t *
+static inline pt2_entry_t *
 pt2tab_entry(pt2_entry_t *pt2tab, vm_offset_t va)
 {
 
 	return (pt2tab + pt2tab_index(va));
 }
 
-static __inline void
+static inline void
 pt2tab_store(pt2_entry_t *pte2p, pt2_entry_t pte2)
 {
 
 	pte2_store(pte2p,pte2);
 }
 
-static __inline pt2_entry_t
+static inline pt2_entry_t
 pt2tab_load(pt2_entry_t *pte2p)
 {
 
 	return (pte2_load(pte2p));
 }
 
-static __inline pt2_entry_t
+static inline pt2_entry_t
 pt2tab_load_clear(pt2_entry_t *pte2p)
 {
 
 	return (pte2_load_clear(pte2p));
 }
 
-static __inline u_int
+static inline u_int
 pt2map_index(vm_offset_t va)
 {
 
 	return (va >> PT2MAP_SHIFT);
 }
 
-static __inline pt2_entry_t *
+static inline pt2_entry_t *
 pt2map_entry(vm_offset_t va)
 {
 
@@ -442,35 +442,35 @@ pt2map_entry(vm_offset_t va)
  *  Virtual interface for pmap structure & kernel shortcuts.
  */
 
-static __inline pt1_entry_t *
+static inline pt1_entry_t *
 pmap_pte1(pmap_t pmap, vm_offset_t va)
 {
 
 	return (pte1_ptr(pmap->pm_pt1, va));
 }
 
-static __inline pt1_entry_t *
+static inline pt1_entry_t *
 kern_pte1(vm_offset_t va)
 {
 
 	return (pte1_ptr(kern_pt1, va));
 }
 
-static __inline pt2_entry_t *
+static inline pt2_entry_t *
 pmap_pt2tab_entry(pmap_t pmap, vm_offset_t va)
 {
 
 	return (pt2tab_entry(pmap->pm_pt2tab, va));
 }
 
-static __inline pt2_entry_t *
+static inline pt2_entry_t *
 kern_pt2tab_entry(vm_offset_t va)
 {
 
 	return (pt2tab_entry(kern_pt2tab, va));
 }
 
-static __inline vm_page_t
+static inline vm_page_t
 pmap_pt2_page(pmap_t pmap, vm_offset_t va)
 {
 	pt2_entry_t pte2;
@@ -479,7 +479,7 @@ pmap_pt2_page(pmap_t pmap, vm_offset_t va)
 	return (PHYS_TO_VM_PAGE(pte2 & PTE2_FRAME));
 }
 
-static __inline vm_page_t
+static inline vm_page_t
 kern_pt2_page(vm_offset_t va)
 {
 	pt2_entry_t pte2;

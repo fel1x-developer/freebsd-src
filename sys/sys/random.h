@@ -116,7 +116,7 @@ void random_harvest_queue_(const void *, u_int, enum random_entropy_source);
 void random_harvest_fast_(const void *, u_int);
 void random_harvest_direct_(const void *, u_int, enum random_entropy_source);
 
-static __inline void
+static inline void
 random_harvest_queue(const void *entropy, u_int size, enum random_entropy_source origin)
 {
 
@@ -124,7 +124,7 @@ random_harvest_queue(const void *entropy, u_int size, enum random_entropy_source
 		random_harvest_queue_(entropy, size, origin);
 }
 
-static __inline void
+static inline void
 random_harvest_fast(const void *entropy, u_int size, enum random_entropy_source origin)
 {
 
@@ -132,7 +132,7 @@ random_harvest_fast(const void *entropy, u_int size, enum random_entropy_source 
 		random_harvest_fast_(entropy, size);
 }
 
-static __inline void
+static inline void
 random_harvest_direct(const void *entropy, u_int size, enum random_entropy_source origin)
 {
 

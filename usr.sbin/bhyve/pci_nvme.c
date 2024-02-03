@@ -427,7 +427,7 @@ static void nvme_feature_async_event(struct pci_nvme_softc *,
 
 static void *aen_thr(void *arg);
 
-static __inline void
+static inline void
 cpywithpad(char *dst, size_t dst_size, const char *src, char pad)
 {
 	size_t len;
@@ -437,7 +437,7 @@ cpywithpad(char *dst, size_t dst_size, const char *src, char pad)
 	memcpy(dst, src, len);
 }
 
-static __inline void
+static inline void
 pci_nvme_status_tc(uint16_t *status, uint16_t type, uint16_t code)
 {
 
@@ -445,7 +445,7 @@ pci_nvme_status_tc(uint16_t *status, uint16_t type, uint16_t code)
 	*status |= NVMEF(NVME_STATUS_SCT, type) | NVMEF(NVME_STATUS_SC, code);
 }
 
-static __inline void
+static inline void
 pci_nvme_status_genc(uint16_t *status, uint16_t code)
 {
 

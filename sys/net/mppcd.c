@@ -48,7 +48,7 @@ struct MPPC_decomp_state {
     uint16_t	histptr;
 };
 
-static uint32_t __inline
+static uint32_t inline
 getbits(const uint8_t *buf, const uint32_t n, uint32_t *i, uint32_t *l)
 {
     static const uint32_t m[] = {0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff};
@@ -71,7 +71,7 @@ getbits(const uint8_t *buf, const uint32_t n, uint32_t *i, uint32_t *l)
     return (res);
 }
 
-static uint32_t __inline
+static uint32_t inline
 getbyte(const uint8_t *buf, const uint32_t i, const uint32_t l)
 {
     if (l == 8) {
@@ -81,7 +81,7 @@ getbyte(const uint8_t *buf, const uint32_t i, const uint32_t l)
     }
 }
 
-static void __inline
+static void inline
 lamecopy(uint8_t *dst, uint8_t *src, uint32_t len)
 {
     while (len--)

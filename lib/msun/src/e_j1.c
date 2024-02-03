@@ -57,7 +57,7 @@
 #include "math.h"
 #include "math_private.h"
 
-static __inline double pone(double), qone(double);
+static inline double pone(double), qone(double);
 
 static const volatile double vone = 1, vzero = 0;
 
@@ -263,7 +263,7 @@ static const double ps2[5] = {
   8.36463893371618283368e+00, /* 0x4020BAB1, 0xF44E5192 */
 };
 
-static __inline double
+static inline double
 pone(double x)
 {
 	const double *p,*q;
@@ -360,7 +360,7 @@ static const double qs2[6] = {
  -4.95949898822628210127e+00, /* 0xC013D686, 0xE71BE86B */
 };
 
-static __inline double
+static inline double
 qone(double x)
 {
 	const double *p,*q;

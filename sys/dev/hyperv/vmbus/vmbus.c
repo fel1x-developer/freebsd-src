@@ -215,7 +215,7 @@ MODULE_DEPEND(vmbus, acpi, 1, 1, 1);
 MODULE_DEPEND(vmbus, pci, 1, 1, 1);
 MODULE_VERSION(vmbus, 1);
 
-static __inline struct vmbus_softc *
+static inline struct vmbus_softc *
 vmbus_get_softc(void)
 {
 	return vmbus_sc;
@@ -671,7 +671,7 @@ vmbus_msg_task(void *xsc, int pending __unused)
 		}
 	}
 }
-static __inline int
+static inline int
 vmbus_handle_intr1(struct vmbus_softc *sc, struct trapframe *frame, int cpu)
 {
 	volatile struct vmbus_message *msg;

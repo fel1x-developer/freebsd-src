@@ -42,7 +42,7 @@
  * FreeBSD's userland XDR doesn't implement control method (only the kernel),
  * but OpenSolaris nvpair still depend on it, so we have to implement it here.
  */
-static __inline bool_t
+static inline bool_t
 xdrmem_control(XDR *xdrs, int request, void *info)
 {
 	xdr_bytesrec *xptr;

@@ -495,7 +495,7 @@ union nic_mbx {
 #define	NIC_NODE_ID_MASK	0x03
 #define	NIC_NODE_ID_SHIFT	44
 
-static __inline int
+static inline int
 nic_get_node_id(struct resource *res)
 {
 	pci_addr_t addr;
@@ -504,7 +504,7 @@ nic_get_node_id(struct resource *res)
 	return ((addr >> NIC_NODE_ID_SHIFT) & NIC_NODE_ID_MASK);
 }
 
-static __inline boolean_t
+static inline boolean_t
 pass1_silicon(device_t dev)
 {
 

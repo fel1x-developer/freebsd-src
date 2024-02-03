@@ -326,7 +326,7 @@ int	drbr_needs_enqueue(struct ifnet *ifp, struct buf_ring *br);
 int	drbr_inuse(struct ifnet *ifp, struct buf_ring *br);
 
 #else /* !ALTQ */
-static __inline int
+static inline int
 drbr_enqueue(struct ifnet *ifp, struct buf_ring *br, struct mbuf *m)
 {	
 	int error = 0;
@@ -338,7 +338,7 @@ drbr_enqueue(struct ifnet *ifp, struct buf_ring *br, struct mbuf *m)
 	return (error);
 }
 
-static __inline void
+static inline void
 drbr_putback(struct ifnet *ifp, struct buf_ring *br, struct mbuf *m_new)
 {
 	/*
@@ -348,13 +348,13 @@ drbr_putback(struct ifnet *ifp, struct buf_ring *br, struct mbuf *m_new)
 	buf_ring_putback_sc(br, m_new);
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 drbr_peek(struct ifnet *ifp, struct buf_ring *br)
 {
 	return ((struct mbuf *)buf_ring_peek_clear_sc(br));
 }
 
-static __inline void
+static inline void
 drbr_flush(struct ifnet *ifp, struct buf_ring *br)
 {
 	struct mbuf *m;
@@ -363,19 +363,19 @@ drbr_flush(struct ifnet *ifp, struct buf_ring *br)
 		m_freem(m);
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 drbr_dequeue(struct ifnet *ifp, struct buf_ring *br)
 {
 	return ((struct mbuf *)buf_ring_dequeue_sc(br));
 }
 
-static __inline void
+static inline void
 drbr_advance(struct ifnet *ifp, struct buf_ring *br)
 {
 	return (buf_ring_advance_sc(br));
 }
 
-static __inline struct mbuf *
+static inline struct mbuf *
 drbr_dequeue_cond(struct ifnet *ifp, struct buf_ring *br,
     int (*func) (struct mbuf *, void *), void *arg) 
 {
@@ -387,26 +387,26 @@ drbr_dequeue_cond(struct ifnet *ifp, struct buf_ring *br,
 	return ((struct mbuf *)buf_ring_dequeue_sc(br));
 }
 
-static __inline int
+static inline int
 drbr_empty(struct ifnet *ifp, struct buf_ring *br)
 {
 	return (buf_ring_empty(br));
 }
 
-static __inline int
+static inline int
 drbr_needs_enqueue(struct ifnet *ifp, struct buf_ring *br)
 {
 	return (!buf_ring_empty(br));
 }
 
-static __inline int
+static inline int
 drbr_inuse(struct ifnet *ifp, struct buf_ring *br)
 {
 	return (buf_ring_count(br));
 }
 #endif /* ALTQ */
 
-static __inline void
+static inline void
 drbr_free(struct buf_ring *br, struct malloc_type *type)
 {
 

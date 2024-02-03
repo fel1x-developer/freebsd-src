@@ -130,7 +130,7 @@ vmbus_chan_msgprocs[VMBUS_CHANMSG_TYPE_MAX] = {
  * Notify host that there are data pending on our TX bufring or
  * we have put some data on the TX bufring.
  */
-static __inline void
+static inline void
 vmbus_chan_signal(const struct vmbus_channel *chan)
 {
 	atomic_set_long(chan->ch_evtflag, chan->ch_evtflag_mask);
@@ -141,7 +141,7 @@ vmbus_chan_signal(const struct vmbus_channel *chan)
 		    (vm_offset_t)chan->ch_monprm));
 }
 
-static __inline void
+static inline void
 vmbus_chan_signal_tx(struct vmbus_channel *chan)
 {
 	chan->ch_txbr.txbr_intrcnt ++;
@@ -149,7 +149,7 @@ vmbus_chan_signal_tx(struct vmbus_channel *chan)
 	vmbus_chan_signal(chan);
 }
 
-static __inline void
+static inline void
 vmbus_chan_signal_rx(struct vmbus_channel *chan)
 {
 	chan->ch_rxbr.rxbr_intrcnt ++;
@@ -1542,7 +1542,7 @@ vmbus_chan_polldis_task(void *xchan, int pending __unused)
 	taskqueue_enqueue(chan->ch_tq, &chan->ch_task);
 }
 
-static __inline void
+static inline void
 vmbus_event_flags_proc(struct vmbus_softc *sc, volatile u_long *event_flags,
     int flag_cnt)
 {

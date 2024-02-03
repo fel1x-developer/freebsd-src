@@ -197,7 +197,7 @@ pci_vtnet_reset(void *vsc)
 	pthread_mutex_unlock(&sc->rx_mtx);
 }
 
-static __inline struct iovec *
+static inline struct iovec *
 iov_trim_hdr(struct iovec *iov, int *iovcnt, unsigned int hlen)
 {
 	struct iovec *riov;

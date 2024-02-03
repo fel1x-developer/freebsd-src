@@ -1133,7 +1133,7 @@ struct drm_device {
 #define DRM_SWITCH_POWER_OFF 1
 #define DRM_SWITCH_POWER_CHANGING 2
 
-static __inline__ int drm_core_check_feature(struct drm_device *dev,
+static inline__ int drm_core_check_feature(struct drm_device *dev,
 					     int feature)
 {
 	return ((dev->driver->driver_features & feature) ? 1 : 0);
@@ -1538,7 +1538,7 @@ extern void drm_core_ioremap(struct drm_local_map *map, struct drm_device *dev);
 extern void drm_core_ioremap_wc(struct drm_local_map *map, struct drm_device *dev);
 extern void drm_core_ioremapfree(struct drm_local_map *map, struct drm_device *dev);
 
-static __inline__ struct drm_local_map *drm_core_findmap(struct drm_device *dev,
+static inline__ struct drm_local_map *drm_core_findmap(struct drm_device *dev,
 							 unsigned int token)
 {
 	struct drm_map_list *_entry;
@@ -1548,7 +1548,7 @@ static __inline__ struct drm_local_map *drm_core_findmap(struct drm_device *dev,
 	return NULL;
 }
 
-static __inline__ void drm_core_dropmap(struct drm_local_map *map)
+static inline__ void drm_core_dropmap(struct drm_local_map *map)
 {
 }
 

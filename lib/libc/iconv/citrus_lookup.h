@@ -49,7 +49,7 @@ int		 _citrus_lookup_get_number_of_entries(struct _citrus_lookup *);
 void		 _citrus_lookup_seq_close(struct _citrus_lookup *);
 __END_DECLS
 
-static __inline const char *
+static inline const char *
 _citrus_lookup_alias(const char *path, const char *key, char *buf, size_t n,
     int ignore_case)
 {

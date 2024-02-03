@@ -41,7 +41,7 @@ struct thread;
 #ifdef KDB
 void breakpoint(void);
 #else
-static __inline void
+static inline void
 breakpoint(void)
 {
 
@@ -51,7 +51,7 @@ breakpoint(void)
 
 /* CPU register mangling inlines */
 
-static __inline void
+static inline void
 mtmsr(register_t value)
 {
 
@@ -59,7 +59,7 @@ mtmsr(register_t value)
 }
 
 #ifdef __powerpc64__
-static __inline void
+static inline void
 mtmsrd(register_t value)
 {
 
@@ -67,7 +67,7 @@ mtmsrd(register_t value)
 }
 #endif
 
-static __inline register_t
+static inline register_t
 mfmsr(void)
 {
 	register_t value;
@@ -78,14 +78,14 @@ mfmsr(void)
 }
 
 #ifndef __powerpc64__
-static __inline void
+static inline void
 mtsrin(vm_offset_t va, register_t value)
 {
 
 	__asm __volatile ("mtsrin %0,%1; isync" :: "r"(value), "r"(va));
 }
 
-static __inline register_t
+static inline register_t
 mfsrin(vm_offset_t va)
 {
 	register_t value;
@@ -96,7 +96,7 @@ mfsrin(vm_offset_t va)
 }
 #endif
 
-static __inline register_t
+static inline register_t
 mfctrl(void)
 {
 	register_t value;
@@ -106,14 +106,14 @@ mfctrl(void)
 	return (value);
 }
 
-static __inline void
+static inline void
 mtdec(register_t value)
 {
 
 	__asm __volatile ("mtdec %0" :: "r"(value));
 }
 
-static __inline register_t
+static inline register_t
 mfdec(void)
 {
 	register_t value;
@@ -123,7 +123,7 @@ mfdec(void)
 	return (value);
 }
 
-static __inline uint32_t
+static inline uint32_t
 mfpvr(void)
 {
 	uint32_t value;
@@ -133,7 +133,7 @@ mfpvr(void)
 	return (value);
 }
 
-static __inline u_quad_t
+static inline u_quad_t
 mftb(void)
 {
 	u_quad_t tb;
@@ -152,7 +152,7 @@ mftb(void)
 	return (tb);
 }
 
-static __inline void
+static inline void
 mttb(u_quad_t time)
 {
 
@@ -161,7 +161,7 @@ mttb(u_quad_t time)
 	mtspr(TBR_TBWL, (uint32_t)(time & 0xffffffff));
 }
 
-static __inline register_t
+static inline register_t
 mffs(void)
 {
 	uint64_t value;
@@ -172,7 +172,7 @@ mffs(void)
 	return ((register_t)value);
 }
 
-static __inline void
+static inline void
 mtfsf(uint64_t value)
 {
 
@@ -180,28 +180,28 @@ mtfsf(uint64_t value)
 			:: "b"(&value));
 }
 
-static __inline void
+static inline void
 eieio(void)
 {
 
 	__asm __volatile ("eieio" : : : "memory");
 }
 
-static __inline void
+static inline void
 isync(void)
 {
 
 	__asm __volatile ("isync" : : : "memory");
 }
 
-static __inline void
+static inline void
 powerpc_sync(void)
 {
 
 	__asm __volatile ("sync" : : : "memory");
 }
 
-static __inline int
+static inline int
 cntlzd(uint64_t word)
 {
 	uint64_t result;
@@ -212,7 +212,7 @@ cntlzd(uint64_t word)
 	return (int)result;
 }
 
-static __inline int
+static inline int
 cnttzd(uint64_t word)
 {
 	uint64_t result;
@@ -223,13 +223,13 @@ cnttzd(uint64_t word)
 	return (int)result;
 }
 
-static __inline void
+static inline void
 ptesync(void)
 {
 	__asm __volatile("ptesync");
 }
 
-static __inline register_t
+static inline register_t
 intr_disable(void)
 {
 	register_t msr;
@@ -239,14 +239,14 @@ intr_disable(void)
 	return (msr);
 }
 
-static __inline void
+static inline void
 intr_restore(register_t msr)
 {
 
 	mtmsr(msr);
 }
 
-static __inline struct pcpu *
+static inline struct pcpu *
 get_pcpu(void)
 {
 	struct pcpu *ret;
@@ -257,37 +257,37 @@ get_pcpu(void)
 }
 
 /* "NOP" operations to signify priorities to the kernel. */
-static __inline void
+static inline void
 nop_prio_vlow(void)
 {
 	__asm __volatile("or 31,31,31");
 }
 
-static __inline void
+static inline void
 nop_prio_low(void)
 {
 	__asm __volatile("or 1,1,1");
 }
 
-static __inline void
+static inline void
 nop_prio_mlow(void)
 {
 	__asm __volatile("or 6,6,6");
 }
 
-static __inline void
+static inline void
 nop_prio_medium(void)
 {
 	__asm __volatile("or 2,2,2");
 }
 
-static __inline void
+static inline void
 nop_prio_mhigh(void)
 {
 	__asm __volatile("or 5,5,5");
 }
 
-static __inline void
+static inline void
 nop_prio_high(void)
 {
 	__asm __volatile("or 3,3,3");

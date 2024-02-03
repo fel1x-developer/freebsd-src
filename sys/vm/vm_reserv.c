@@ -442,7 +442,7 @@ vm_reserv_depopulate(vm_reserv_t rv, int index)
 /*
  * Returns the reservation to which the given page might belong.
  */
-static __inline vm_reserv_t
+static inline vm_reserv_t
 vm_reserv_from_page(vm_page_t m)
 {
 #ifdef VM_PHYSSEG_SPARSE
@@ -497,7 +497,7 @@ found:
  * Returns TRUE if the given reservation contains the given page index and
  * FALSE otherwise.
  */
-static __inline boolean_t
+static inline boolean_t
 vm_reserv_has_pindex(vm_reserv_t rv, vm_pindex_t pindex)
 {
 

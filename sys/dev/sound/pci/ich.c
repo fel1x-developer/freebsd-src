@@ -210,7 +210,7 @@ static struct pcmchan_caps ich_caps = {48000, 48000, ich_fmt, 0};
 
 /* -------------------------------------------------------------------- */
 /* Hardware */
-static __inline uint32_t
+static inline uint32_t
 ich_rd(struct sc_info *sc, int regno, int size)
 {
 	switch (size) {
@@ -225,7 +225,7 @@ ich_rd(struct sc_info *sc, int regno, int size)
 	}
 }
 
-static __inline void
+static inline void
 ich_wr(struct sc_info *sc, int regno, uint32_t data, int size)
 {
 	switch (size) {

@@ -94,7 +94,7 @@ struct pcf_softc {
 /*
  * Specific register access to PCF8584
  */
-static __inline void
+static inline void
 pcf_set_S0(struct pcf_softc *sc, int data)
 {
 
@@ -102,7 +102,7 @@ pcf_set_S0(struct pcf_softc *sc, int data)
 	pcf_nops();
 }
 
-static __inline void
+static inline void
 pcf_set_S1(struct pcf_softc *sc, int data)
 {
 
@@ -110,7 +110,7 @@ pcf_set_S1(struct pcf_softc *sc, int data)
 	pcf_nops();
 }
 
-static __inline char
+static inline char
 pcf_get_S0(struct pcf_softc *sc)
 {
 	char data;
@@ -121,7 +121,7 @@ pcf_get_S0(struct pcf_softc *sc)
 	return (data);
 }
 
-static __inline char
+static inline char
 pcf_get_S1(struct pcf_softc *sc)
 {
 	char data;

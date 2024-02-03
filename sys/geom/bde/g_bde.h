@@ -176,7 +176,7 @@ void g_bde_worker(void *arg);
  * explode if something fails which shouldn't.
  */
 
-static __inline void
+static inline void
 AES_init(cipherInstance *ci)
 {
 	int error __diagused;
@@ -185,7 +185,7 @@ AES_init(cipherInstance *ci)
 	KASSERT(error > 0, ("rijndael_cipherInit %d", error));
 }
 
-static __inline void
+static inline void
 AES_makekey(keyInstance *ki, int dir, u_int len, const void *key)
 {
 	int error __diagused;
@@ -194,7 +194,7 @@ AES_makekey(keyInstance *ki, int dir, u_int len, const void *key)
 	KASSERT(error > 0, ("rijndael_makeKey %d", error));
 }
 
-static __inline void
+static inline void
 AES_encrypt(cipherInstance *ci, keyInstance *ki, const void *in, void *out, u_int len)
 {
 	int error __diagused;
@@ -203,7 +203,7 @@ AES_encrypt(cipherInstance *ci, keyInstance *ki, const void *in, void *out, u_in
 	KASSERT(error > 0, ("rijndael_blockEncrypt %d", error));
 }
 
-static __inline void
+static inline void
 AES_decrypt(cipherInstance *ci, keyInstance *ki, const void *in, void *out, u_int len)
 {
 	int error __diagused;

@@ -100,13 +100,13 @@ static driver_t ti_mbox_driver = {
 DRIVER_MODULE(ti_mbox, simplebus, ti_mbox_driver, 0, 0);
 MODULE_DEPEND(ti_mbox, ti_sysc, 1, 1, 1);
 
-static __inline uint32_t
+static inline uint32_t
 ti_mbox_reg_read(struct ti_mbox_softc *sc, uint16_t reg)
 {
 	return (bus_space_read_4(sc->sc_bt, sc->sc_bh, reg));
 }
 
-static __inline void
+static inline void
 ti_mbox_reg_write(struct ti_mbox_softc *sc, uint16_t reg, uint32_t val)
 {
 	bus_space_write_4(sc->sc_bt, sc->sc_bh, reg, val);

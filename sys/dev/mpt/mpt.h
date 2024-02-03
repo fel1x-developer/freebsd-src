@@ -742,9 +742,9 @@ struct mpt_softc {
 	TAILQ_ENTRY(mpt_softc)	links;
 };
 
-static __inline void mpt_assign_serno(struct mpt_softc *, request_t *);
+static inline void mpt_assign_serno(struct mpt_softc *, request_t *);
 
-static __inline void
+static inline void
 mpt_assign_serno(struct mpt_softc *mpt, request_t *req)
 {
 	if ((req->serno = mpt->sequence++) == 0) {
@@ -779,25 +779,25 @@ mpt_assign_serno(struct mpt_softc *mpt, request_t *req)
 	callout_drain(c)
 
 /******************************* Register Access ******************************/
-static __inline void mpt_write(struct mpt_softc *, size_t, uint32_t);
-static __inline void mpt_write_stream(struct mpt_softc *, size_t, uint32_t);
-static __inline uint32_t mpt_read(struct mpt_softc *, int);
-static __inline void mpt_pio_write(struct mpt_softc *, size_t, uint32_t);
-static __inline uint32_t mpt_pio_read(struct mpt_softc *, int);
+static inline void mpt_write(struct mpt_softc *, size_t, uint32_t);
+static inline void mpt_write_stream(struct mpt_softc *, size_t, uint32_t);
+static inline uint32_t mpt_read(struct mpt_softc *, int);
+static inline void mpt_pio_write(struct mpt_softc *, size_t, uint32_t);
+static inline uint32_t mpt_pio_read(struct mpt_softc *, int);
 
-static __inline void
+static inline void
 mpt_write(struct mpt_softc *mpt, size_t offset, uint32_t val)
 {
 	bus_space_write_4(mpt->pci_st, mpt->pci_sh, offset, val);
 }
 
-static __inline void
+static inline void
 mpt_write_stream(struct mpt_softc *mpt, size_t offset, uint32_t val)
 {
 	bus_space_write_stream_4(mpt->pci_st, mpt->pci_sh, offset, val);
 }
 
-static __inline uint32_t
+static inline uint32_t
 mpt_read(struct mpt_softc *mpt, int offset)
 {
 	return (bus_space_read_4(mpt->pci_st, mpt->pci_sh, offset));
@@ -808,14 +808,14 @@ mpt_read(struct mpt_softc *mpt, int offset)
  * is disabled), must be performed using "PCI pio" operations.  On non-PCI
  * buses, these operations likely map to normal register accesses.
  */
-static __inline void
+static inline void
 mpt_pio_write(struct mpt_softc *mpt, size_t offset, uint32_t val)
 {
 	KASSERT(mpt->pci_pio_reg != NULL, ("no PIO resource"));
 	bus_space_write_4(mpt->pci_pio_st, mpt->pci_pio_sh, offset, val);
 }
 
-static __inline uint32_t
+static inline uint32_t
 mpt_pio_read(struct mpt_softc *mpt, int offset)
 {
 	KASSERT(mpt->pci_pio_reg != NULL, ("no PIO resource"));
@@ -859,21 +859,21 @@ do {							\
 		mpt_dump_reply_frame(mpt, reply_frame);	\
 } while(0)
 
-static __inline uint32_t mpt_pop_reply_queue(struct mpt_softc *mpt);
-static __inline void mpt_free_reply(struct mpt_softc *mpt, uint32_t ptr);
+static inline uint32_t mpt_pop_reply_queue(struct mpt_softc *mpt);
+static inline void mpt_free_reply(struct mpt_softc *mpt, uint32_t ptr);
 
 /*
  * Give the reply buffer back to the IOC after we have
  * finished processing it.
  */
-static __inline void
+static inline void
 mpt_free_reply(struct mpt_softc *mpt, uint32_t ptr)
 {
      mpt_write(mpt, MPT_OFFSET_REPLY_Q, ptr);
 }
 
 /* Get a reply from the IOC */
-static __inline uint32_t
+static inline uint32_t
 mpt_pop_reply_queue(struct mpt_softc *mpt)
 {
      return mpt_read(mpt, MPT_OFFSET_REPLY_Q);
@@ -946,8 +946,8 @@ void mpt_prtc(struct mpt_softc *, const char *, ...)
 
 /**************************** Target Mode Related ***************************/
 #ifdef	INVARIANTS
-static __inline request_t * mpt_tag_2_req(struct mpt_softc *, uint32_t);
-static __inline request_t *
+static inline request_t * mpt_tag_2_req(struct mpt_softc *, uint32_t);
+static inline request_t *
 mpt_tag_2_req(struct mpt_softc *mpt, uint32_t tag)
 {
 	uint16_t rtg = (tag >> 18);
@@ -958,15 +958,15 @@ mpt_tag_2_req(struct mpt_softc *mpt, uint32_t tag)
 }
 #endif
 
-static __inline int
+static inline int
 mpt_req_on_free_list(struct mpt_softc *, request_t *);
-static __inline int
+static inline int
 mpt_req_on_pending_list(struct mpt_softc *, request_t *);
 
 /*
  * Is request on freelist?
  */
-static __inline int
+static inline int
 mpt_req_on_free_list(struct mpt_softc *mpt, request_t *req)
 {
 	request_t *lrq;
@@ -982,7 +982,7 @@ mpt_req_on_free_list(struct mpt_softc *mpt, request_t *req)
 /*
  * Is request on pending list?
  */
-static __inline int
+static inline int
 mpt_req_on_pending_list(struct mpt_softc *mpt, request_t *req)
 {
 	request_t *lrq;
@@ -996,15 +996,15 @@ mpt_req_on_pending_list(struct mpt_softc *mpt, request_t *req)
 }
 
 #ifdef	INVARIANTS
-static __inline void
+static inline void
 mpt_req_spcl(struct mpt_softc *, request_t *, const char *, int);
-static __inline void
+static inline void
 mpt_req_not_spcl(struct mpt_softc *, request_t *, const char *, int);
 
 /*
  * Make sure that req *is* part of one of the special lists
  */
-static __inline void
+static inline void
 mpt_req_spcl(struct mpt_softc *mpt, request_t *req, const char *s, int line)
 {
 	int i;
@@ -1026,7 +1026,7 @@ mpt_req_spcl(struct mpt_softc *mpt, request_t *req, const char *s, int line)
 /*
  * Make sure that req is *not* part of one of the special lists.
  */
-static __inline void
+static inline void
 mpt_req_not_spcl(struct mpt_softc *mpt, request_t *req, const char *s, int line)
 {
 	int i;
@@ -1107,7 +1107,7 @@ int		mpt_write_cfg_page(struct mpt_softc *, int /*Action*/,
 				   uint32_t /*PageAddress*/,
 				   CONFIG_PAGE_HEADER *, size_t /*len*/,
 				   int /*sleep_ok*/, int /*timeout_ms*/);
-static __inline int
+static inline int
 mpt_read_cur_cfg_page(struct mpt_softc *mpt, uint32_t PageAddress,
 		      CONFIG_PAGE_HEADER *hdr, size_t len,
 		      int sleep_ok, int timeout_ms)
@@ -1116,7 +1116,7 @@ mpt_read_cur_cfg_page(struct mpt_softc *mpt, uint32_t PageAddress,
 				  PageAddress, hdr, len, sleep_ok, timeout_ms));
 }
 
-static __inline int
+static inline int
 mpt_write_cur_cfg_page(struct mpt_softc *mpt, uint32_t PageAddress,
 		       CONFIG_PAGE_HEADER *hdr, size_t len, int sleep_ok,
 		       int timeout_ms)

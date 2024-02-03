@@ -495,13 +495,13 @@ struct scsi_read_capacity_eedp
 	uint8_t protect;
 };
 
-static __inline uint32_t
+static inline uint32_t
 mps_regread(struct mps_softc *sc, uint32_t offset)
 {
 	return (bus_space_read_4(sc->mps_btag, sc->mps_bhandle, offset));
 }
 
-static __inline void
+static inline void
 mps_regwrite(struct mps_softc *sc, uint32_t offset, uint32_t val)
 {
 	bus_space_write_4(sc->mps_btag, sc->mps_bhandle, offset, val);
@@ -510,7 +510,7 @@ mps_regwrite(struct mps_softc *sc, uint32_t offset, uint32_t val)
 /* free_queue must have Little Endian address 
  * TODO- cm_reply_data is unwanted. We can remove it.
  * */
-static __inline void
+static inline void
 mps_free_reply(struct mps_softc *sc, uint32_t busaddr)
 {
 	if (++sc->replyfreeindex >= sc->fqdepth)
@@ -519,7 +519,7 @@ mps_free_reply(struct mps_softc *sc, uint32_t busaddr)
 	mps_regwrite(sc, MPI2_REPLY_FREE_HOST_INDEX_OFFSET, sc->replyfreeindex);
 }
 
-static __inline struct mps_chain *
+static inline struct mps_chain *
 mps_alloc_chain(struct mps_softc *sc)
 {
 	struct mps_chain *chain;
@@ -534,14 +534,14 @@ mps_alloc_chain(struct mps_softc *sc)
 	return (chain);
 }
 
-static __inline void
+static inline void
 mps_free_chain(struct mps_softc *sc, struct mps_chain *chain)
 {
 	sc->chain_free++;
 	TAILQ_INSERT_TAIL(&sc->chain_list, chain, chain_link);
 }
 
-static __inline void
+static inline void
 mps_free_command(struct mps_softc *sc, struct mps_command *cm)
 {
 	struct mps_chain *chain, *chain_temp;
@@ -573,7 +573,7 @@ mps_free_command(struct mps_softc *sc, struct mps_command *cm)
 	TAILQ_INSERT_TAIL(&sc->req_list, cm, cm_link);
 }
 
-static __inline struct mps_command *
+static inline struct mps_command *
 mps_alloc_command(struct mps_softc *sc)
 {
 	struct mps_command *cm;
@@ -591,7 +591,7 @@ mps_alloc_command(struct mps_softc *sc)
 	return (cm);
 }
 
-static __inline void
+static inline void
 mps_free_high_priority_command(struct mps_softc *sc, struct mps_command *cm)
 {
 	struct mps_chain *chain, *chain_temp;
@@ -616,7 +616,7 @@ mps_free_high_priority_command(struct mps_softc *sc, struct mps_command *cm)
 	TAILQ_INSERT_TAIL(&sc->high_priority_req_list, cm, cm_link);
 }
 
-static __inline struct mps_command *
+static inline struct mps_command *
 mps_alloc_high_priority_command(struct mps_softc *sc)
 {
 	struct mps_command *cm;
@@ -636,13 +636,13 @@ mps_alloc_high_priority_command(struct mps_softc *sc)
 	return (cm);
 }
 
-static __inline void
+static inline void
 mps_lock(struct mps_softc *sc)
 {
 	mtx_lock(&sc->mps_mtx);
 }
 
-static __inline void
+static inline void
 mps_unlock(struct mps_softc *sc)
 {
 	mtx_unlock(&sc->mps_mtx);
@@ -697,21 +697,21 @@ do {							\
 #define  CAN_SLEEP                      1
 #define  NO_SLEEP                       0
 
-static __inline void
+static inline void
 mps_from_u64(uint64_t data, U64 *mps)
 {
 	(mps)->High = htole32((uint32_t)((data) >> 32));
 	(mps)->Low = htole32((uint32_t)((data) & 0xffffffff));
 }
 
-static __inline uint64_t
+static inline uint64_t
 mps_to_u64(U64 *data)
 {
 
 	return (((uint64_t)le32toh(data->High) << 32) | le32toh(data->Low));
 }
 
-static __inline void
+static inline void
 mps_mask_intr(struct mps_softc *sc)
 {
 	uint32_t mask;
@@ -721,7 +721,7 @@ mps_mask_intr(struct mps_softc *sc)
 	mps_regwrite(sc, MPI2_HOST_INTERRUPT_MASK_OFFSET, mask);
 }
 
-static __inline void
+static inline void
 mps_unmask_intr(struct mps_softc *sc)
 {
 	uint32_t mask;

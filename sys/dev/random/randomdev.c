@@ -291,7 +291,7 @@ bool
 	return (p_random_alg_context->ra_seeded());
 }
 
-static __inline void
+static inline void
 randomdev_accumulate(uint8_t *buf, u_int count)
 {
 	static u_int destination = 0;

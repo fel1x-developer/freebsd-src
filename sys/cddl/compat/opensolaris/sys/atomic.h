@@ -53,37 +53,37 @@ extern uint64_t atomic_cas_64(volatile uint64_t *target, uint64_t cmp,
 
 #define	membar_producer	atomic_thread_fence_rel
 
-static __inline uint32_t
+static inline uint32_t
 atomic_add_32_nv(volatile uint32_t *target, int32_t delta)
 {
 	return (atomic_fetchadd_32(target, delta) + delta);
 }
 
-static __inline u_int
+static inline u_int
 atomic_add_int_nv(volatile u_int *target, int delta)
 {
 	return (atomic_add_32_nv(target, delta));
 }
 
-static __inline void
+static inline void
 atomic_inc_32(volatile uint32_t *target)
 {
 	atomic_add_32(target, 1);
 }
 
-static __inline uint32_t
+static inline uint32_t
 atomic_inc_32_nv(volatile uint32_t *target)
 {
 	return (atomic_add_32_nv(target, 1));
 }
 
-static __inline void
+static inline void
 atomic_dec_32(volatile uint32_t *target)
 {
 	atomic_subtract_32(target, 1);
 }
 
-static __inline uint32_t
+static inline uint32_t
 atomic_dec_32_nv(volatile uint32_t *target)
 {
 	return (atomic_add_32_nv(target, -1));
@@ -108,7 +108,7 @@ atomic_cas_32(volatile uint32_t *target, uint32_t cmp, uint32_t newval)
 #if defined(__LP64__) || defined(__mips_n32) || \
     defined(ARM_HAVE_ATOMIC64) || defined(I386_HAVE_ATOMIC64) || \
     defined(HAS_EMULATED_ATOMIC64)
-static __inline void
+static inline void
 atomic_dec_64(volatile uint64_t *target)
 {
 	atomic_subtract_64(target, 1);
@@ -137,33 +137,33 @@ atomic_cas_64(volatile uint64_t *target, uint64_t cmp, uint64_t newval)
 }
 #endif
 
-static __inline void
+static inline void
 atomic_inc_64(volatile uint64_t *target)
 {
 	atomic_add_64(target, 1);
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_inc_64_nv(volatile uint64_t *target)
 {
 	return (atomic_add_64_nv(target, 1));
 }
 
-static __inline uint64_t
+static inline uint64_t
 atomic_dec_64_nv(volatile uint64_t *target)
 {
 	return (atomic_add_64_nv(target, -1));
 }
 
 #ifdef __LP64__
-static __inline void *
+static inline void *
 atomic_cas_ptr(volatile void *target, void *cmp,  void *newval)
 {
 	return ((void *)atomic_cas_64((volatile uint64_t *)target,
 	    (uint64_t)cmp, (uint64_t)newval));
 }
 #else
-static __inline void *
+static inline void *
 atomic_cas_ptr(volatile void *target, void *cmp,  void *newval)
 {
 	return ((void *)atomic_cas_32((volatile uint32_t *)target,

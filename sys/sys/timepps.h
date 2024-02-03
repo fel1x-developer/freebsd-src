@@ -173,7 +173,7 @@ void hardpps(struct timespec *tsp, long nsec);
 
 #else /* !_KERNEL */
 
-static __inline int
+static inline int
 time_pps_create(int filedes, pps_handle_t *handle)
 {
 	int error;
@@ -186,31 +186,31 @@ time_pps_create(int filedes, pps_handle_t *handle)
 	return (0);
 }
 
-static __inline int
+static inline int
 time_pps_destroy(pps_handle_t handle)
 {
 	return (ioctl(handle, PPS_IOC_DESTROY, 0));
 }
 
-static __inline int
+static inline int
 time_pps_setparams(pps_handle_t handle, const pps_params_t *ppsparams)
 {
 	return (ioctl(handle, PPS_IOC_SETPARAMS, ppsparams));
 }
 
-static __inline int
+static inline int
 time_pps_getparams(pps_handle_t handle, pps_params_t *ppsparams)
 {
 	return (ioctl(handle, PPS_IOC_GETPARAMS, ppsparams));
 }
 
-static __inline int 
+static inline int 
 time_pps_getcap(pps_handle_t handle, int *mode)
 {
 	return (ioctl(handle, PPS_IOC_GETCAP, mode));
 }
 
-static __inline int
+static inline int
 time_pps_fetch(pps_handle_t handle, const int tsformat,
 	pps_info_t *ppsinfobuf, const struct timespec *timeout)
 {
@@ -228,7 +228,7 @@ time_pps_fetch(pps_handle_t handle, const int tsformat,
 	return (error);
 }
 
-static __inline int
+static inline int
 time_pps_fetch_ffc(pps_handle_t handle, const int tsformat,
 	pps_info_ffc_t *ppsinfobuf, const struct timespec *timeout)
 {
@@ -247,7 +247,7 @@ time_pps_fetch_ffc(pps_handle_t handle, const int tsformat,
 	return (error);
 }
 
-static __inline int
+static inline int
 time_pps_kcbind(pps_handle_t handle, const int kernel_consumer,
 	const int edge, const int tsformat)
 {

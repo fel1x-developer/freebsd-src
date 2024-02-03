@@ -50,7 +50,7 @@
  * Population count algorithm using SWAR approach
  * - "SIMD Within A Register".
  */
-static __inline __uint16_t
+static inline __uint16_t
 __bitcount16(__uint16_t _x)
 {
 
@@ -61,7 +61,7 @@ __bitcount16(__uint16_t _x)
 	return (_x);
 }
 
-static __inline __uint32_t
+static inline __uint32_t
 __bitcount32(__uint32_t _x)
 {
 
@@ -74,7 +74,7 @@ __bitcount32(__uint32_t _x)
 }
 
 #ifdef __LP64__
-static __inline __uint64_t
+static inline __uint64_t
 __bitcount64(__uint64_t _x)
 {
 
@@ -89,7 +89,7 @@ __bitcount64(__uint64_t _x)
 
 #define	__bitcountl(x)	__bitcount64((unsigned long)(x))
 #else
-static __inline __uint64_t
+static inline __uint64_t
 __bitcount64(__uint64_t _x)
 {
 

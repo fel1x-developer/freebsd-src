@@ -70,7 +70,7 @@ typedef struct {
 #define _ENCODING_IS_STATE_DEPENDENT		0
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_DECHanyu_init_state(_DECHanyuEncodingInfo * __restrict ei __unused,
     _DECHanyuState * __restrict psenc)
@@ -80,7 +80,7 @@ _citrus_DECHanyu_init_state(_DECHanyuEncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_DECHanyu_pack_state(_DECHanyuEncodingInfo * __restrict ei __unused,
     void * __restrict pspriv, const _DECHanyuState * __restrict psenc)
@@ -89,7 +89,7 @@ _citrus_DECHanyu_pack_state(_DECHanyuEncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)psenc, sizeof(*psenc));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_DECHanyu_unpack_state(_DECHanyuEncodingInfo * __restrict ei __unused,
     _DECHanyuState * __restrict psenc,
@@ -118,21 +118,21 @@ _citrus_DECHanyu_encoding_module_init(_DECHanyuEncodingInfo * __restrict ei __un
 	return (0);
 }
 
-static __inline bool
+static inline bool
 is_singlebyte(int c)
 {
 
 	return (c <= 0x7F);
 }
 
-static __inline bool
+static inline bool
 is_leadbyte(int c)
 {
 
 	return (c >= 0xA1 && c <= 0xFE);
 }
 
-static __inline bool
+static inline bool
 is_trailbyte(int c)
 {
 
@@ -140,14 +140,14 @@ is_trailbyte(int c)
 	return (c >= 0x21 && c <= 0x7E);
 }
 
-static __inline bool
+static inline bool
 is_hanyu1(int c)
 {
 
 	return (c == 0xC2);
 }
 
-static __inline bool
+static inline bool
 is_hanyu2(int c)
 {
 
@@ -156,7 +156,7 @@ is_hanyu2(int c)
 
 #define HANYUBIT	0xC2CB0000
 
-static __inline bool
+static inline bool
 is_94charset(int c)
 {
 
@@ -318,7 +318,7 @@ ilseq:
 	return (EILSEQ);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_DECHanyu_stdenc_wctocs(_DECHanyuEncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -347,7 +347,7 @@ _citrus_DECHanyu_stdenc_wctocs(_DECHanyuEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_DECHanyu_stdenc_cstowc(_DECHanyuEncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -372,7 +372,7 @@ _citrus_DECHanyu_stdenc_cstowc(_DECHanyuEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_DECHanyu_stdenc_get_state_desc_generic(
     _DECHanyuEncodingInfo * __restrict ei __unused,

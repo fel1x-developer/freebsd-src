@@ -47,7 +47,7 @@ u_int do_cksum(const void *, int);
 u_int in_cksum_hdr(const struct ip *);
 #endif
 
-static __inline u_short
+static inline u_short
 in_pseudo(u_int sum, u_int b, u_int c)
 {
 	__asm __volatile("adds %0, %0, %1\n"

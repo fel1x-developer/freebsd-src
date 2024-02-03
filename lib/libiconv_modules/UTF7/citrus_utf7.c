@@ -78,7 +78,7 @@ typedef struct {
 #define	_ENCODING_IS_STATE_DEPENDENT		1
 #define	_STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UTF7_init_state(_UTF7EncodingInfo * __restrict ei __unused,
     _UTF7State * __restrict s)
@@ -88,7 +88,7 @@ _citrus_UTF7_init_state(_UTF7EncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UTF7_pack_state(_UTF7EncodingInfo * __restrict ei __unused,
     void *__restrict pspriv, const _UTF7State * __restrict s)
@@ -97,7 +97,7 @@ _citrus_UTF7_pack_state(_UTF7EncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)s, sizeof(*s));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UTF7_unpack_state(_UTF7EncodingInfo * __restrict ei __unused,
     _UTF7State * __restrict s, const void * __restrict pspriv)
@@ -417,7 +417,7 @@ _citrus_UTF7_put_state_reset(_UTF7EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_UTF7_stdenc_wctocs(_UTF7EncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -429,7 +429,7 @@ _citrus_UTF7_stdenc_wctocs(_UTF7EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_UTF7_stdenc_cstowc(_UTF7EncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -442,7 +442,7 @@ _citrus_UTF7_stdenc_cstowc(_UTF7EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_UTF7_stdenc_get_state_desc_generic(_UTF7EncodingInfo * __restrict ei __unused,
     _UTF7State * __restrict psenc, int * __restrict rstate)

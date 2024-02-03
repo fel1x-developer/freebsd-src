@@ -832,13 +832,13 @@ void	ieee80211_radiotap_tx(struct ieee80211vap *, struct mbuf *);
 void	ieee80211_radiotap_rx(struct ieee80211vap *, struct mbuf *);
 void	ieee80211_radiotap_rx_all(struct ieee80211com *, struct mbuf *);
 
-static __inline int
+static inline int
 ieee80211_radiotap_active(const struct ieee80211com *ic)
 {
 	return (ic->ic_flags_ext & IEEE80211_FEXT_BPF) != 0;
 }
 
-static __inline int
+static inline int
 ieee80211_radiotap_active_vap(const struct ieee80211vap *vap)
 {
 	return (vap->iv_flags_ext & IEEE80211_FEXT_BPF) ||
@@ -848,7 +848,7 @@ ieee80211_radiotap_active_vap(const struct ieee80211vap *vap)
 /*
  * Enqueue a task on the state thread.
  */
-static __inline void
+static inline void
 ieee80211_runtask(struct ieee80211com *ic, struct task *task)
 {
 	taskqueue_enqueue(ic->ic_tq, task);
@@ -857,7 +857,7 @@ ieee80211_runtask(struct ieee80211com *ic, struct task *task)
 /*
  * Wait for a queued task to complete.
  */
-static __inline void
+static inline void
 ieee80211_draintask(struct ieee80211com *ic, struct task *task)
 {
 	taskqueue_drain(ic->ic_tq, task);
@@ -866,12 +866,12 @@ ieee80211_draintask(struct ieee80211com *ic, struct task *task)
 /* 
  * Key update synchronization methods.  XXX should not be visible.
  */
-static __inline void
+static inline void
 ieee80211_key_update_begin(struct ieee80211vap *vap)
 {
 	vap->iv_key_update_begin(vap);
 }
-static __inline void
+static inline void
 ieee80211_key_update_end(struct ieee80211vap *vap)
 {
 	vap->iv_key_update_end(vap);
@@ -886,7 +886,7 @@ ieee80211_key_update_end(struct ieee80211vap *vap)
  * padding required by the driver.  This works for a
  * management or data frame.
  */
-static __inline int
+static inline int
 ieee80211_hdrspace(struct ieee80211com *ic, const void *data)
 {
 	int size = ieee80211_hdrsize(data);
@@ -898,7 +898,7 @@ ieee80211_hdrspace(struct ieee80211com *ic, const void *data)
 /*
  * Like ieee80211_hdrspace, but handles any type of frame.
  */
-static __inline int
+static inline int
 ieee80211_anyhdrspace(struct ieee80211com *ic, const void *data)
 {
 	int size = ieee80211_anyhdrsize(data);
@@ -910,7 +910,7 @@ ieee80211_anyhdrspace(struct ieee80211com *ic, const void *data)
 /*
  * Notify a vap that beacon state has been updated.
  */
-static __inline void
+static inline void
 ieee80211_beacon_notify(struct ieee80211vap *vap, int what)
 {
 	if (vap->iv_state == IEEE80211_S_RUN)
@@ -921,7 +921,7 @@ ieee80211_beacon_notify(struct ieee80211vap *vap, int what)
  * Calculate HT channel promotion flags for a channel.
  * XXX belongs in ieee80211_ht.h but needs IEEE80211_FHT_*
  */
-static __inline int
+static inline int
 ieee80211_htchanflags(const struct ieee80211_channel *c)
 {
 	return IEEE80211_IS_CHAN_HT40(c) ?
@@ -933,7 +933,7 @@ ieee80211_htchanflags(const struct ieee80211_channel *c)
  * Calculate VHT channel promotion flags for a channel.
  * XXX belongs in ieee80211_vht.h but needs IEEE80211_FVHT_*
  */
-static __inline int
+static inline int
 ieee80211_vhtchanflags(const struct ieee80211_channel *c)
 {
 
@@ -956,7 +956,7 @@ ieee80211_vhtchanflags(const struct ieee80211_channel *c)
  * This includes the node and ic/vap TX power limit as needed,
  * but it doesn't take into account any per-rate limit.
  */
-static __inline uint16_t
+static inline uint16_t
 ieee80211_get_node_txpower(struct ieee80211_node *ni)
 {
 	struct ieee80211com *ic = ni->ni_ic;

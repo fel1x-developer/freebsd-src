@@ -474,7 +474,7 @@ lpioctl(if_t ifp, u_long cmd, caddr_t data)
 	return (0);
 }
 
-static __inline int
+static inline int
 clpoutbyte(u_char byte, int spin, device_t ppbus)
 {
 
@@ -491,7 +491,7 @@ clpoutbyte(u_char byte, int spin, device_t ppbus)
 	return (0);
 }
 
-static __inline int
+static inline int
 clpinbyte(int spin, device_t ppbus)
 {
 	u_char c, cl;
@@ -658,7 +658,7 @@ err:
 	}
 }
 
-static __inline int
+static inline int
 lpoutbyte(u_char byte, int spin, device_t ppbus)
 {
 

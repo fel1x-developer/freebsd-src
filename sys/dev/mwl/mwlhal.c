@@ -193,31 +193,31 @@ SYSCTL_DECL(_hw_mwl);
 static SYSCTL_NODE(_hw_mwl, OID_AUTO, hal, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Marvell HAL parameters");
 
-static __inline void
+static inline void
 MWL_HAL_LOCK(struct mwl_hal_priv *mh)
 {
 	mtx_lock(&mh->mh_mtx);
 }
 
-static __inline void
+static inline void
 MWL_HAL_LOCK_ASSERT(struct mwl_hal_priv *mh)
 {
 	mtx_assert(&mh->mh_mtx, MA_OWNED);
 }
 
-static __inline void
+static inline void
 MWL_HAL_UNLOCK(struct mwl_hal_priv *mh)
 {
 	mtx_unlock(&mh->mh_mtx);
 }
 
-static __inline uint32_t
+static inline uint32_t
 RD4(struct mwl_hal_priv *mh, bus_size_t off)
 {
 	return bus_space_read_4(mh->public.mh_iot, mh->public.mh_ioh, off);
 }
 
-static __inline void
+static inline void
 WR4(struct mwl_hal_priv *mh, bus_size_t off, uint32_t val)
 {
 	bus_space_write_4(mh->public.mh_iot, mh->public.mh_ioh, off, val);

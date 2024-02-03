@@ -3192,7 +3192,7 @@ qlnx_tcp_offset(qlnx_host_t *ha, struct mbuf *mp)
         return (offset);
 }
 
-static __inline int
+static inline int
 qlnx_tso_check(struct qlnx_fastpath *fp, bus_dma_segment_t *segs, int nsegs,
 	uint32_t offset)
 {

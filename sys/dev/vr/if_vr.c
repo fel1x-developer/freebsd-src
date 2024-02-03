@@ -155,11 +155,11 @@ static int vr_resume(device_t);
 static void vr_dmamap_cb(void *, bus_dma_segment_t *, int, int);
 static int vr_dma_alloc(struct vr_softc *);
 static void vr_dma_free(struct vr_softc *);
-static __inline void vr_discard_rxbuf(struct vr_rxdesc *);
+static inline void vr_discard_rxbuf(struct vr_rxdesc *);
 static int vr_newbuf(struct vr_softc *, int);
 
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void vr_fixup_rx(struct mbuf *);
+static inline void vr_fixup_rx(struct mbuf *);
 #endif
 static int vr_rxeof(struct vr_softc *);
 static void vr_txeof(struct vr_softc *);
@@ -1206,7 +1206,7 @@ vr_rx_ring_init(struct vr_softc *sc)
 	return (0);
 }
 
-static __inline void
+static inline void
 vr_discard_rxbuf(struct vr_rxdesc *rxd)
 {
 	struct vr_desc	*desc;
@@ -1267,7 +1267,7 @@ vr_newbuf(struct vr_softc *sc, int idx)
 }
 
 #ifndef __NO_STRICT_ALIGNMENT
-static __inline void
+static inline void
 vr_fixup_rx(struct mbuf *m)
 {
         uint16_t		*src, *dst;

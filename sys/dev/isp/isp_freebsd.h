@@ -319,7 +319,7 @@ struct isposinfo {
 #define	ISP_MIN			imin
 
 #ifndef	DIAGNOSTIC
-#define	ISP_INLINE		__inline
+#define	ISP_INLINE		inline
 #else
 #define	ISP_INLINE
 #endif

@@ -153,7 +153,7 @@ struct rtwn_rf_prog {
 };
 
 /* XXX move to net80211. */
-static __inline int
+static inline int
 rtwn_chan2centieee(const struct ieee80211_channel *c)
 {
 	int chan;

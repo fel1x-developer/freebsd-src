@@ -102,19 +102,19 @@ extern void qlnx_vf_flr_update(void *p_hwfn);
 
 #ifndef QLNX_RDMA
 
-static __inline unsigned long
+static inline unsigned long
 roundup_pow_of_two(unsigned long x)
 {
 	return (1UL << flsl(x - 1));
 }
 
-static __inline int
+static inline int
 is_power_of_2(unsigned long n)
 {
 	return (n == roundup_pow_of_two(n));
 }
 
-static __inline unsigned long
+static inline unsigned long
 rounddown_pow_of_two(unsigned long x)
 {
 	return (1UL << (flsl(x) - 1));
@@ -147,7 +147,7 @@ rounddown_pow_of_two(unsigned long x)
 #define OSAL_CPU_TO_LE16(val) htole16(val)
 #define OSAL_LE16_TO_CPU(val) le16toh(val)
 
-static __inline uint32_t
+static inline uint32_t
 qlnx_get_cache_line_size(void)
 {
 	return (CACHE_LINE_SIZE);
@@ -402,7 +402,7 @@ do {							\
 
 #define OSAL_ROUNDUP_POW_OF_TWO(val) roundup_pow_of_two((val))
 
-static __inline uint32_t
+static inline uint32_t
 qlnx_log2(uint32_t x)
 {
 	uint32_t log = 0;
@@ -420,8 +420,8 @@ qlnx_log2(uint32_t x)
 #define OSAL_BEFORE_PF_START(cdev, my_id) {};
 #define OSAL_AFTER_PF_STOP(cdev, my_id) {};
 
-#define INLINE __inline
-#define OSAL_INLINE __inline
+#define INLINE inline
+#define OSAL_INLINE inline
 #define OSAL_UNLIKELY 
 #define OSAL_NULL NULL
 

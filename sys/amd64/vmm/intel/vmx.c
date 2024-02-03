@@ -1247,13 +1247,13 @@ vmx_handle_cpuid(struct vmx_vcpu *vcpu, struct vmxctx *vmxctx)
 	return (handled);
 }
 
-static __inline void
+static inline void
 vmx_run_trace(struct vmx_vcpu *vcpu)
 {
 	VMX_CTR1(vcpu, "Resume execution at %#lx", vmcs_guest_rip());
 }
 
-static __inline void
+static inline void
 vmx_exit_trace(struct vmx_vcpu *vcpu, uint64_t rip, uint32_t exit_reason,
     int handled)
 {
@@ -1262,7 +1262,7 @@ vmx_exit_trace(struct vmx_vcpu *vcpu, uint64_t rip, uint32_t exit_reason,
 		 exit_reason_to_str(exit_reason), rip);
 }
 
-static __inline void
+static inline void
 vmx_astpending_trace(struct vmx_vcpu *vcpu, uint64_t rip)
 {
 	VMX_CTR1(vcpu, "astpending vmexit at 0x%0lx", rip);
@@ -1274,7 +1274,7 @@ static VMM_STAT_INTEL(VCPU_INVVPID_DONE, "Number of vpid invalidations done");
 /*
  * Invalidate guest mappings identified by its vpid from the TLB.
  */
-static __inline void
+static inline void
 vmx_invvpid(struct vmx *vmx, struct vmx_vcpu *vcpu, pmap_t pmap, int running)
 {
 	struct vmxstate *vmxstate;
@@ -1355,7 +1355,7 @@ vmx_set_pcpu_defaults(struct vmx *vmx, struct vmx_vcpu *vcpu, pmap_t pmap)
  */
 CTASSERT((PROCBASED_CTLS_ONE_SETTING & PROCBASED_INT_WINDOW_EXITING) != 0);
 
-static void __inline
+static void inline
 vmx_set_int_window_exiting(struct vmx_vcpu *vcpu)
 {
 
@@ -1366,7 +1366,7 @@ vmx_set_int_window_exiting(struct vmx_vcpu *vcpu)
 	}
 }
 
-static void __inline
+static void inline
 vmx_clear_int_window_exiting(struct vmx_vcpu *vcpu)
 {
 
@@ -1377,7 +1377,7 @@ vmx_clear_int_window_exiting(struct vmx_vcpu *vcpu)
 	VMX_CTR0(vcpu, "Disabling interrupt window exiting");
 }
 
-static void __inline
+static void inline
 vmx_set_nmi_window_exiting(struct vmx_vcpu *vcpu)
 {
 
@@ -1388,7 +1388,7 @@ vmx_set_nmi_window_exiting(struct vmx_vcpu *vcpu)
 	}
 }
 
-static void __inline
+static void inline
 vmx_clear_nmi_window_exiting(struct vmx_vcpu *vcpu)
 {
 
@@ -2144,7 +2144,7 @@ ept_emulation_fault(uint64_t ept_qual)
 	return (true);
 }
 
-static __inline int
+static inline int
 apic_access_virtualization(struct vmx_vcpu *vcpu)
 {
 	uint32_t proc_ctls2;
@@ -2153,7 +2153,7 @@ apic_access_virtualization(struct vmx_vcpu *vcpu)
 	return ((proc_ctls2 & PROCBASED2_VIRTUALIZE_APIC_ACCESSES) ? 1 : 0);
 }
 
-static __inline int
+static inline int
 x2apic_virtualization(struct vmx_vcpu *vcpu)
 {
 	uint32_t proc_ctls2;
@@ -2874,7 +2874,7 @@ vmx_exit_process(struct vmx *vmx, struct vmx_vcpu *vcpu, struct vm_exit *vmexit)
 	return (handled);
 }
 
-static __inline void
+static inline void
 vmx_exit_inst_error(struct vmxctx *vmxctx, int rc, struct vm_exit *vmexit)
 {
 
@@ -2907,7 +2907,7 @@ vmx_exit_inst_error(struct vmxctx *vmxctx, int rc, struct vm_exit *vmexit)
  * otherwise the "iret" issued by an interrupt handler will incorrectly
  * clear NMI blocking.
  */
-static __inline void
+static inline void
 vmx_exit_handle_nmi(struct vmx_vcpu *vcpu, struct vm_exit *vmexit)
 {
 	uint32_t intr_info;
@@ -2929,7 +2929,7 @@ vmx_exit_handle_nmi(struct vmx_vcpu *vcpu, struct vm_exit *vmexit)
 	}
 }
 
-static __inline void
+static inline void
 vmx_dr_enter_guest(struct vmxctx *vmxctx)
 {
 	register_t rflags;
@@ -2971,7 +2971,7 @@ vmx_dr_enter_guest(struct vmxctx *vmxctx)
 	load_dr6(vmxctx->guest_dr6);
 }
 
-static __inline void
+static inline void
 vmx_dr_leave_guest(struct vmxctx *vmxctx)
 {
 
@@ -2996,7 +2996,7 @@ vmx_dr_leave_guest(struct vmxctx *vmxctx)
 	write_rflags(read_rflags() | vmxctx->host_tf);
 }
 
-static __inline void
+static inline void
 vmx_pmap_activate(struct vmx *vmx, pmap_t pmap)
 {
 	long eptgen;
@@ -3014,7 +3014,7 @@ vmx_pmap_activate(struct vmx *vmx, pmap_t pmap)
 	}
 }
 
-static __inline void
+static inline void
 vmx_pmap_deactivate(struct vmx *vmx, pmap_t pmap)
 {
 	smr_exit(pmap->pm_eptsmr);

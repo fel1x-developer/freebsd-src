@@ -62,13 +62,13 @@
 	pCmd->cmdhdr.length = htole16(sizeof(_type));			\
 } while (0)
 
-static __inline uint32_t
+static inline uint32_t
 malo_hal_read4(struct malo_hal *mh, bus_size_t off)
 {
 	return bus_space_read_4(mh->mh_iot, mh->mh_ioh, off);
 }
 
-static __inline void
+static inline void
 malo_hal_write4(struct malo_hal *mh, bus_size_t off, uint32_t val)
 {
 	bus_space_write_4(mh->mh_iot, mh->mh_ioh, off, val);

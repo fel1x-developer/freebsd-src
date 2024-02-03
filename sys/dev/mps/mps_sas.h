@@ -110,7 +110,7 @@ MALLOC_DECLARE(M_MPSSAS);
 #define MPS_SET_LUN(lun, ccblun)	\
 	mpssas_set_lun(lun, ccblun)
 
-static __inline int
+static inline int
 mpssas_set_lun(uint8_t *lun, u_int ccblun)
 {
 	uint64_t *newlun;
@@ -140,14 +140,14 @@ mpssas_set_lun(uint8_t *lun, u_int ccblun)
 	return (0);
 }
 
-static __inline void
+static inline void
 mpssas_set_ccbstatus(union ccb *ccb, int status)
 {
 	ccb->ccb_h.status &= ~CAM_STATUS_MASK;
 	ccb->ccb_h.status |= status;
 }
 
-static __inline int
+static inline int
 mpssas_get_ccbstatus(union ccb *ccb)
 {
 	return (ccb->ccb_h.status & CAM_STATUS_MASK);

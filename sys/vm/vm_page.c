@@ -5248,7 +5248,7 @@ vm_page_set_dirty(vm_page_t m)
 /*
  * Clear the given bits from the specified page's dirty field.
  */
-static __inline void
+static inline void
 vm_page_clear_dirty_mask(vm_page_t m, vm_page_bits_t pagebits)
 {
 

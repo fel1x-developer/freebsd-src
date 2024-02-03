@@ -329,7 +329,7 @@ cpuset_t vm_start_cpus(struct vm *vm, const cpuset_t *tostart);
 void vm_await_start(struct vm *vm, const cpuset_t *waiting);
 #endif	/* _SYS__CPUSET_H_ */
 
-static __inline int
+static inline int
 vcpu_rendezvous_pending(struct vcpu *vcpu, struct vm_eventinfo *info)
 {
 	/*
@@ -342,14 +342,14 @@ vcpu_rendezvous_pending(struct vcpu *vcpu, struct vm_eventinfo *info)
 	return (CPU_ISSET(vcpu_vcpuid(vcpu), info->rptr));
 }
 
-static __inline int
+static inline int
 vcpu_suspended(struct vm_eventinfo *info)
 {
 
 	return (*info->sptr);
 }
 
-static __inline int
+static inline int
 vcpu_reqidle(struct vm_eventinfo *info)
 {
 
@@ -378,14 +378,14 @@ enum vcpu_state {
 int vcpu_set_state(struct vcpu *vcpu, enum vcpu_state state, bool from_idle);
 enum vcpu_state vcpu_get_state(struct vcpu *vcpu, int *hostcpu);
 
-static int __inline
+static int inline
 vcpu_is_running(struct vcpu *vcpu, int *hostcpu)
 {
 	return (vcpu_get_state(vcpu, hostcpu) == VCPU_RUNNING);
 }
 
 #ifdef _SYS_PROC_H_
-static int __inline
+static int inline
 vcpu_should_yield(struct vcpu *vcpu)
 {
 	struct thread *td;
@@ -779,25 +779,25 @@ struct vm_exit {
 void vm_inject_fault(struct vcpu *vcpu, int vector, int errcode_valid,
     int errcode);
 
-static __inline void
+static inline void
 vm_inject_ud(struct vcpu *vcpu)
 {
 	vm_inject_fault(vcpu, IDT_UD, 0, 0);
 }
 
-static __inline void
+static inline void
 vm_inject_gp(struct vcpu *vcpu)
 {
 	vm_inject_fault(vcpu, IDT_GP, 1, 0);
 }
 
-static __inline void
+static inline void
 vm_inject_ac(struct vcpu *vcpu, int errcode)
 {
 	vm_inject_fault(vcpu, IDT_AC, 1, errcode);
 }
 
-static __inline void
+static inline void
 vm_inject_ss(struct vcpu *vcpu, int errcode)
 {
 	vm_inject_fault(vcpu, IDT_SS, 1, errcode);

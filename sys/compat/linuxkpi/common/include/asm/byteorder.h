@@ -137,13 +137,13 @@ be16_add_cpu(uint16_t *var, uint16_t val)
 	*var = cpu_to_be16(be16_to_cpu(*var) + val);
 }
 
-static __inline void
+static inline void
 le64_add_cpu(uint64_t *var, uint64_t val)
 {
 	*var = cpu_to_le64(le64_to_cpu(*var) + val);
 }
 
-static __inline void
+static inline void
 le32_add_cpu(uint32_t *var, uint32_t val)
 {
 	*var = cpu_to_le32(le32_to_cpu(*var) + val);

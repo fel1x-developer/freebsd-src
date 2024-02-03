@@ -282,7 +282,7 @@ CHANNEL_DECLARE(m3_rch);
 #define m3_wr_assp_data(sc, index, data) \
         m3_wr_assp(sc, MEMTYPE_INTERNAL_DATA, index, data)
 
-static __inline u_int16_t
+static inline u_int16_t
 m3_rd_assp(struct sc_info *sc, u_int16_t region, u_int16_t index)
 {
         m3_wr_2(sc, DSP_PORT_MEMORY_TYPE, region & MEMTYPE_MASK);
@@ -290,7 +290,7 @@ m3_rd_assp(struct sc_info *sc, u_int16_t region, u_int16_t index)
         return m3_rd_2(sc, DSP_PORT_MEMORY_DATA);
 }
 
-static __inline void
+static inline void
 m3_wr_assp(struct sc_info *sc, u_int16_t region, u_int16_t index,
 	   u_int16_t data)
 {
@@ -299,7 +299,7 @@ m3_wr_assp(struct sc_info *sc, u_int16_t region, u_int16_t index,
         m3_wr_2(sc, DSP_PORT_MEMORY_DATA, data);
 }
 
-static __inline int
+static inline int
 m3_wait(struct sc_info *sc)
 {
 	int i;

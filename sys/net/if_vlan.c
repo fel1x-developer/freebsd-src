@@ -277,7 +277,7 @@ static	void vlan_freehash(struct ifvlantrunk *trunk);
 static	int vlan_inshash(struct ifvlantrunk *trunk, struct ifvlan *ifv);
 static	int vlan_remhash(struct ifvlantrunk *trunk, struct ifvlan *ifv);
 static	void vlan_growhash(struct ifvlantrunk *trunk, int howmuch);
-static __inline struct ifvlan * vlan_gethash(struct ifvlantrunk *trunk,
+static inline struct ifvlan * vlan_gethash(struct ifvlantrunk *trunk,
 	uint16_t vid);
 #endif
 static	void trunk_destroy(struct ifvlantrunk *trunk);
@@ -532,7 +532,7 @@ vlan_growhash(struct ifvlantrunk *trunk, int howmuch)
 		    "VLAN hash table resized from %d to %d buckets\n", n, n2);
 }
 
-static __inline struct ifvlan *
+static inline struct ifvlan *
 vlan_gethash(struct ifvlantrunk *trunk, uint16_t vid)
 {
 	struct ifvlan *ifv;
@@ -563,14 +563,14 @@ vlan_dumphash(struct ifvlantrunk *trunk)
 #endif /* 0 */
 #else
 
-static __inline struct ifvlan *
+static inline struct ifvlan *
 vlan_gethash(struct ifvlantrunk *trunk, uint16_t vid)
 {
 
 	return trunk->vlans[vid];
 }
 
-static __inline int
+static inline int
 vlan_inshash(struct ifvlantrunk *trunk, struct ifvlan *ifv)
 {
 
@@ -582,7 +582,7 @@ vlan_inshash(struct ifvlantrunk *trunk, struct ifvlan *ifv)
 	return (0);
 }
 
-static __inline int
+static inline int
 vlan_remhash(struct ifvlantrunk *trunk, struct ifvlan *ifv)
 {
 
@@ -592,12 +592,12 @@ vlan_remhash(struct ifvlantrunk *trunk, struct ifvlan *ifv)
 	return (0);
 }
 
-static __inline void
+static inline void
 vlan_freehash(struct ifvlantrunk *trunk)
 {
 }
 
-static __inline void
+static inline void
 vlan_inithash(struct ifvlantrunk *trunk)
 {
 }

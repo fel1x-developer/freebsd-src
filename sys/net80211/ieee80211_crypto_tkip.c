@@ -270,7 +270,7 @@ tkip_enmic(struct ieee80211_key *k, struct mbuf *m, int force)
 	return 1;
 }
 
-static __inline uint64_t
+static inline uint64_t
 READ_6(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5)
 {
 	uint32_t iv32 = (b0 << 0) | (b1 << 8) | (b2 << 16) | (b3 << 24);
@@ -513,37 +513,37 @@ static const __u32 crc32_table[256] = {
 	0x2d02ef8dL
 };
 
-static __inline u16 RotR1(u16 val)
+static inline u16 RotR1(u16 val)
 {
 	return (val >> 1) | (val << 15);
 }
 
-static __inline u8 Lo8(u16 val)
+static inline u8 Lo8(u16 val)
 {
 	return val & 0xff;
 }
 
-static __inline u8 Hi8(u16 val)
+static inline u8 Hi8(u16 val)
 {
 	return val >> 8;
 }
 
-static __inline u16 Lo16(u32 val)
+static inline u16 Lo16(u32 val)
 {
 	return val & 0xffff;
 }
 
-static __inline u16 Hi16(u32 val)
+static inline u16 Hi16(u32 val)
 {
 	return val >> 16;
 }
 
-static __inline u16 Mk16(u8 hi, u8 lo)
+static inline u16 Mk16(u8 hi, u8 lo)
 {
 	return lo | (((u16) hi) << 8);
 }
 
-static __inline u16 Mk16_le(const u16 *v)
+static inline u16 Mk16_le(const u16 *v)
 {
 	return le16toh(*v);
 }
@@ -583,7 +583,7 @@ static const u16 Sbox[256] = {
 	0x82C3, 0x29B0, 0x5A77, 0x1E11, 0x7BCB, 0xA8FC, 0x6DD6, 0x2C3A,
 };
 
-static __inline u16 _S_(u16 v)
+static inline u16 _S_(u16 v)
 {
 	u16 t = Sbox[Hi8(v)];
 	return Sbox[Lo8(v)] ^ ((t << 8) | (t >> 8));
@@ -787,17 +787,17 @@ wep_decrypt(u8 *key, struct mbuf *m, u_int off, size_t data_len)
 	return 0;
 }
 
-static __inline u32 rotl(u32 val, int bits)
+static inline u32 rotl(u32 val, int bits)
 {
 	return (val << bits) | (val >> (32 - bits));
 }
 
-static __inline u32 rotr(u32 val, int bits)
+static inline u32 rotr(u32 val, int bits)
 {
 	return (val >> bits) | (val << (32 - bits));
 }
 
-static __inline u32 xswap(u32 val)
+static inline u32 xswap(u32 val)
 {
 	return ((val & 0x00ff00ff) << 8) | ((val & 0xff00ff00) >> 8);
 }
@@ -814,17 +814,17 @@ do {				\
 	l += r;			\
 } while (0)
 
-static __inline u32 get_le32_split(u8 b0, u8 b1, u8 b2, u8 b3)
+static inline u32 get_le32_split(u8 b0, u8 b1, u8 b2, u8 b3)
 {
 	return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
 }
 
-static __inline u32 get_le32(const u8 *p)
+static inline u32 get_le32(const u8 *p)
 {
 	return get_le32_split(p[0], p[1], p[2], p[3]);
 }
 
-static __inline void put_le32(u8 *p, u32 v)
+static inline void put_le32(u8 *p, u32 v)
 {
 	p[0] = v;
 	p[1] = v >> 8;

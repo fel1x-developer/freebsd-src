@@ -89,7 +89,7 @@ struct scc_class scc_z8530_legacy_class = {
 };
 
 /* Multiplexed I/O. */
-static __inline uint8_t
+static inline uint8_t
 scc_getmreg(struct scc_bas *bas, int ch, int reg)
 {
 

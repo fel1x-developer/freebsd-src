@@ -103,7 +103,7 @@ static u_int32_t via_fmt[] = {
 static struct pcmchan_caps via_vracaps = {4000, 48000, via_fmt, 0};
 static struct pcmchan_caps via_caps = {48000, 48000, via_fmt, 0};
 
-static __inline u_int32_t
+static inline u_int32_t
 via_rd(struct via_info *via, int regno, int size)
 {
 
@@ -119,7 +119,7 @@ via_rd(struct via_info *via, int regno, int size)
 	}
 }
 
-static __inline void
+static inline void
 via_wr(struct via_info *via, int regno, u_int32_t data, int size)
 {
 

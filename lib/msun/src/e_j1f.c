@@ -20,7 +20,7 @@
 #include "math.h"
 #include "math_private.h"
 
-static __inline float ponef(float), qonef(float);
+static inline float ponef(float), qonef(float);
 
 static const volatile float vone = 1, vzero = 0;
 
@@ -219,7 +219,7 @@ static const float ps2[5] = {
   8.3646392822e+00, /* 0x4105d590 */
 };
 
-static __inline float
+static inline float
 ponef(float x)
 {
 	const float *p,*q;
@@ -316,7 +316,7 @@ static const float qs2[6] = {
  -4.9594988823e+00, /* 0xc09eb437 */
 };
 
-static __inline float
+static inline float
 qonef(float x)
 {
 	const float *p,*q;

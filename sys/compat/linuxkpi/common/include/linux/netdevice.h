@@ -306,7 +306,7 @@ netdev_mc_count(struct net_device *ndev)
 #define	netdev_for_each_mc_addr(na, ndev)				\
 	netdev_hw_addr_list_for_each(na, &(ndev)->mc)
 
-static __inline void
+static inline void
 synchronize_net(void)
 {
 
@@ -314,14 +314,14 @@ synchronize_net(void)
 	synchronize_rcu();
 }
 
-static __inline void
+static inline void
 netif_receive_skb_list(struct list_head *head)
 {
 
 	pr_debug("%s: TODO\n", __func__);
 }
 
-static __inline int
+static inline int
 napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
 
@@ -329,21 +329,21 @@ napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 	return (-1);
 }
 
-static __inline void
+static inline void
 ether_setup(struct net_device *ndev)
 {
 
 	pr_debug("%s: TODO\n", __func__);
 }
 
-static __inline void
+static inline void
 dev_net_set(struct net_device *ndev, void *p)
 {
 
 	pr_debug("%s: TODO\n", __func__);
 }
 
-static __inline int
+static inline int
 dev_set_threaded(struct net_device *ndev, bool threaded)
 {
 
@@ -353,20 +353,20 @@ dev_set_threaded(struct net_device *ndev, bool threaded)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline bool
+static inline bool
 netif_carrier_ok(struct net_device *ndev)
 {
 	pr_debug("%s: TODO\n", __func__);
 	return (false);
 }
 
-static __inline void
+static inline void
 netif_carrier_off(struct net_device *ndev)
 {
 	pr_debug("%s: TODO\n", __func__);
 }
 
-static __inline void
+static inline void
 netif_carrier_on(struct net_device *ndev)
 {
 	pr_debug("%s: TODO\n", __func__);
@@ -374,20 +374,20 @@ netif_carrier_on(struct net_device *ndev)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline bool
+static inline bool
 netif_queue_stopped(struct net_device *ndev)
 {
 	pr_debug("%s: TODO\n", __func__);
 	return (false);
 }
 
-static __inline void
+static inline void
 netif_stop_queue(struct net_device *ndev)
 {
 	pr_debug("%s: TODO\n", __func__);
 }
 
-static __inline void
+static inline void
 netif_wake_queue(struct net_device *ndev)
 {
 	pr_debug("%s: TODO\n", __func__);
@@ -395,7 +395,7 @@ netif_wake_queue(struct net_device *ndev)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline int
+static inline int
 register_netdevice(struct net_device *ndev)
 {
 
@@ -404,7 +404,7 @@ register_netdevice(struct net_device *ndev)
 	return (0);
 }
 
-static __inline int
+static inline int
 register_netdev(struct net_device *ndev)
 {
 	int error;
@@ -416,13 +416,13 @@ register_netdev(struct net_device *ndev)
 	return (error);
 }
 
-static __inline void
+static inline void
 unregister_netdev(struct net_device *ndev)
 {
 	pr_debug("%s: TODO\n", __func__);
 }
 
-static __inline void
+static inline void
 unregister_netdevice(struct net_device *ndev)
 {
 	pr_debug("%s: TODO\n", __func__);
@@ -430,13 +430,13 @@ unregister_netdevice(struct net_device *ndev)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline void
+static inline void
 netif_rx(struct sk_buff *skb)
 {
 	pr_debug("%s: TODO\n", __func__);
 }
 
-static __inline void
+static inline void
 netif_rx_ni(struct sk_buff *skb)
 {
 	pr_debug("%s: TODO\n", __func__);

@@ -164,14 +164,14 @@ struct pl310_softc {
  *	RETURNS:
  *	nothing in case of write function, if read function returns the value read.
  */
-static __inline uint32_t
+static inline uint32_t
 pl310_read4(struct pl310_softc *sc, bus_size_t off)
 {
 
 	return bus_read_4(sc->sc_mem_res, off);
 }
 
-static __inline void
+static inline void
 pl310_write4(struct pl310_softc *sc, bus_size_t off, uint32_t val)
 {
 

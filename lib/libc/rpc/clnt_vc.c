@@ -494,14 +494,14 @@ clnt_vc_abort(CLIENT *cl)
 {
 }
 
-static __inline void
+static inline void
 htonlp(void *dst, const void *src, uint32_t incr)
 {
 	/* We are aligned, so we think */
 	*(uint32_t *)dst = htonl(*(const uint32_t *)src + incr);
 }
 
-static __inline void
+static inline void
 ntohlp(void *dst, const void *src)
 {
 	/* We are aligned, so we think */

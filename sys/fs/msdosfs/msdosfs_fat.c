@@ -77,7 +77,7 @@ static void	fc_lookup(struct denode *dep, u_long findcn, u_long *frcnp,
 		    u_long *fsrcnp);
 static void	updatefats(struct msdosfsmount *pmp, struct buf *bp,
 		    u_long fatbn);
-static __inline void
+static inline void
 		usemap_alloc(struct msdosfsmount *pmp, u_long cn);
 static int	usemap_free(struct msdosfsmount *pmp, u_long cn);
 static int	clusteralloc1(struct msdosfsmount *pmp, u_long start,
@@ -382,7 +382,7 @@ updatefats(struct msdosfsmount *pmp, struct buf *bp, u_long fatbn)
  * Where n is even. m = n + (n >> 2)
  *
  */
-static __inline void
+static inline void
 usemap_alloc(struct msdosfsmount *pmp, u_long cn)
 {
 

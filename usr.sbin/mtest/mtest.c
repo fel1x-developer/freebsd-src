@@ -341,7 +341,7 @@ parse_cmd_args(sockunion_t *psu, sockunion_t *psu2,
 	return (ifindex);
 }
 
-static __inline int
+static inline int
 af2sock(const int af, int s, int s6)
 {
 
@@ -356,7 +356,7 @@ af2sock(const int af, int s, int s6)
 	return (-1);
 }
 
-static __inline int
+static inline int
 af2socklen(const int af)
 {
 

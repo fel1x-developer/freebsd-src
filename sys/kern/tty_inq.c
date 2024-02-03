@@ -267,7 +267,7 @@ ttyinq_read_uio(struct ttyinq *ti, struct tty *tp, struct uio *uio,
 	return (0);
 }
 
-static __inline void
+static inline void
 ttyinq_set_quotes(struct ttyinq_block *tib, size_t offset,
     size_t length, int value)
 {

@@ -278,7 +278,7 @@ SDT_PROBE_DEFINE(sched, , , remain__cpu);
 SDT_PROBE_DEFINE2(sched, , , surrender, "struct thread *",
     "struct proc *");
 
-static __inline void
+static inline void
 sched_load_add(void)
 {
 
@@ -287,7 +287,7 @@ sched_load_add(void)
 	SDT_PROBE2(sched, , , load__change, NOCPU, sched_tdcnt);
 }
 
-static __inline void
+static inline void
 sched_load_rem(void)
 {
 

@@ -79,13 +79,13 @@ struct tcphdr {
 	u_short	th_urp;			/* urgent pointer */
 };
 
-static __inline uint16_t
+static inline uint16_t
 __tcp_get_flags(const struct tcphdr *th)
 {
 	return (((uint16_t)th->th_x2 << 8) | th->th_flags);
 }
 
-static __inline void
+static inline void
 __tcp_set_flags(struct tcphdr *th, uint16_t flags)
 {
 	th->th_x2 = (flags >> 8) & 0x0f;

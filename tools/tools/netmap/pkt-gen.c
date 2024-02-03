@@ -346,7 +346,7 @@ struct targ {
 	u_int frag_size;
 };
 
-static __inline uint16_t
+static inline uint16_t
 cksum_add(uint16_t sum, uint16_t a)
 {
 	uint16_t res;

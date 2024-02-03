@@ -79,7 +79,7 @@ typedef uint64_t	atomic64_t;
 #define	atomic_inc_not_zero(p)		atomic_inc(p)
 #define	atomic_clear_mask(b, p)		atomic_clear_int((p), (b))
 
-static __inline u_long
+static inline u_long
 find_first_zero_bit(const u_long *p, u_long max)
 {
 	u_long i, n;

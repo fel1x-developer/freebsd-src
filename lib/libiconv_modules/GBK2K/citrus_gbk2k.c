@@ -71,7 +71,7 @@ typedef struct {
 #define _ENCODING_IS_STATE_DEPENDENT	0
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_GBK2K_init_state(_GBK2KEncodingInfo * __restrict ei __unused,
     _GBK2KState * __restrict s)
@@ -81,7 +81,7 @@ _citrus_GBK2K_init_state(_GBK2KEncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_GBK2K_pack_state(_GBK2KEncodingInfo * __restrict ei __unused,
     void * __restrict pspriv, const _GBK2KState * __restrict s)
@@ -90,7 +90,7 @@ _citrus_GBK2K_pack_state(_GBK2KEncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)s, sizeof(*s));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_GBK2K_unpack_state(_GBK2KEncodingInfo * __restrict ei __unused,
     _GBK2KState * __restrict s, const void * __restrict pspriv)
@@ -100,14 +100,14 @@ _citrus_GBK2K_unpack_state(_GBK2KEncodingInfo * __restrict ei __unused,
 }
 #endif
 
-static  __inline bool
+static  inline bool
 _mb_singlebyte(int c)
 {
 
 	return ((c & 0xff) <= 0x7f);
 }
 
-static __inline bool
+static inline bool
 _mb_leadbyte(int c)
 {
 
@@ -115,7 +115,7 @@ _mb_leadbyte(int c)
 	return (0x81 <= c && c <= 0xfe);
 }
 
-static __inline bool
+static inline bool
 _mb_trailbyte(int c)
 {
 
@@ -123,7 +123,7 @@ _mb_trailbyte(int c)
 	return ((0x40 <= c && c <= 0x7e) || (0x80 <= c && c <= 0xfe));
 }
 
-static __inline bool
+static inline bool
 _mb_surrogate(int c)
 {
 
@@ -131,7 +131,7 @@ _mb_surrogate(int c)
 	return (0x30 <= c && c <= 0x39);
 }
 
-static __inline int
+static inline int
 _mb_count(wchar_t v)
 {
 	uint32_t c;
@@ -304,7 +304,7 @@ err:
 	return (ret);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_GBK2K_stdenc_wctocs(_GBK2KEncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -336,7 +336,7 @@ _citrus_GBK2K_stdenc_wctocs(_GBK2KEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_GBK2K_stdenc_cstowc(_GBK2KEncodingInfo * __restrict ei,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -368,7 +368,7 @@ _citrus_GBK2K_stdenc_cstowc(_GBK2KEncodingInfo * __restrict ei,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_GBK2K_stdenc_get_state_desc_generic(_GBK2KEncodingInfo * __restrict ei __unused,
     _GBK2KState * __restrict psenc, int * __restrict rstate)

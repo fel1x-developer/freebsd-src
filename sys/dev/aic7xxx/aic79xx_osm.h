@@ -172,9 +172,9 @@ struct scb_platform_data {
 			       (ahd)->bshs[(port) >> 8],	\
 			       (port & 0xFF), valp, count)
 
-static __inline void ahd_flush_device_writes(struct ahd_softc *);
+static inline void ahd_flush_device_writes(struct ahd_softc *);
 
-static __inline void
+static inline void
 ahd_flush_device_writes(struct ahd_softc *ahd)
 {
 	/* XXX Is this sufficient for all architectures??? */
@@ -183,23 +183,23 @@ ahd_flush_device_writes(struct ahd_softc *ahd)
 
 /**************************** Locking Primitives ******************************/
 /* Lock protecting internal data structures */
-static __inline void ahd_lockinit(struct ahd_softc *);
-static __inline void ahd_lock(struct ahd_softc *);
-static __inline void ahd_unlock(struct ahd_softc *);
+static inline void ahd_lockinit(struct ahd_softc *);
+static inline void ahd_lock(struct ahd_softc *);
+static inline void ahd_unlock(struct ahd_softc *);
 
-static __inline void
+static inline void
 ahd_lockinit(struct ahd_softc *ahd)
 {
 	mtx_init(&ahd->platform_data->mtx, "ahd_lock", NULL, MTX_DEF);
 }
 
-static __inline void
+static inline void
 ahd_lock(struct ahd_softc *ahd)
 {
 	mtx_lock(&ahd->platform_data->mtx);
 }
 
-static __inline void
+static inline void
 ahd_unlock(struct ahd_softc *ahd)
 {
 	mtx_unlock(&ahd->platform_data->mtx);
@@ -210,31 +210,31 @@ int ahd_pci_map_registers(struct ahd_softc *ahd);
 int ahd_pci_map_int(struct ahd_softc *ahd);
 
 /************************** Transaction Operations ****************************/
-static __inline void aic_freeze_simq(struct aic_softc*);
-static __inline void aic_release_simq(struct aic_softc*);
+static inline void aic_freeze_simq(struct aic_softc*);
+static inline void aic_release_simq(struct aic_softc*);
 
-static __inline void
+static inline void
 aic_freeze_simq(struct aic_softc *aic)
 {
 	xpt_freeze_simq(aic->platform_data->sim, /*count*/1);
 }
 
-static __inline void
+static inline void
 aic_release_simq(struct aic_softc *aic)
 {
 	xpt_release_simq(aic->platform_data->sim, /*run queue*/TRUE);
 }
 /********************************* Debug **************************************/
-static __inline void	ahd_print_path(struct ahd_softc *, struct scb *);
-static __inline void	ahd_platform_dump_card_state(struct ahd_softc *ahd);
+static inline void	ahd_print_path(struct ahd_softc *, struct scb *);
+static inline void	ahd_platform_dump_card_state(struct ahd_softc *ahd);
 
-static __inline void
+static inline void
 ahd_print_path(struct ahd_softc *ahd, struct scb *scb)
 {
 	xpt_print_path(scb->io_ctx->ccb_h.path);
 }
 
-static __inline void
+static inline void
 ahd_platform_dump_card_state(struct ahd_softc *ahd)
 {
 	/* Nothing to do here for FreeBSD */
@@ -257,8 +257,8 @@ int	  ahd_detach(device_t);
 
 /****************************** Interrupts ************************************/
 void			ahd_platform_intr(void *);
-static __inline void	ahd_platform_flushwork(struct ahd_softc *ahd);
-static __inline void
+static inline void	ahd_platform_flushwork(struct ahd_softc *ahd);
+static inline void
 ahd_platform_flushwork(struct ahd_softc *ahd)
 {
 }

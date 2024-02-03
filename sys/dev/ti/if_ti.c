@@ -249,7 +249,7 @@ static int ti_chipinit(struct ti_softc *);
 static int ti_gibinit(struct ti_softc *);
 
 #ifdef TI_JUMBO_HDRSPLIT
-static __inline void ti_hdr_split(struct mbuf *top, int hdr_len, int pkt_len,
+static inline void ti_hdr_split(struct mbuf *top, int hdr_len, int pkt_len,
     int idx);
 #endif /* TI_JUMBO_HDRSPLIT */
 
@@ -2628,7 +2628,7 @@ ti_detach(device_t dev)
  * first mbuf.  So we take the minimum of the two as the actual
  * length.
  */
-static __inline void
+static inline void
 ti_hdr_split(struct mbuf *top, int hdr_len, int pkt_len, int idx)
 {
 	int i = 0;

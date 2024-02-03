@@ -70,7 +70,7 @@ struct pin_cookie {
 
 #define	lockdep_assert_none_held_once() do { } while (0)
 
-static __inline bool
+static inline bool
 lockdep_is_held(void *__m)
 {
 	struct lock_object *__lock;

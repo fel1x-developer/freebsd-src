@@ -533,7 +533,7 @@ acpi_asus_wmi_sysctl_set(struct acpi_asus_wmi_softc *sc, int dev_id, int arg, in
 	return (0);
 }
 
-static __inline void
+static inline void
 acpi_asus_wmi_free_buffer(ACPI_BUFFER* buf) {
 	if (buf && buf->Pointer) {
 		AcpiOsFree(buf->Pointer);

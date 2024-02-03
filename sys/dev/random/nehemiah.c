@@ -52,7 +52,7 @@ static struct random_source random_nehemiah = {
 
 /* This H/W source never stores more than 8 bytes in one go */
 /* ARGSUSED */
-static __inline size_t
+static inline size_t
 VIA_RNG_store(void *buf)
 {
 	uint32_t retval = 0;

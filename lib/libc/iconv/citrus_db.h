@@ -60,7 +60,7 @@ int	 _citrus_db_get_entry(struct _citrus_db *, int,
 	    struct _citrus_region *, struct _citrus_region *);
 __END_DECLS
 
-static __inline void
+static inline void
 _citrus_db_locator_init(struct _citrus_db_locator *dl)
 {
 

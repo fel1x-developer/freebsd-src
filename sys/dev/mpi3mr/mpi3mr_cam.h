@@ -149,20 +149,20 @@ struct mpi3mr_cam_softc {
 
 MALLOC_DECLARE(M_MPI3MRSAS);
 
-static __inline void
+static inline void
 mpi3mr_set_ccbstatus(union ccb *ccb, int status)
 {
 	ccb->ccb_h.status &= ~CAM_STATUS_MASK;
 	ccb->ccb_h.status |= status;
 }
 
-static __inline int
+static inline int
 mpi3mr_get_ccbstatus(union ccb *ccb)
 {
 	return (ccb->ccb_h.status & CAM_STATUS_MASK);
 }
 
-static __inline void mpi3mr_print_cdb(union ccb *ccb)
+static inline void mpi3mr_print_cdb(union ccb *ccb)
 {
 	struct ccb_scsiio *csio;
 	struct mpi3mr_cam_softc *cam_sc;

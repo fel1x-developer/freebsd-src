@@ -94,7 +94,7 @@ struct ccl {
 	int compl;		/* ccl is complemented? */
 };
 
-static __inline int
+static inline int
 inccl(const struct ccl *ccl, wint_t wi)
 {
 
@@ -124,7 +124,7 @@ static const mbstate_t initial_mbs;
  * failure.
  */
 
-static __inline int
+static inline int
 convert_char(FILE *fp, char * mbp, int width, locale_t locale)
 {
 	mbstate_t mbs;
@@ -148,7 +148,7 @@ convert_char(FILE *fp, char * mbp, int width, locale_t locale)
 	return (n);
 }
 
-static __inline int
+static inline int
 convert_wchar(FILE *fp, wchar_t *wcp, int width, locale_t locale)
 {
 	wint_t wi;
@@ -165,7 +165,7 @@ convert_wchar(FILE *fp, wchar_t *wcp, int width, locale_t locale)
 	return (n);
 }
 
-static __inline int
+static inline int
 convert_ccl(FILE *fp, char * mbp, int width, const struct ccl *ccl,
     locale_t locale)
 {
@@ -193,7 +193,7 @@ convert_ccl(FILE *fp, char * mbp, int width, const struct ccl *ccl,
 	return (n);
 }
 
-static __inline int
+static inline int
 convert_wccl(FILE *fp, wchar_t *wcp, int width, const struct ccl *ccl,
     locale_t locale)
 {
@@ -223,7 +223,7 @@ convert_wccl(FILE *fp, wchar_t *wcp, int width, const struct ccl *ccl,
 	return (n);
 }
 
-static __inline int
+static inline int
 convert_string(FILE *fp, char * mbp, int width, locale_t locale)
 {
 	mbstate_t mbs;
@@ -250,7 +250,7 @@ convert_string(FILE *fp, char * mbp, int width, locale_t locale)
 	return (nread);
 }
 
-static __inline int
+static inline int
 convert_wstring(FILE *fp, wchar_t *wcp, int width, locale_t locale)
 {
 	wint_t wi;
@@ -284,7 +284,7 @@ enum parseint_state {
 	any,
 };
 
-static __inline int
+static inline int
 parseint_fsm(wchar_t c, enum parseint_state *state, int *base)
 {
 	switch (c) {
@@ -402,7 +402,7 @@ parseint_fsm(wchar_t c, enum parseint_state *state, int *base)
  * Return 0 on a match failure, and the number of characters read
  * otherwise.
  */
-static __inline int
+static inline int
 parseint(FILE *fp, wchar_t * __restrict buf, int width, int base,
     locale_t locale)
 {

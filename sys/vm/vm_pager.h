@@ -143,7 +143,7 @@ int vm_pager_get_pages_async(vm_object_t, vm_page_t *, int, int *, int *,
 void vm_pager_init(void);
 vm_object_t vm_pager_object_lookup(struct pagerlst *, void *);
 
-static __inline void
+static inline void
 vm_pager_put_pages(vm_object_t object, vm_page_t *m, int count, int flags,
     int *rtvals)
 {
@@ -162,7 +162,7 @@ vm_pager_put_pages(vm_object_t object, vm_page_t *m, int count, int flags,
  *
  *	The object must be locked.
  */
-static __inline boolean_t
+static inline boolean_t
 vm_pager_has_page(vm_object_t object, vm_pindex_t offset, int *before,
     int *after)
 {
@@ -174,7 +174,7 @@ vm_pager_has_page(vm_object_t object, vm_pindex_t offset, int *before,
 	return (ret);
 } 
 
-static __inline int
+static inline int
 vm_pager_populate(vm_object_t object, vm_pindex_t pidx, int fault_type,
     vm_prot_t max_prot, vm_pindex_t *first, vm_pindex_t *last)
 {
@@ -196,7 +196,7 @@ vm_pager_populate(vm_object_t object, vm_pindex_t pidx, int fault_type,
  *	XXX: pagers besides the swap_pager or if it should even be a
  *	XXX: generic pager_op in the first place.
  */
-static __inline void
+static inline void
 vm_pager_page_unswapped(vm_page_t m)
 {
 	pgo_pageunswapped_t *method;
@@ -206,7 +206,7 @@ vm_pager_page_unswapped(vm_page_t m)
 		method(m);
 }
 
-static __inline void
+static inline void
 vm_pager_update_writecount(vm_object_t object, vm_offset_t start,
     vm_offset_t end)
 {
@@ -217,7 +217,7 @@ vm_pager_update_writecount(vm_object_t object, vm_offset_t start,
 		method(object, start, end);
 }
 
-static __inline void
+static inline void
 vm_pager_release_writecount(vm_object_t object, vm_offset_t start,
     vm_offset_t end)
 {
@@ -228,7 +228,7 @@ vm_pager_release_writecount(vm_object_t object, vm_offset_t start,
 		method(object, start, end);
 }
 
-static __inline void
+static inline void
 vm_pager_getvp(vm_object_t object, struct vnode **vpp, bool *vp_heldp)
 {
 	pgo_getvp_t *method;
@@ -241,7 +241,7 @@ vm_pager_getvp(vm_object_t object, struct vnode **vpp, bool *vp_heldp)
 		method(object, vpp, vp_heldp);
 }
 
-static __inline void
+static inline void
 vm_pager_freespace(vm_object_t object, vm_pindex_t start,
     vm_size_t size)
 {
@@ -252,7 +252,7 @@ vm_pager_freespace(vm_object_t object, vm_pindex_t start,
 		method(object, start, size);
 }
 
-static __inline void
+static inline void
 vm_pager_page_inserted(vm_object_t object, vm_page_t m)
 {
 	pgo_page_inserted_t *method;
@@ -262,7 +262,7 @@ vm_pager_page_inserted(vm_object_t object, vm_page_t m)
 		method(object, m);
 }
 
-static __inline void
+static inline void
 vm_pager_page_removed(vm_object_t object, vm_page_t m)
 {
 	pgo_page_removed_t *method;
@@ -272,7 +272,7 @@ vm_pager_page_removed(vm_object_t object, vm_page_t m)
 		method(object, m);
 }
 
-static __inline bool
+static inline bool
 vm_pager_can_alloc_page(vm_object_t object, vm_pindex_t pindex)
 {
 	pgo_can_alloc_page_t *method;

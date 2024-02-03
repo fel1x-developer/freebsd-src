@@ -235,7 +235,7 @@ static void tlb1_write_entry(tlb_entry_t *, unsigned int);
 static int tlb1_iomapped(int, vm_paddr_t, vm_size_t, vm_offset_t *);
 static vm_size_t tlb1_mapin_region(vm_offset_t, vm_paddr_t, vm_size_t, int);
 
-static __inline uint32_t tlb_calc_wimg(vm_paddr_t pa, vm_memattr_t ma);
+static inline uint32_t tlb_calc_wimg(vm_paddr_t pa, vm_memattr_t ma);
 
 static vm_size_t tsize2size(unsigned int);
 static unsigned int size2tsize(vm_size_t);
@@ -428,7 +428,7 @@ MMU_DEF(booke_mmu, MMU_TYPE_BOOKE, mmu_booke_methods);
 
 static vm_offset_t tlb1_map_base = VM_MAPDEV_BASE;
 
-static __inline uint32_t
+static inline uint32_t
 tlb_calc_wimg(vm_paddr_t pa, vm_memattr_t ma)
 {
 	uint32_t attrib;
@@ -514,7 +514,7 @@ tlb_miss_unlock(void)
 }
 
 /* Return number of entries in TLB0. */
-static __inline void
+static inline void
 tlb0_get_tlbconf(void)
 {
 	uint32_t tlb0_cfg;
@@ -526,7 +526,7 @@ tlb0_get_tlbconf(void)
 }
 
 /* Return number of entries in TLB1. */
-static __inline void
+static inline void
 tlb1_get_tlbconf(void)
 {
 	uint32_t tlb1_cfg;
@@ -554,7 +554,7 @@ pv_alloc(void)
 }
 
 /* Free pv_entry structure. */
-static __inline void
+static inline void
 pv_free(pv_entry_t pve)
 {
 

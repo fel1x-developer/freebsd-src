@@ -60,7 +60,7 @@ possible future algorithms.
 
 static volatile int stopseeding = 0;
 
-static __inline void
+static inline void
 check_err(int err, const char *func)
 {
 	if (err != Z_OK) {

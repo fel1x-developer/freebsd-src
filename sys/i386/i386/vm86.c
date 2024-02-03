@@ -124,40 +124,40 @@ vm86_fuword(volatile const void *base)
 	return (fuword(base));
 }
 
-static __inline caddr_t
+static inline caddr_t
 MAKE_ADDR(u_short sel, u_short off)
 {
 	return ((caddr_t)((sel << 4) + off));
 }
 
-static __inline void
+static inline void
 GET_VEC(u_int vec, u_short *sel, u_short *off)
 {
 	*sel = vec >> 16;
 	*off = vec & 0xffff;
 }
 
-static __inline u_int
+static inline u_int
 MAKE_VEC(u_short sel, u_short off)
 {
 	return ((sel << 16) | off);
 }
 
-static __inline void
+static inline void
 PUSH(u_short x, struct vm86frame *vmf)
 {
 	vmf->vmf_sp -= 2;
 	vm86_suword16(MAKE_ADDR(vmf->vmf_ss, vmf->vmf_sp), x);
 }
 
-static __inline void
+static inline void
 PUSHL(u_int x, struct vm86frame *vmf)
 {
 	vmf->vmf_sp -= 4;
 	vm86_suword(MAKE_ADDR(vmf->vmf_ss, vmf->vmf_sp), x);
 }
 
-static __inline u_short
+static inline u_short
 POP(struct vm86frame *vmf)
 {
 	u_short x = vm86_fuword16(MAKE_ADDR(vmf->vmf_ss, vmf->vmf_sp));
@@ -166,7 +166,7 @@ POP(struct vm86frame *vmf)
 	return (x);
 }
 
-static __inline u_int
+static inline u_int
 POPL(struct vm86frame *vmf)
 {
 	u_int x = vm86_fuword(MAKE_ADDR(vmf->vmf_ss, vmf->vmf_sp));

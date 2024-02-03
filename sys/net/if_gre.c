@@ -449,7 +449,7 @@ gre_sofree(epoch_context_t ctx)
 	free(gs, M_GRE);
 }
 
-static __inline uint16_t
+static inline uint16_t
 gre_cksum_add(uint16_t sum, uint16_t a)
 {
 	uint16_t res;

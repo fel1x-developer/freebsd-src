@@ -226,7 +226,7 @@ int Kernel_DeviceIoControl(_VBUS_ARG
 
 /***********************************************************/
 
-static __inline struct cam_periph *
+static inline struct cam_periph *
 hpt_get_periph(int path_id,int target_id)
 {
 	struct cam_periph	*periph = NULL;

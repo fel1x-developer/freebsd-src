@@ -280,9 +280,9 @@ static void	bootpc_decode_reply(struct nfsv3_diskless *nd,
 static int	bootpc_received(struct bootpc_globalcontext *gctx,
 		    struct bootpc_ifcontext *ifctx);
 
-static __inline int bootpc_ifctx_isresolved(struct bootpc_ifcontext *ifctx);
-static __inline int bootpc_ifctx_isunresolved(struct bootpc_ifcontext *ifctx);
-static __inline int bootpc_ifctx_isfailed(struct bootpc_ifcontext *ifctx);
+static inline int bootpc_ifctx_isresolved(struct bootpc_ifcontext *ifctx);
+static inline int bootpc_ifctx_isunresolved(struct bootpc_ifcontext *ifctx);
+static inline int bootpc_ifctx_isfailed(struct bootpc_ifcontext *ifctx);
 
 /*
  * In order to have multiple active interfaces with address 0.0.0.0
@@ -351,7 +351,7 @@ allocifctx(struct bootpc_globalcontext *gctx)
 	STAILQ_INSERT_TAIL(&gctx->interfaces, ifctx, next);
 }
 
-static __inline int
+static inline int
 bootpc_ifctx_isresolved(struct bootpc_ifcontext *ifctx)
 {
 
@@ -361,7 +361,7 @@ bootpc_ifctx_isresolved(struct bootpc_ifcontext *ifctx)
 	return 0;
 }
 
-static __inline int
+static inline int
 bootpc_ifctx_isunresolved(struct bootpc_ifcontext *ifctx)
 {
 
@@ -371,7 +371,7 @@ bootpc_ifctx_isunresolved(struct bootpc_ifcontext *ifctx)
 	return 0;
 }
 
-static __inline int
+static inline int
 bootpc_ifctx_isfailed(struct bootpc_ifcontext *ifctx)
 {
 

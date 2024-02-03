@@ -260,7 +260,7 @@ static int re_encap		(struct rl_softc *, struct mbuf **);
 
 static void re_dma_map_addr	(void *, bus_dma_segment_t *, int, int);
 static int re_allocmem		(device_t, struct rl_softc *);
-static __inline void re_discard_rxbuf
+static inline void re_discard_rxbuf
 				(struct rl_softc *, int);
 static int re_newbuf		(struct rl_softc *, int);
 static int re_jumbo_newbuf	(struct rl_softc *, int);
@@ -268,7 +268,7 @@ static int re_rx_list_init	(struct rl_softc *);
 static int re_jrx_list_init	(struct rl_softc *);
 static int re_tx_list_init	(struct rl_softc *);
 #ifdef RE_FIXUP_RX
-static __inline void re_fixup_rx
+static inline void re_fixup_rx
 				(struct mbuf *);
 #endif
 static int re_rxeof		(struct rl_softc *, int *);
@@ -1923,7 +1923,7 @@ re_detach(device_t dev)
 	return (0);
 }
 
-static __inline void
+static inline void
 re_discard_rxbuf(struct rl_softc *sc, int idx)
 {
 	struct rl_desc		*desc;
@@ -2061,7 +2061,7 @@ re_jumbo_newbuf(struct rl_softc *sc, int idx)
 }
 
 #ifdef RE_FIXUP_RX
-static __inline void
+static inline void
 re_fixup_rx(struct mbuf *m)
 {
 	int                     i;

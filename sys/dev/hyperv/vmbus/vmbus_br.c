@@ -133,7 +133,7 @@ vmbus_rxbr_intr_mask(struct vmbus_rxbr *rbr)
 	mb();
 }
 
-static __inline uint32_t
+static inline uint32_t
 vmbus_rxbr_avail(const struct vmbus_rxbr *rbr)
 {
 	uint32_t rindex, windex;
@@ -191,7 +191,7 @@ vmbus_rxbr_setup(struct vmbus_rxbr *rbr, void *buf, int blen)
 	vmbus_br_setup(&rbr->rxbr, buf, blen);
 }
 
-static __inline boolean_t
+static inline boolean_t
 vmbus_rxbr_need_signal(const struct vmbus_rxbr *rbr, uint32_t bytes_read)
 {
 	uint32_t pending_snd_sz, canwrite_size;
@@ -273,7 +273,7 @@ vmbus_txbr_set_pending_snd_sz(struct vmbus_txbr *tbr, uint32_t size)
  *   empty, it will clear the br_imask and re-check to see if new
  *   data have arrived.
  */
-static __inline boolean_t
+static inline boolean_t
 vmbus_txbr_need_signal(const struct vmbus_txbr *tbr, uint32_t old_windex)
 {
 	mb();
@@ -292,7 +292,7 @@ vmbus_txbr_need_signal(const struct vmbus_txbr *tbr, uint32_t old_windex)
 	return (FALSE);
 }
 
-static __inline uint32_t
+static inline uint32_t
 vmbus_txbr_avail(const struct vmbus_txbr *tbr)
 {
 	uint32_t rindex, windex;
@@ -304,7 +304,7 @@ vmbus_txbr_avail(const struct vmbus_txbr *tbr)
 	return VMBUS_BR_WAVAIL(rindex, windex, tbr->txbr_dsize);
 }
 
-static __inline uint32_t
+static inline uint32_t
 vmbus_txbr_copyto(const struct vmbus_txbr *tbr, uint32_t windex,
     const void *src0, uint32_t cplen)
 {
@@ -324,7 +324,7 @@ vmbus_txbr_copyto(const struct vmbus_txbr *tbr, uint32_t windex,
 	return VMBUS_BR_IDXINC(windex, cplen, br_dsize);
 }
 
-static __inline uint32_t
+static inline uint32_t
 vmbus_txbr_copyto_call(const struct vmbus_txbr *tbr, uint32_t windex,
     uint32_t cplen, vmbus_br_copy_callback_t cb, void *cbarg, int *ret)
 {
@@ -500,7 +500,7 @@ vmbus_txbr_write(struct vmbus_txbr *tbr, const struct iovec iov[], int iovlen,
 	return (0);
 }
 
-static __inline uint32_t
+static inline uint32_t
 vmbus_rxbr_copyfrom(const struct vmbus_rxbr *rbr, uint32_t rindex,
     void *dst0, int cplen)
 {
@@ -520,7 +520,7 @@ vmbus_rxbr_copyfrom(const struct vmbus_rxbr *rbr, uint32_t rindex,
 	return VMBUS_BR_IDXINC(rindex, cplen, br_dsize);
 }
 
-static __inline uint32_t
+static inline uint32_t
 vmbus_rxbr_copyfrom_call(const struct vmbus_rxbr *rbr, uint32_t rindex,
     int cplen, vmbus_br_copy_callback_t cb, void *cbarg)
 {

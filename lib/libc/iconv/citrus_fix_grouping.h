@@ -36,7 +36,7 @@
 #define _CITRUS_LC_GROUPING_VALUE_NO_FUTHER	127
 
 #if CHAR_MAX != _CITRUS_LC_GROUPING_VALUE_NO_FUTHER
-static __inline void
+static inline void
 _citrus_fixup_char_max_md(char *grouping)
 {
 	char *p;

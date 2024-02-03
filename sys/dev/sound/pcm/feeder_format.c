@@ -61,14 +61,14 @@ struct feed_format_info {
  * dummy ac3/dts passthrough, etc.
  * XXX assume as s16le.
  */
-static __inline intpcm_t
+static inline intpcm_t
 intpcm_read_null(uint8_t *src __unused)
 {
 
 	return (0);
 }
 
-static __inline void
+static inline void
 intpcm_write_null(uint8_t *dst, intpcm_t v __unused)
 {
 

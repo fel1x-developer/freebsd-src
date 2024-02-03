@@ -71,7 +71,7 @@ int	vmcs_snapshot_any(struct vmcs *vmcs, int running, int ident,
  * Avoid header pollution caused by inline use of 'vtophys()' in vmx_cpufunc.h
  */
 #ifdef _VMX_CPUFUNC_H_
-static __inline uint64_t
+static inline uint64_t
 vmcs_read(uint32_t encoding)
 {
 	int error __diagused;
@@ -82,7 +82,7 @@ vmcs_read(uint32_t encoding)
 	return (val);
 }
 
-static __inline void
+static inline void
 vmcs_write(uint32_t encoding, uint64_t val)
 {
 	int error __diagused;

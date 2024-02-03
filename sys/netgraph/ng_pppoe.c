@@ -324,7 +324,7 @@ static	int	pppoe_send_event(sessp sp, enum cmd cmdid);
 /*
  * Return the location where the next tag can be put
  */
-static __inline const struct pppoe_tag*
+static inline const struct pppoe_tag*
 next_tag(const struct pppoe_hdr* ph)
 {
 	return (const struct pppoe_tag*)(((const char*)(ph + 1))

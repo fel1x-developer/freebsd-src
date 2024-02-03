@@ -71,7 +71,7 @@ usage(void)
 	exit(-1);
 }
 
-static __inline void
+static inline void
 timespec_add(struct timespec *tsa, struct timespec *tsb)
 {
 
@@ -83,7 +83,7 @@ timespec_add(struct timespec *tsa, struct timespec *tsb)
         }
 }
 
-static __inline void
+static inline void
 timespec_sub(struct timespec *tsa, struct timespec *tsb)
 {
 

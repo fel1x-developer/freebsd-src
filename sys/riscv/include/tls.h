@@ -42,13 +42,13 @@
 #define	TLS_TCB_ALIGN	16
 #define	TLS_TP_OFFSET	0
 
-static __inline void
+static inline void
 _tcb_set(struct tcb *tcb)
 {
 	__asm __volatile("addi tp, %0, %1" :: "r" (tcb), "I" (TLS_TCB_SIZE));
 }
 
-static __inline struct tcb *
+static inline struct tcb *
 _tcb_get(void)
 {
 	struct tcb *tcb;

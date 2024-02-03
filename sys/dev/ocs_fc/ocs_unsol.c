@@ -568,7 +568,7 @@ ocs_domain_accept_frames(ocs_domain_t *domain)
  * up appropriately, -1 if frame not handled.
  */
 
-static __inline int32_t
+static inline int32_t
 ocs_domain_dispatch_frame(void *arg, ocs_hw_sequence_t *seq)
 {
 	ocs_domain_t *domain = (ocs_domain_t *)arg;

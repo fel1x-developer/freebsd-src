@@ -49,7 +49,7 @@ _Static_assert(sizeof(struct pcpu) == UMA_PCPU_ALLOC_SIZE, "fix pcpu size");
 extern struct pcpu *__pcpu;
 extern struct pcpu temp_bsp_pcpu;
 
-static __inline __pure2 struct thread *
+static inline __pure2 struct thread *
 __curthread(void)
 {
 	struct thread *td;

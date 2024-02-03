@@ -656,7 +656,7 @@ char *lkpi_devm_kasprintf(struct device *, gfp_t, const char *, ...);
 #define	devm_kasprintf(_dev, _gfp, _fmt, ...)			\
     lkpi_devm_kasprintf(_dev, _gfp, _fmt, ##__VA_ARGS__)
 
-static __inline void *
+static inline void *
 devm_kmalloc(struct device *dev, size_t size, gfp_t gfp)
 {
 	void *p;

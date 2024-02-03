@@ -196,7 +196,7 @@ struct in_msource {
 
 RB_HEAD(ip_msource_tree, ip_msource);	/* define struct ip_msource_tree */
 
-static __inline int
+static inline int
 ip_msource_cmp(const struct ip_msource *a, const struct ip_msource *b)
 {
 
@@ -337,7 +337,7 @@ struct in_multi {
  *  and at least one listener includes it.
  * May be used by ifmcstat(8).
  */
-static __inline uint8_t
+static inline uint8_t
 ims_get_mode(const struct in_multi *inm, const struct ip_msource *ims,
     uint8_t t)
 {
@@ -382,7 +382,7 @@ void inm_disconnect(struct in_multi *inm);
  * Get the in_multi pointer from a ifmultiaddr.
  * Returns NULL if ifmultiaddr is no longer valid.
  */
-static __inline struct in_multi *
+static inline struct in_multi *
 inm_ifmultiaddr_get_inm(struct ifmultiaddr *ifma)
 {
 
@@ -394,7 +394,7 @@ inm_ifmultiaddr_get_inm(struct ifmultiaddr *ifma)
 }
 
 /* Acquire an in_multi record. */
-static __inline void
+static inline void
 inm_acquire_locked(struct in_multi *inm)
 {
 
@@ -402,7 +402,7 @@ inm_acquire_locked(struct in_multi *inm)
 	++inm->inm_refcount;
 }
 
-static __inline void
+static inline void
 inm_acquire(struct in_multi *inm)
 {
 	IN_MULTI_LIST_LOCK();
@@ -410,7 +410,7 @@ inm_acquire(struct in_multi *inm)
 	IN_MULTI_LIST_UNLOCK();
 }
 
-static __inline void
+static inline void
 inm_rele_locked(struct in_multi_head *inmh, struct in_multi *inm)
 {
 	MPASS(inm->inm_refcount > 0);

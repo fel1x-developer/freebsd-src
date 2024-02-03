@@ -326,7 +326,7 @@ void	ieee80211_node_vattach(struct ieee80211vap *);
 void	ieee80211_node_latevattach(struct ieee80211vap *);
 void	ieee80211_node_vdetach(struct ieee80211vap *);
 
-static __inline int
+static inline int
 ieee80211_node_is_authorized(const struct ieee80211_node *ni)
 {
 	return (ni->ni_flags & IEEE80211_NODE_AUTH);

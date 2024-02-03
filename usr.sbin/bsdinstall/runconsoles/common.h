@@ -36,7 +36,7 @@ struct pipe_barrier {
 	volatile int		fds[2];
 };
 
-static __inline int
+static inline int
 pipe_barrier_init(struct pipe_barrier *p)
 {
 	int error, fds[2], i;
@@ -51,7 +51,7 @@ pipe_barrier_init(struct pipe_barrier *p)
 	return (0);
 }
 
-static __inline void
+static inline void
 pipe_barrier_wait(struct pipe_barrier *p)
 {
 	ssize_t ret;
@@ -66,7 +66,7 @@ pipe_barrier_wait(struct pipe_barrier *p)
 	close(fd);
 }
 
-static __inline void
+static inline void
 pipe_barrier_ready(struct pipe_barrier *p)
 {
 	int fd;
@@ -76,7 +76,7 @@ pipe_barrier_ready(struct pipe_barrier *p)
 	close(fd);
 }
 
-static __inline void
+static inline void
 pipe_barrier_destroy_impl(struct pipe_barrier *p, int i)
 {
 	int fd;
@@ -88,19 +88,19 @@ pipe_barrier_destroy_impl(struct pipe_barrier *p, int i)
 	}
 }
 
-static __inline void
+static inline void
 pipe_barrier_destroy_wait(struct pipe_barrier *p)
 {
 	pipe_barrier_destroy_impl(p, 0);
 }
 
-static __inline void
+static inline void
 pipe_barrier_destroy_ready(struct pipe_barrier *p)
 {
 	pipe_barrier_destroy_impl(p, 1);
 }
 
-static __inline void
+static inline void
 pipe_barrier_destroy(struct pipe_barrier *p)
 {
 	pipe_barrier_destroy_wait(p);

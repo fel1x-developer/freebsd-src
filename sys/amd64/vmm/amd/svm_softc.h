@@ -89,35 +89,35 @@ struct svm_softc {
 #define	SVM_CTR4(vcpu, format, p1, p2, p3, p4)				\
 	VCPU_CTR4((vcpu)->sc->vm, (vcpu)->vcpuid, format, p1, p2, p3, p4)
 
-static __inline struct vmcb *
+static inline struct vmcb *
 svm_get_vmcb(struct svm_vcpu *vcpu)
 {
 
 	return (vcpu->vmcb);
 }
 
-static __inline struct vmcb_state *
+static inline struct vmcb_state *
 svm_get_vmcb_state(struct svm_vcpu *vcpu)
 {
 
 	return (&vcpu->vmcb->state);
 }
 
-static __inline struct vmcb_ctrl *
+static inline struct vmcb_ctrl *
 svm_get_vmcb_ctrl(struct svm_vcpu *vcpu)
 {
 
 	return (&vcpu->vmcb->ctrl);
 }
 
-static __inline struct svm_regctx *
+static inline struct svm_regctx *
 svm_get_guest_regctx(struct svm_vcpu *vcpu)
 {
 
 	return (&vcpu->swctx);
 }
 
-static __inline void
+static inline void
 svm_set_dirty(struct svm_vcpu *vcpu, uint32_t dirtybits)
 {
 

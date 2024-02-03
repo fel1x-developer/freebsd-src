@@ -90,7 +90,7 @@
 
 #define QLA_USEC_DELAY(usec)	DELAY(usec)
 
-static __inline int qls_ms_to_hz(int ms)
+static inline int qls_ms_to_hz(int ms)
 {
 	int qla_hz;
 
@@ -109,7 +109,7 @@ static __inline int qls_ms_to_hz(int ms)
 	return (qla_hz);
 }
 
-static __inline int qls_sec_to_hz(int sec)
+static inline int qls_sec_to_hz(int sec)
 {
 	struct timeval t;
 

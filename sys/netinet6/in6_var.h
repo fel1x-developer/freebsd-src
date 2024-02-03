@@ -523,7 +523,7 @@ VNET_DECLARE(u_long, in6_ifaddrhmask);
 #define	IN6ADDR_HASH(x) \
     (&V_in6_ifaddrhashtbl[IN6ADDR_HASHVAL(x) & V_in6_ifaddrhmask])
 
-static __inline uint32_t
+static inline uint32_t
 in6_addrhash(const struct in6_addr *in6)
 {
 	uint32_t x;
@@ -586,7 +586,7 @@ struct in6_msource {
  * An ordered predicate is necessary; bcmp() is not documented to return
  * an indication of order, memcmp() is, and is an ISO C99 requirement.
  */
-static __inline int
+static inline int
 ip6_msource_cmp(const struct ip6_msource *a, const struct ip6_msource *b)
 {
 
@@ -732,7 +732,7 @@ void in6m_disconnect_locked(struct in6_multi_head *inmh, struct in6_multi *inm);
  *  and at least one listener includes it.
  * May be used by ifmcstat(8).
  */
-static __inline uint8_t
+static inline uint8_t
 im6s_get_mode(const struct in6_multi *inm, const struct ip6_msource *ims,
     uint8_t t)
 {
@@ -769,7 +769,7 @@ extern struct sx in6_multi_sx;
  * Get the in6_multi pointer from a ifmultiaddr.
  * Returns NULL if ifmultiaddr is no longer valid.
  */
-static __inline struct in6_multi *
+static inline struct in6_multi *
 in6m_ifmultiaddr_get_inm(struct ifmultiaddr *ifma)
 {
 
@@ -786,7 +786,7 @@ in6m_lookup_locked(struct ifnet *ifp, const struct in6_addr *mcaddr);
  *
  * SMPng: Assumes network epoch entered and that IN6_MULTI_LOCK() isn't held.
  */
-static __inline struct in6_multi *
+static inline struct in6_multi *
 in6m_lookup(struct ifnet *ifp, const struct in6_addr *mcaddr)
 {
 	struct in6_multi *inm;
@@ -801,7 +801,7 @@ in6m_lookup(struct ifnet *ifp, const struct in6_addr *mcaddr)
 }
 
 /* Acquire an in6_multi record. */
-static __inline void
+static inline void
 in6m_acquire_locked(struct in6_multi *inm)
 {
 
@@ -809,7 +809,7 @@ in6m_acquire_locked(struct in6_multi *inm)
 	++inm->in6m_refcount;
 }
 
-static __inline void
+static inline void
 in6m_acquire(struct in6_multi *inm)
 {
 	IN6_MULTI_LIST_LOCK();
@@ -817,7 +817,7 @@ in6m_acquire(struct in6_multi *inm)
 	IN6_MULTI_LIST_UNLOCK();
 }
 
-static __inline void
+static inline void
 in6m_rele_locked(struct in6_multi_head *inmh, struct in6_multi *inm)
 {
 	KASSERT(inm->in6m_refcount > 0, ("refcount == %d inm: %p", inm->in6m_refcount, inm));

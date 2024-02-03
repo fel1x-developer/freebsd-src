@@ -384,7 +384,7 @@ ubser_pre_param(struct ucom_softc *ucom, struct termios *t)
 	return (0);
 }
 
-static __inline void
+static inline void
 ubser_inc_tx_unit(struct ubser_softc *sc)
 {
 	sc->sc_curr_tx_unit++;

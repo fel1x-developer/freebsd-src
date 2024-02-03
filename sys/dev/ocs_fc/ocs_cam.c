@@ -1282,7 +1282,7 @@ ocs_scsi_ini_io_exit(ocs_io_t *io)
  * End of functions required by SCSI base driver API
  ***************************************************************************/
 
-static __inline void
+static inline void
 ocs_set_ccb_status(union ccb *ccb, cam_status status)
 {
 	ccb->ccb_h.status &= ~CAM_STATUS_MASK;

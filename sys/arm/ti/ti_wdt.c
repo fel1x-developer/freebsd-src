@@ -90,14 +90,14 @@ static driver_t ti_wdt_driver = {
 DRIVER_MODULE(ti_wdt, simplebus, ti_wdt_driver, 0, 0);
 MODULE_DEPEND(ti_wdt, ti_sysc, 1, 1, 1);
 
-static __inline uint32_t
+static inline uint32_t
 ti_wdt_reg_read(struct ti_wdt_softc *sc, uint32_t reg)
 {
 
 	return (bus_space_read_4(sc->sc_bt, sc->sc_bh, reg));
 }
 
-static __inline void
+static inline void
 ti_wdt_reg_write(struct ti_wdt_softc *sc, uint32_t reg, uint32_t val)
 {
 
@@ -107,7 +107,7 @@ ti_wdt_reg_write(struct ti_wdt_softc *sc, uint32_t reg, uint32_t val)
 /*
  * Wait for the write to a specific synchronised register to complete.
  */
-static __inline void
+static inline void
 ti_wdt_reg_wait(struct ti_wdt_softc *sc, uint32_t bit)
 {
 
@@ -115,7 +115,7 @@ ti_wdt_reg_wait(struct ti_wdt_softc *sc, uint32_t bit)
 		DELAY(10);
 }
 
-static __inline void
+static inline void
 ti_wdt_disable(struct ti_wdt_softc *sc)
 {
 
@@ -126,7 +126,7 @@ ti_wdt_disable(struct ti_wdt_softc *sc)
 	ti_wdt_reg_wait(sc, TI_W_PEND_WSPR);
 }
 
-static __inline void
+static inline void
 ti_wdt_enable(struct ti_wdt_softc *sc)
 {
 

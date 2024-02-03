@@ -316,7 +316,7 @@ static xpt_busfunc_t	xptsetasyncbusfunc;
 static cam_status	xptregister(struct cam_periph *periph,
 				    void *arg);
 
-static __inline int
+static inline int
 xpt_schedule_devq(struct cam_devq *devq, struct cam_ed *dev)
 {
 	int	retval;
@@ -340,7 +340,7 @@ xpt_schedule_devq(struct cam_devq *devq, struct cam_ed *dev)
 	return (retval);
 }
 
-static __inline int
+static inline int
 device_is_queued(struct cam_ed *device)
 {
 	return (device->devq_entry.index != CAM_UNQUEUED_INDEX);

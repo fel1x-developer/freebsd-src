@@ -59,7 +59,7 @@ int linuxkpi_request_partial_firmware_into_buf(const struct linuxkpi_firmware **
     const char *, struct device *, uint8_t *, size_t, size_t);
 
 
-static __inline int
+static inline int
 request_firmware_nowait(struct module *mod, bool _t,
     const char *fw_name, struct device *dev, gfp_t gfp, void *drv,
     void(*cont)(const struct linuxkpi_firmware *, void *))
@@ -70,7 +70,7 @@ request_firmware_nowait(struct module *mod, bool _t,
 	    drv, cont));
 }
 
-static __inline int
+static inline int
 request_firmware(const struct linuxkpi_firmware **fw,
     const char *fw_name, struct device *dev)
 {
@@ -78,7 +78,7 @@ request_firmware(const struct linuxkpi_firmware **fw,
 	return (linuxkpi_request_firmware(fw, fw_name, dev));
 }
 
-static __inline int
+static inline int
 request_firmware_direct(const struct linuxkpi_firmware **fw,
     const char *fw_name, struct device *dev)
 {
@@ -86,7 +86,7 @@ request_firmware_direct(const struct linuxkpi_firmware **fw,
 	return (linuxkpi_request_firmware(fw, fw_name, dev));
 }
 
-static __inline int
+static inline int
 firmware_request_nowarn(const struct linuxkpi_firmware **fw,
     const char *fw_name, struct device *dev)
 {
@@ -94,7 +94,7 @@ firmware_request_nowarn(const struct linuxkpi_firmware **fw,
 	return (linuxkpi_firmware_request_nowarn(fw, fw_name, dev));
 }
 
-static __inline void
+static inline void
 release_firmware(const struct linuxkpi_firmware *fw)
 {
 

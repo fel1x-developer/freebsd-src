@@ -87,7 +87,7 @@ struct fq_codel_si {
  * positive len -> enqueue
  * positive len + drop -> drop during enqueue
  */
-__inline static void
+inline static void
 fq_update_stats(struct fq_codel_flow *q, struct fq_codel_si *si, int len,
 	int drop)
 {
@@ -133,7 +133,7 @@ fq_update_stats(struct fq_codel_flow *q, struct fq_codel_si *si, int len,
 }
 
 /* extract the head of fq_codel sub-queue */
-__inline static struct mbuf *
+inline static struct mbuf *
 fq_codel_extract_head(struct fq_codel_flow *q, aqm_time_t *pkt_ts, struct fq_codel_si *si)
 {
 	struct mbuf *m;

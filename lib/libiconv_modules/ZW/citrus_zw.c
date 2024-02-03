@@ -75,7 +75,7 @@ typedef struct {
 #define _ENCODING_IS_STATE_DEPENDENT		1
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	((_ps_)->charset != NONE)
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_ZW_init_state(_ZWEncodingInfo * __restrict ei __unused,
     _ZWState * __restrict psenc)
@@ -86,7 +86,7 @@ _citrus_ZW_init_state(_ZWEncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_ZW_pack_state(_ZWEncodingInfo * __restrict ei __unused,
     void *__restrict pspriv, const _ZWState * __restrict psenc)
@@ -95,7 +95,7 @@ _citrus_ZW_pack_state(_ZWEncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)psenc, sizeof(*psenc));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_ZW_unpack_state(_ZWEncodingInfo * __restrict ei __unused,
     _ZWState * __restrict psenc, const void * __restrict pspriv)
@@ -364,7 +364,7 @@ _citrus_ZW_put_state_reset(_ZWEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_ZW_stdenc_get_state_desc_generic(_ZWEncodingInfo * __restrict ei __unused,
     _ZWState * __restrict psenc, int * __restrict rstate)
@@ -402,7 +402,7 @@ _citrus_ZW_stdenc_get_state_desc_generic(_ZWEncodingInfo * __restrict ei __unuse
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_ZW_stdenc_wctocs(_ZWEncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -414,7 +414,7 @@ _citrus_ZW_stdenc_wctocs(_ZWEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_ZW_stdenc_cstowc(_ZWEncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)

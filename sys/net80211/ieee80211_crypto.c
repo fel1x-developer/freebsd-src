@@ -98,13 +98,13 @@ static void null_key_update(struct ieee80211vap *vap) {}
 /*
  * Write-arounds for common operations.
  */
-static __inline void
+static inline void
 cipher_detach(struct ieee80211_key *key)
 {
 	key->wk_cipher->ic_detach(key);
 }
 
-static __inline void *
+static inline void *
 cipher_attach(struct ieee80211vap *vap, struct ieee80211_key *key)
 {
 	return key->wk_cipher->ic_attach(vap, key);
@@ -113,7 +113,7 @@ cipher_attach(struct ieee80211vap *vap, struct ieee80211_key *key)
 /* 
  * Wrappers for driver key management methods.
  */
-static __inline int
+static inline int
 dev_key_alloc(struct ieee80211vap *vap,
 	struct ieee80211_key *key,
 	ieee80211_keyix *keyix, ieee80211_keyix *rxkeyix)
@@ -121,14 +121,14 @@ dev_key_alloc(struct ieee80211vap *vap,
 	return vap->iv_key_alloc(vap, key, keyix, rxkeyix);
 }
 
-static __inline int
+static inline int
 dev_key_delete(struct ieee80211vap *vap,
 	const struct ieee80211_key *key)
 {
 	return vap->iv_key_delete(vap, key);
 }
 
-static __inline int
+static inline int
 dev_key_set(struct ieee80211vap *vap, const struct ieee80211_key *key)
 {
 	return vap->iv_key_set(vap, key);

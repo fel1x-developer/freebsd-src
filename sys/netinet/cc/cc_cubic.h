@@ -146,7 +146,7 @@ extern int hz;
  *
  */
 
-static __inline float
+static inline float
 theoretical_cubic_k(double wmax_pkts)
 {
 	double C;
@@ -156,7 +156,7 @@ theoretical_cubic_k(double wmax_pkts)
 	return (pow((wmax_pkts * 0.3) / C, (1.0 / 3.0)) * pow(2, CUBIC_SHIFT));
 }
 
-static __inline unsigned long
+static inline unsigned long
 theoretical_cubic_cwnd(int ticks_since_epoch, unsigned long wmax, uint32_t smss)
 {
 	double C, wmax_pkts;
@@ -169,7 +169,7 @@ theoretical_cubic_cwnd(int ticks_since_epoch, unsigned long wmax, uint32_t smss)
 	    theoretical_cubic_k(wmax_pkts) / pow(2, CUBIC_SHIFT), 3.0))));
 }
 
-static __inline unsigned long
+static inline unsigned long
 theoretical_reno_cwnd(int ticks_since_epoch, int rtt_ticks, unsigned long wmax,
     uint32_t smss)
 {
@@ -177,7 +177,7 @@ theoretical_reno_cwnd(int ticks_since_epoch, int rtt_ticks, unsigned long wmax,
 	return ((wmax * 0.5) + ((ticks_since_epoch / (float)rtt_ticks) * smss));
 }
 
-static __inline unsigned long
+static inline unsigned long
 theoretical_tf_cwnd(int ticks_since_epoch, int rtt_ticks, unsigned long wmax,
     uint32_t smss)
 {
@@ -193,7 +193,7 @@ theoretical_tf_cwnd(int ticks_since_epoch, int rtt_ticks, unsigned long wmax,
  * implementation of eqn 2 in the I-D. The method used
  * here is adapted from Apple Computer Technical Report #KT-32.
  */
-static __inline int64_t
+static inline int64_t
 cubic_k(unsigned long wmax_pkts)
 {
 	int64_t s, K;
@@ -229,7 +229,7 @@ cubic_k(unsigned long wmax_pkts)
  *
  * XXXLAS: Characterise bounds for overflow.
  */
-static __inline unsigned long
+static inline unsigned long
 cubic_cwnd(int usecs_since_epoch, unsigned long wmax, uint32_t smss, int64_t K)
 {
 	int64_t cwnd;
@@ -273,7 +273,7 @@ cubic_cwnd(int usecs_since_epoch, unsigned long wmax, uint32_t smss, int64_t K)
  *
  * XXX: Not used
  */
-static __inline unsigned long
+static inline unsigned long
 reno_cwnd(int usecs_since_epoch, int rtt_usecs, unsigned long wmax,
     uint32_t smss)
 {
@@ -294,7 +294,7 @@ reno_cwnd(int usecs_since_epoch, int rtt_usecs, unsigned long wmax,
  * estimate for the path measured over the previous congestion epoch and wmax is
  * the value of cwnd at the last congestion event.
  */
-static __inline unsigned long
+static inline unsigned long
 tf_cwnd(int usecs_since_epoch, int rtt_usecs, unsigned long wmax,
     uint32_t smss)
 {

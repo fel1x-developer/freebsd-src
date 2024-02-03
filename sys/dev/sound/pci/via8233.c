@@ -137,7 +137,7 @@ static uint32_t via_fmt[] = {
 static struct pcmchan_caps via_vracaps = { 4000, 48000, via_fmt, 0 };
 static struct pcmchan_caps via_caps = { 48000, 48000, via_fmt, 0 };
 
-static __inline int
+static inline int
 via_chan_active(struct via_info *via)
 {
 	int i, ret = 0;
@@ -270,7 +270,7 @@ via_init_sysctls(device_t dev)
 	    dev, sizeof(dev), sysctl_via_polling, "I", "Enable polling mode");
 }
 
-static __inline uint32_t
+static inline uint32_t
 via_rd(struct via_info *via, int regno, int size)
 {
 	switch (size) {
@@ -285,7 +285,7 @@ via_rd(struct via_info *via, int regno, int size)
 	}
 }
 
-static __inline void
+static inline void
 via_wr(struct via_info *via, int regno, uint32_t data, int size)
 {
 
@@ -767,7 +767,7 @@ via8233chan_mute(struct via_info *via, struct via_chinfo *ch, int muted)
 	}
 }
 
-static __inline int
+static inline int
 via_poll_channel(struct via_chinfo *ch)
 {
 	struct via_info *via;

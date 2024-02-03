@@ -123,21 +123,21 @@ static driver_t i2c_driver = {
 DRIVER_MODULE(i2c, simplebus, i2c_driver, 0, 0);
 DRIVER_MODULE(iicbus, i2c, iicbus_driver, 0, 0);
 
-static __inline void
+static inline void
 i2c_write_reg(struct i2c_softc *sc, bus_size_t off, uint8_t val)
 {
 
 	bus_space_write_1(sc->bst, sc->bsh, off, val);
 }
 
-static __inline uint8_t
+static inline uint8_t
 i2c_read_reg(struct i2c_softc *sc, bus_size_t off)
 {
 
 	return (bus_space_read_1(sc->bst, sc->bsh, off));
 }
 
-static __inline void
+static inline void
 i2c_flag_set(struct i2c_softc *sc, bus_size_t off, uint8_t mask)
 {
 	uint8_t status;

@@ -314,13 +314,13 @@ struct ciss_softc
 	} while(0)
 
 #define CISSQ_REQUEST_QUEUE(name, index)				\
-static __inline void							\
+static inline void							\
 ciss_initq_ ## name (struct ciss_softc *sc)				\
 {									\
     STAILQ_INIT(&sc->ciss_ ## name);					\
     CISSQ_INIT(sc, index);						\
 }									\
-static __inline void							\
+static inline void							\
 ciss_enqueue_ ## name (struct ciss_request *cr)				\
 {									\
 									\
@@ -328,7 +328,7 @@ ciss_enqueue_ ## name (struct ciss_request *cr)				\
     CISSQ_ADD(cr->cr_sc, index);					\
     cr->cr_onq = index;							\
 }									\
-static __inline void							\
+static inline void							\
 ciss_requeue_ ## name (struct ciss_request *cr)				\
 {									\
 									\
@@ -336,7 +336,7 @@ ciss_requeue_ ## name (struct ciss_request *cr)				\
     CISSQ_ADD(cr->cr_sc, index);					\
     cr->cr_onq = index;							\
 }									\
-static __inline struct ciss_request *					\
+static inline struct ciss_request *					\
 ciss_dequeue_ ## name (struct ciss_softc *sc)				\
 {									\
     struct ciss_request	*cr;						\
@@ -353,14 +353,14 @@ struct hack
 CISSQ_REQUEST_QUEUE(free, CISSQ_FREE);
 CISSQ_REQUEST_QUEUE(notify, CISSQ_NOTIFY);
 
-static __inline void
+static inline void
 ciss_enqueue_complete(struct ciss_request *ac, cr_qhead_t *head)
 {
 
     STAILQ_INSERT_TAIL(head, ac, cr_link);
 }
 
-static __inline struct ciss_request *
+static inline struct ciss_request *
 ciss_dequeue_complete(struct ciss_softc *sc, cr_qhead_t *head)
 {
     struct ciss_request  *ac;
@@ -373,7 +373,7 @@ ciss_dequeue_complete(struct ciss_softc *sc, cr_qhead_t *head)
 /********************************************************************************
  * space-fill a character string
  */
-static __inline void
+static inline void
 padstr(char *targ, const char *src, int len)
 {
     while (len-- > 0) {

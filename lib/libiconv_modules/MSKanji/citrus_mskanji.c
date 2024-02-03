@@ -120,7 +120,7 @@ _mskanji2(int c)
 	return ((c >= 0x40 && c <= 0x7e) || (c >= 0x80 && c <= 0xfc));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_MSKanji_init_state(_MSKanjiEncodingInfo * __restrict ei __unused,
     _MSKanjiState * __restrict s)
@@ -130,7 +130,7 @@ _citrus_MSKanji_init_state(_MSKanjiEncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_MSKanji_pack_state(_MSKanjiEncodingInfo * __restrict ei __unused,
     void * __restrict pspriv, const _MSKanjiState * __restrict s)
@@ -139,7 +139,7 @@ _citrus_MSKanji_pack_state(_MSKanjiEncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)s, sizeof(*s));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_MSKanji_unpack_state(_MSKanjiEncodingInfo * __restrict ei __unused,
     _MSKanjiState * __restrict s, const void * __restrict pspriv)
@@ -279,7 +279,7 @@ err:
 }
 
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_MSKanji_stdenc_wctocs(_MSKanjiEncodingInfo * __restrict ei,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -362,7 +362,7 @@ _citrus_MSKanji_stdenc_wctocs(_MSKanjiEncodingInfo * __restrict ei,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_MSKanji_stdenc_cstowc(_MSKanjiEncodingInfo * __restrict ei,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -425,7 +425,7 @@ _citrus_MSKanji_stdenc_cstowc(_MSKanjiEncodingInfo * __restrict ei,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_MSKanji_stdenc_get_state_desc_generic(_MSKanjiEncodingInfo * __restrict ei __unused,
     _MSKanjiState * __restrict psenc, int * __restrict rstate)

@@ -60,7 +60,7 @@ static const unsigned long caph_stream_cmds[] =
     };
 static const uint32_t caph_stream_fcntls = CAP_FCNTL_GETFL;
 
-static __inline void
+static inline void
 caph_stream_rights(cap_rights_t *rights, int flags)
 {
 
@@ -75,7 +75,7 @@ caph_stream_rights(cap_rights_t *rights, int flags)
 		cap_rights_set(rights, CAP_LOOKUP);
 }
 
-static __inline int
+static inline int
 caph_limit_stream(int fd, int flags)
 {
 	cap_rights_t rights;
@@ -97,28 +97,28 @@ caph_limit_stream(int fd, int flags)
 	return (0);
 }
 
-static __inline int
+static inline int
 caph_limit_stdin(void)
 {
 
 	return (caph_limit_stream(STDIN_FILENO, CAPH_READ));
 }
 
-static __inline int
+static inline int
 caph_limit_stderr(void)
 {
 
 	return (caph_limit_stream(STDERR_FILENO, CAPH_WRITE));
 }
 
-static __inline int
+static inline int
 caph_limit_stdout(void)
 {
 
 	return (caph_limit_stream(STDOUT_FILENO, CAPH_WRITE));
 }
 
-static __inline int
+static inline int
 caph_limit_stdio(void)
 {
 	const int iebadf = CAPH_IGNORE_EBADF;
@@ -130,21 +130,21 @@ caph_limit_stdio(void)
 	return (0);
 }
 
-static __inline void
+static inline void
 caph_cache_tzdata(void)
 {
 
 	tzset();
 }
 
-static __inline void
+static inline void
 caph_cache_catpages(void)
 {
 
 	(void)catopen("libc", NL_CAT_LOCALE);
 }
 
-static __inline int
+static inline int
 caph_enter(void)
 {
 
@@ -154,7 +154,7 @@ caph_enter(void)
 	return (0);
 }
 
-static __inline int
+static inline int
 caph_rights_limit(int fd, const cap_rights_t *rights)
 {
 
@@ -164,7 +164,7 @@ caph_rights_limit(int fd, const cap_rights_t *rights)
 	return (0);
 }
 
-static __inline int
+static inline int
 caph_ioctls_limit(int fd, const unsigned long *cmds, size_t ncmds)
 {
 
@@ -174,7 +174,7 @@ caph_ioctls_limit(int fd, const unsigned long *cmds, size_t ncmds)
 	return (0);
 }
 
-static __inline int
+static inline int
 caph_fcntls_limit(int fd, uint32_t fcntlrights)
 {
 
@@ -184,7 +184,7 @@ caph_fcntls_limit(int fd, uint32_t fcntlrights)
 	return (0);
 }
 
-static __inline int
+static inline int
 caph_enter_casper(void)
 {
 

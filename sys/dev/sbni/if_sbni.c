@@ -115,10 +115,10 @@ static void	set_initial_values(struct sbni_softc *, struct sbni_flags);
 static u_int32_t	calc_crc32(u_int32_t, caddr_t, u_int);
 static callout_func_t	sbni_timeout;
 
-static __inline u_char	sbni_inb(struct sbni_softc *, enum sbni_reg);
-static __inline void	sbni_outb(struct sbni_softc *, enum sbni_reg, u_char);
-static __inline void	sbni_insb(struct sbni_softc *, u_char *, u_int);
-static __inline void	sbni_outsb(struct sbni_softc *, u_char *, u_int);
+static inline u_char	sbni_inb(struct sbni_softc *, enum sbni_reg);
+static inline void	sbni_outb(struct sbni_softc *, enum sbni_reg, u_char);
+static inline void	sbni_insb(struct sbni_softc *, u_char *, u_int);
+static inline void	sbni_outsb(struct sbni_softc *, u_char *, u_int);
 
 static u_int32_t crc32tab[];
 
@@ -130,7 +130,7 @@ static struct sbni_softc *sbni_headlist;
 
 /* -------------------------------------------------------------------------- */
 
-static __inline u_char
+static inline u_char
 sbni_inb(struct sbni_softc *sc, enum sbni_reg reg)
 {
 	return bus_space_read_1(
@@ -139,7 +139,7 @@ sbni_inb(struct sbni_softc *sc, enum sbni_reg reg)
 	    sc->io_off + reg);
 }
 
-static __inline void
+static inline void
 sbni_outb(struct sbni_softc *sc, enum sbni_reg reg, u_char value)
 {
 	bus_space_write_1(
@@ -148,7 +148,7 @@ sbni_outb(struct sbni_softc *sc, enum sbni_reg reg, u_char value)
 	    sc->io_off + reg, value);
 }
 
-static __inline void
+static inline void
 sbni_insb(struct sbni_softc *sc, u_char *to, u_int len)
 {
 	bus_space_read_multi_1(
@@ -157,7 +157,7 @@ sbni_insb(struct sbni_softc *sc, u_char *to, u_int len)
 	    sc->io_off + DAT, to, len);
 }
 
-static __inline void
+static inline void
 sbni_outsb(struct sbni_softc *sc, u_char *from, u_int len)
 {
 	bus_space_write_multi_1(
@@ -616,9 +616,9 @@ upload_data(struct sbni_softc *sc, u_int framelen, u_int frameno,
 	return (frame_ok);
 }
 
-static __inline void	send_complete(struct sbni_softc *);
+static inline void	send_complete(struct sbni_softc *);
 
-static __inline void
+static inline void
 send_complete(struct sbni_softc *sc)
 {
 	m_freem(sc->tx_buf_p);

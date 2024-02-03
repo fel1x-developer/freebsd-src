@@ -213,7 +213,7 @@ struct rpc_gss_entries {
 extern struct rpc_gss_entries	rpc_gss_entries;
 
 /* Functions to access the entry points. */
-static __inline AUTH *
+static inline AUTH *
 rpc_gss_secfind_call(CLIENT *clnt, struct ucred *cred, const char *principal,
     gss_OID mech_oid, rpc_gss_service_t service)
 {
@@ -225,7 +225,7 @@ rpc_gss_secfind_call(CLIENT *clnt, struct ucred *cred, const char *principal,
 	return (ret);
 }
 
-static __inline void
+static inline void
 rpc_gss_secpurge_call(CLIENT *clnt)
 {
 
@@ -233,7 +233,7 @@ rpc_gss_secpurge_call(CLIENT *clnt)
 		(*rpc_gss_entries.rpc_gss_secpurge)(clnt);
 }
 
-static __inline AUTH *
+static inline AUTH *
 rpc_gss_seccreate_call(CLIENT *clnt, struct ucred *cred,
     const char *clnt_principal, const char *principal, const char *mechanism,
     rpc_gss_service_t service, const char *qop,
@@ -248,7 +248,7 @@ rpc_gss_seccreate_call(CLIENT *clnt, struct ucred *cred,
 	return (ret);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_set_defaults_call(AUTH *auth, rpc_gss_service_t service,
     const char *qop)
 {
@@ -260,7 +260,7 @@ rpc_gss_set_defaults_call(AUTH *auth, rpc_gss_service_t service,
 	return (ret);
 }
 
-static __inline int
+static inline int
 rpc_gss_max_data_length_call(AUTH *handle, int max_tp_unit_len)
 {
 	int ret = 0;
@@ -271,7 +271,7 @@ rpc_gss_max_data_length_call(AUTH *handle, int max_tp_unit_len)
 	return (ret);
 }
 
-static __inline void
+static inline void
 rpc_gss_get_error_call(rpc_gss_error_t *error)
 {
 
@@ -279,7 +279,7 @@ rpc_gss_get_error_call(rpc_gss_error_t *error)
 		(*rpc_gss_entries.rpc_gss_get_error)(error);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_mech_to_oid_call(const char *mech, gss_OID *oid_ret)
 {
 	bool_t ret = 1;
@@ -289,7 +289,7 @@ rpc_gss_mech_to_oid_call(const char *mech, gss_OID *oid_ret)
 	return (ret);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_oid_to_mech_call(gss_OID oid, const char **mech_ret)
 {
 	bool_t ret = 1;
@@ -299,7 +299,7 @@ rpc_gss_oid_to_mech_call(gss_OID oid, const char **mech_ret)
 	return (ret);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_qop_to_num_call(const char *qop, const char *mech, u_int *num_ret)
 {
 	bool_t ret = 1;
@@ -309,7 +309,7 @@ rpc_gss_qop_to_num_call(const char *qop, const char *mech, u_int *num_ret)
 	return (ret);
 }
 
-static __inline const char **
+static inline const char **
 rpc_gss_get_mechanisms_call(void)
 {
 	const char **ret = NULL;
@@ -319,7 +319,7 @@ rpc_gss_get_mechanisms_call(void)
 	return (ret);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_get_versions_call(u_int *vers_hi, u_int *vers_lo)
 {
 	bool_t ret = 1;
@@ -329,7 +329,7 @@ rpc_gss_get_versions_call(u_int *vers_hi, u_int *vers_lo)
 	return (ret);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_is_installed_call(const char *mech)
 {
 	bool_t ret = 1;
@@ -339,7 +339,7 @@ rpc_gss_is_installed_call(const char *mech)
 	return (ret);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_set_svc_name_call(const char *principal, const char *mechanism,
     u_int req_time, u_int program, u_int version)
 {
@@ -351,7 +351,7 @@ rpc_gss_set_svc_name_call(const char *principal, const char *mechanism,
 	return (ret);
 }
 
-static __inline void
+static inline void
 rpc_gss_clear_svc_name_call(u_int program, u_int version)
 {
 
@@ -359,7 +359,7 @@ rpc_gss_clear_svc_name_call(u_int program, u_int version)
 		(*rpc_gss_entries.rpc_gss_clear_svc_name)(program, version);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_getcred_call(struct svc_req *req, rpc_gss_rawcred_t **rcred,
     rpc_gss_ucred_t **ucred, void **cookie)
 {
@@ -371,7 +371,7 @@ rpc_gss_getcred_call(struct svc_req *req, rpc_gss_rawcred_t **rcred,
 	return (ret);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_set_callback_call(rpc_gss_callback_t *cb)
 {
 	bool_t ret = 1;
@@ -381,7 +381,7 @@ rpc_gss_set_callback_call(rpc_gss_callback_t *cb)
 	return (ret);
 }
 
-static __inline void
+static inline void
 rpc_gss_clear_callback_call(rpc_gss_callback_t *cb)
 {
 
@@ -389,7 +389,7 @@ rpc_gss_clear_callback_call(rpc_gss_callback_t *cb)
 		(*rpc_gss_entries.rpc_gss_clear_callback)(cb);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_get_principal_name_call(rpc_gss_principal_t *principal,
     const char *mech, const char *name, const char *node, const char *domain)
 {
@@ -401,7 +401,7 @@ rpc_gss_get_principal_name_call(rpc_gss_principal_t *principal,
 	return (ret);
 }
 
-static __inline int
+static inline int
 rpc_gss_svc_max_data_length_call(struct svc_req *req, int max_tp_unit_len)
 {
 	int ret = 0;
@@ -412,7 +412,7 @@ rpc_gss_svc_max_data_length_call(struct svc_req *req, int max_tp_unit_len)
 	return (ret);
 }
 
-static __inline void
+static inline void
 rpc_gss_refresh_auth_call(AUTH *auth)
 {
 
@@ -420,7 +420,7 @@ rpc_gss_refresh_auth_call(AUTH *auth)
 		(*rpc_gss_entries.rpc_gss_refresh_auth)(auth);
 }
 
-static __inline bool_t
+static inline bool_t
 rpc_gss_ip_to_srv_principal_call(char *ip_addr, const char *srv_name,
     char *dns_name)
 {

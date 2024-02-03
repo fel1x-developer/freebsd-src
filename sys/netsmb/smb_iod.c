@@ -63,7 +63,7 @@ static int  smb_iod_sendall(struct smbiod *iod);
 static int  smb_iod_disconnect(struct smbiod *iod);
 static void smb_iod_thread(void *);
 
-static __inline void
+static inline void
 smb_iod_rqprocessed(struct smb_rq *rqp, int error)
 {
 	SMBRQ_SLOCK(rqp);
@@ -572,7 +572,7 @@ smb_iod_sendall(struct smbiod *iod)
 /*
  * "main" function for smbiod daemon
  */
-static __inline void
+static inline void
 smb_iod_main(struct smbiod *iod)
 {
 /*	struct smb_vc *vcp = iod->iod_vc;*/

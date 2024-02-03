@@ -242,7 +242,7 @@ dbg_wb_write_reg(int reg, int n, uint32_t val)
 	isb();
 }
 
-static __inline boolean_t
+static inline boolean_t
 dbg_capable(void)
 {
 
@@ -575,7 +575,7 @@ dbg_find_slot(enum dbg_t type, db_expr_t addr)
 	return (~0U);
 }
 
-static __inline boolean_t
+static inline boolean_t
 dbg_monitor_is_enabled(void)
 {
 
@@ -789,7 +789,7 @@ dbg_remove_xpoint(struct dbg_wb_conf *conf)
 	return (0);
 }
 
-static __inline uint32_t
+static inline uint32_t
 dbg_get_debug_model(void)
 {
 	uint32_t dbg_m;
@@ -800,7 +800,7 @@ dbg_get_debug_model(void)
 	return (dbg_m);
 }
 
-static __inline boolean_t
+static inline boolean_t
 dbg_get_ossr(void)
 {
 
@@ -817,7 +817,7 @@ dbg_get_ossr(void)
 	}
 }
 
-static __inline boolean_t
+static inline boolean_t
 dbg_arch_supported(void)
 {
 	uint32_t dbg_didr;
@@ -844,7 +844,7 @@ dbg_arch_supported(void)
 	}
 }
 
-static __inline uint32_t
+static inline uint32_t
 dbg_get_wrp_num(void)
 {
 	uint32_t dbg_didr;
@@ -854,7 +854,7 @@ dbg_get_wrp_num(void)
 	return (DBGDIDR_WRPS_NUM(dbg_didr));
 }
 
-static __inline uint32_t
+static inline uint32_t
 dgb_get_brp_num(void)
 {
 	uint32_t dbg_didr;

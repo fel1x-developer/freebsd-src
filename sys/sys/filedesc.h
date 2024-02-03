@@ -228,7 +228,7 @@ enum {
 struct mount;
 struct thread;
 
-static __inline void
+static inline void
 filecaps_init(struct filecaps *fcaps)
 {
 
@@ -297,7 +297,7 @@ int	fget_only_user(struct filedesc *fdp, int fd, cap_rights_t *needrightsp,
 })
 
 /* Requires a FILEDESC_{S,X}LOCK held and returns without a ref. */
-static __inline struct file *
+static inline struct file *
 fget_noref(struct filedesc *fdp, int fd)
 {
 
@@ -309,7 +309,7 @@ fget_noref(struct filedesc *fdp, int fd)
 	return (fdp->fd_ofiles[fd].fde_file);
 }
 
-static __inline struct filedescent *
+static inline struct filedescent *
 fdeget_noref(struct filedesc *fdp, int fd)
 {
 	struct filedescent *fde;
@@ -327,7 +327,7 @@ fdeget_noref(struct filedesc *fdp, int fd)
 }
 
 #ifdef CAPABILITIES
-static __inline bool
+static inline bool
 fd_modified(struct filedesc *fdp, int fd, seqc_t seqc)
 {
 

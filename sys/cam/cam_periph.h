@@ -210,7 +210,7 @@ int		cam_periph_error(union ccb *ccb, cam_flags camflags,
 				 uint32_t sense_flags);
 int		cam_periph_invalidate_sysctl(SYSCTL_HANDLER_ARGS);
 
-static __inline struct mtx *
+static inline struct mtx *
 cam_periph_mtx(struct cam_periph *periph)
 {
 	if (periph != NULL)

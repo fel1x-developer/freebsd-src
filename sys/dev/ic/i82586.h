@@ -292,7 +292,7 @@ struct ie_config_cmd {
  * but since we have the inline facility, it makes sense to use that
  * instead.
  */
-static __inline void
+static inline void
 ie_setup_config(volatile struct ie_config_cmd *cmd,
 		int promiscuous, int manchester) {
 	cmd->ie_config_count = 0x0c;
@@ -309,14 +309,14 @@ ie_setup_config(volatile struct ie_config_cmd *cmd,
 	cmd->ie_junk = 0xff;
 }
 
-static __inline void *
+static inline void *
 Align(void *ptr) {
 	uintptr_t l = (uintptr_t)ptr;
 	l = (l + 3) & ~3L;
 	return (void *)l;
 }
 
-static __inline volatile void *
+static inline volatile void *
 Alignvol(volatile void *ptr) {
 	uintptr_t l = (uintptr_t)ptr;
 	l = (l + 3) & ~3L;
@@ -324,7 +324,7 @@ Alignvol(volatile void *ptr) {
 }
 
 #if 0
-static __inline void
+static inline void
 ie_ack(volatile struct ie_sys_ctl_block *scb,
 				  u_int mask, int unit,
 				  void (*ca)(int)) {

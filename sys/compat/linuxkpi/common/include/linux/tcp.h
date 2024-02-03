@@ -51,14 +51,14 @@ struct tcphdr {
 	uint16_t	th_urg;			/* (u) */
 };
 
-static __inline struct tcphdr *
+static inline struct tcphdr *
 tcp_hdr(struct sk_buff *skb)
 {
 
 	return (struct tcphdr *)skb_transport_header(skb);
 }
 
-static __inline uint32_t
+static inline uint32_t
 tcp_hdrlen(struct sk_buff *skb)
 {
 	struct tcphdr *th;

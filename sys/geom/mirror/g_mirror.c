@@ -629,7 +629,7 @@ g_mirror_orphan(struct g_consumer *cp)
  * It is possible that it will be the same disk as given.
  * If there are no active disks on list, NULL is returned.
  */
-static __inline struct g_mirror_disk *
+static inline struct g_mirror_disk *
 g_mirror_find_next(struct g_mirror_softc *sc, struct g_mirror_disk *disk)
 {
 	struct g_mirror_disk *dp;

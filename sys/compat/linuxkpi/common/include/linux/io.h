@@ -405,7 +405,7 @@ _outb(u_char data, u_int port)
 #if defined(__i386__) || defined(__amd64__) || defined(__powerpc__) || defined(__aarch64__) || defined(__riscv)
 void *_ioremap_attr(vm_paddr_t phys_addr, unsigned long size, int attr);
 #else
-static __inline void *
+static inline void *
 _ioremap_attr(vm_paddr_t _phys_addr, unsigned long _size, int _attr)
 {
 	return (NULL);

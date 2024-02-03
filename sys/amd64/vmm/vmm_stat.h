@@ -89,7 +89,7 @@ int	vmm_stat_copy(struct vcpu *vcpu, int index, int count,
 	    int *num_stats, uint64_t *buf);
 int	vmm_stat_desc_copy(int index, char *buf, int buflen);
 
-static void __inline
+static void inline
 vmm_stat_array_incr(struct vcpu *vcpu, struct vmm_stat_type *vst, int statidx,
     uint64_t x)
 {
@@ -103,7 +103,7 @@ vmm_stat_array_incr(struct vcpu *vcpu, struct vmm_stat_type *vst, int statidx,
 #endif
 }
 
-static void __inline
+static void inline
 vmm_stat_array_set(struct vcpu *vcpu, struct vmm_stat_type *vst, int statidx,
     uint64_t val)
 {
@@ -117,7 +117,7 @@ vmm_stat_array_set(struct vcpu *vcpu, struct vmm_stat_type *vst, int statidx,
 #endif
 }
 		   
-static void __inline
+static void inline
 vmm_stat_incr(struct vcpu *vcpu, struct vmm_stat_type *vst, uint64_t x)
 {
 
@@ -126,7 +126,7 @@ vmm_stat_incr(struct vcpu *vcpu, struct vmm_stat_type *vst, uint64_t x)
 #endif
 }
 
-static void __inline
+static void inline
 vmm_stat_set(struct vcpu *vcpu, struct vmm_stat_type *vst, uint64_t val)
 {
 

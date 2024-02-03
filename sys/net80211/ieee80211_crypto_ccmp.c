@@ -216,7 +216,7 @@ ccmp_enmic(struct ieee80211_key *k, struct mbuf *m, int force)
 	return 1;
 }
 
-static __inline uint64_t
+static inline uint64_t
 READ_6(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5)
 {
 	uint32_t iv32 = (b0 << 0) | (b1 << 8) | (b2 << 16) | (b3 << 24);
@@ -317,7 +317,7 @@ ccmp_demic(struct ieee80211_key *k, struct mbuf *m, int force)
 	return 1;
 }
 
-static __inline void
+static inline void
 xor_block(uint8_t *b, const uint8_t *a, size_t len)
 {
 	int i;

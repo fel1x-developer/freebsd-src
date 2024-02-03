@@ -285,19 +285,19 @@ static struct ti_pruss_irq_arg {
 	struct ti_pruss_softc *sc;
 } ti_pruss_irq_args[TI_PRUSS_IRQS];
 
-static __inline uint32_t
+static inline uint32_t
 ti_pruss_reg_read(struct ti_pruss_softc *sc, uint32_t reg)
 {
 	return (bus_space_read_4(sc->sc_bt, sc->sc_bh, reg));
 }
 
-static __inline void
+static inline void
 ti_pruss_reg_write(struct ti_pruss_softc *sc, uint32_t reg, uint32_t val)
 {
 	bus_space_write_4(sc->sc_bt, sc->sc_bh, reg, val);
 }
 
-static __inline void
+static inline void
 ti_pruss_interrupts_clear(struct ti_pruss_softc *sc)
 {
 	/* disable global interrupt */
@@ -311,7 +311,7 @@ ti_pruss_interrupts_clear(struct ti_pruss_softc *sc)
 	ti_pruss_reg_write(sc, PRUSS_INTC_HIER, 0);
 }
 
-static __inline int
+static inline int
 ti_pruss_interrupts_enable(struct ti_pruss_softc *sc, int8_t irq, bool enable)
 {
 	if (enable && ((sc->sc_irq_devs[irq].channel == -1) ||
@@ -346,7 +346,7 @@ ti_pruss_interrupts_enable(struct ti_pruss_softc *sc, int8_t irq, bool enable)
 	return (0);
 }
 
-static __inline void
+static inline void
 ti_pruss_map_write(struct ti_pruss_softc *sc, uint32_t basereg, uint8_t index, uint8_t content)
 {
 	const size_t regadr = basereg + index & ~0x03;

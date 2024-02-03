@@ -187,7 +187,7 @@ mem_range_AP_init(void)
  * take log2.
  * Returns -1 if argument is zero.
  */
-static __inline int
+static inline int
 mask_width(u_int x)
 {
 

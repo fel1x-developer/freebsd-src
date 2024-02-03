@@ -161,7 +161,7 @@ typedef boolean_t	bool;
 #define le16_to_cpu
 
 #if defined(__i386__) || defined(__amd64__)
-static __inline
+static inline
 void prefetch(void *x)
 {
 	__asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
@@ -174,7 +174,7 @@ void prefetch(void *x)
  * Optimized bcopy thanks to Luigi Rizzo's investigative work.  Assumes
  * non-overlapping regions and 32-byte padding on both src and dst.
  */
-static __inline int
+static inline int
 ixgbe_bcopy(void *restrict _src, void *restrict _dst, int l)
 {
 	uint64_t *src = _src;

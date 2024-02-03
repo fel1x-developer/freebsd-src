@@ -47,7 +47,7 @@
 #ifndef _IP_DN_SCHED_FQ_CODEL_HELPER_H
 #define _IP_DN_SCHED_FQ_CODEL_HELPER_H
 
-__inline static struct mbuf *
+inline static struct mbuf *
 fqc_dodequeue(struct fq_codel_flow *q, aqm_time_t now, uint16_t *ok_to_drop,
 	struct fq_codel_si *si)
 {
@@ -94,7 +94,7 @@ fqc_dodequeue(struct fq_codel_flow *q, aqm_time_t now, uint16_t *ok_to_drop,
 }
 
 /* Codel dequeue function */
-__inline static struct mbuf * 
+inline static struct mbuf * 
 fqc_codel_dequeue(struct fq_codel_flow *q, struct fq_codel_si *si)
 {
 	struct mbuf *m;

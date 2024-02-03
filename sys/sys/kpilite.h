@@ -30,7 +30,7 @@
 #if !defined(GENOFFSET) && (!defined(KLD_MODULE) || defined(KLD_TIED)) && defined(_KERNEL)
 #include "offset.inc"
 
-static __inline void
+static inline void
 sched_pin_lite(struct thread_lite *td)
 {
 
@@ -39,7 +39,7 @@ sched_pin_lite(struct thread_lite *td)
 	atomic_interrupt_fence();
 }
 
-static __inline void
+static inline void
 sched_unpin_lite(struct thread_lite *td)
 {
 

@@ -385,7 +385,7 @@ check_unrhdr(struct unrhdr *uh, int line)
 
 #else
 
-static __inline void
+static inline void
 check_unrhdr(struct unrhdr *uh __unused, int line __unused)
 {
 
@@ -398,7 +398,7 @@ check_unrhdr(struct unrhdr *uh __unused, int line __unused)
  * many elements we have allocated for check_unrhdr().
  */
 
-static __inline void *
+static inline void *
 new_unr(struct unrhdr *uh, void **p1, void **p2)
 {
 	void *p;
@@ -416,7 +416,7 @@ new_unr(struct unrhdr *uh, void **p1, void **p2)
 	}
 }
 
-static __inline void
+static inline void
 delete_unr(struct unrhdr *uh, void *ptr)
 {
 	struct unr *up;

@@ -650,7 +650,7 @@ x86bios_offset(uint32_t offset)
 	return (x86bios_get_pages(offset, 1));
 }
 
-static __inline void
+static inline void
 x86bios_unmap_mem(void)
 {
 
@@ -674,7 +674,7 @@ x86bios_unmap_mem(void)
 	}
 }
 
-static __inline int
+static inline int
 x86bios_map_mem(void)
 {
 

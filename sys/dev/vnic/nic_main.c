@@ -365,7 +365,7 @@ nicpf_free_res(struct nicpf *nic)
 }
 
 /* Register read/write APIs */
-static __inline void
+static inline void
 nic_reg_write(struct nicpf *nic, bus_space_handle_t offset,
     uint64_t val)
 {
@@ -373,7 +373,7 @@ nic_reg_write(struct nicpf *nic, bus_space_handle_t offset,
 	bus_write_8(nic->reg_base, offset, val);
 }
 
-static __inline uint64_t
+static inline uint64_t
 nic_reg_read(struct nicpf *nic, uint64_t offset)
 {
 	uint64_t val;

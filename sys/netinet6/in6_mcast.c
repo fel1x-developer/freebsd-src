@@ -196,7 +196,7 @@ static SYSCTL_NODE(_net_inet6_ip6_mcast, OID_AUTO, filters,
  * The ifnet layer will set the ifma's ifp pointer to NULL if the ifp
  * is detached.
  */
-static int __inline
+static int inline
 in6m_is_ifp_detached(const struct in6_multi *inm)
 {
 	struct ifnet *ifp;
@@ -219,7 +219,7 @@ in6m_is_ifp_detached(const struct in6_multi *inm)
  * Initialize an in6_mfilter structure to a known state at t0, t1
  * with an empty source filter list.
  */
-static __inline void
+static inline void
 im6f_init(struct in6_mfilter *imf, const int st0, const int st1)
 {
 	memset(imf, 0, sizeof(struct in6_mfilter));

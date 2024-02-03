@@ -450,7 +450,7 @@ bool	ether_8021q_frame(struct mbuf **mp, struct ifnet *ife,
 void	ether_gen_addr(struct ifnet *ifp, struct ether_addr *hwaddr);
 void	ether_gen_addr_byname(const char *nameunit, struct ether_addr *hwaddr);
 
-static __inline struct mbuf *ether_vlanencap(struct mbuf *m, uint16_t tag)
+static inline struct mbuf *ether_vlanencap(struct mbuf *m, uint16_t tag)
 {
 
 	return ether_vlanencap_proto(m, tag, ETHERTYPE_VLAN);

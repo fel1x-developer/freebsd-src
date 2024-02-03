@@ -46,7 +46,7 @@
 #define	GDB_REG_FPCR	67
 _Static_assert(GDB_BUFSZ >= (GDB_NREGS * 16), "buffer fits 'g' regs");
 
-static __inline size_t
+static inline size_t
 gdb_cpu_regsz(int regnum)
 {
 	if (regnum == GDB_REG_CSPR || regnum == GDB_REG_FPSR ||
@@ -58,19 +58,19 @@ gdb_cpu_regsz(int regnum)
 	return (8);
 }
 
-static __inline int
+static inline int
 gdb_cpu_query(void)
 {
 	return (0);
 }
 
-static __inline void *
+static inline void *
 gdb_begin_write(void)
 {
 	return (NULL);
 }
 
-static __inline void
+static inline void
 gdb_end_write(void *arg __unused)
 {
 }

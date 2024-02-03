@@ -170,7 +170,7 @@ ieee80211_init_channels(struct ieee80211com *ic,
 	return 0;
 }
 
-static __inline int
+static inline int
 chancompar(const void *a, const void *b)
 {
 	const struct ieee80211_channel *ca = a;

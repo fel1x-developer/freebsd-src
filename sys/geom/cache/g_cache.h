@@ -104,7 +104,7 @@ struct g_cache_metadata {
 	uint64_t	md_provsize;		/* Provider's size. */
 };
 
-static __inline void
+static inline void
 cache_metadata_encode(const struct g_cache_metadata *md, u_char *data)
 {
 
@@ -116,7 +116,7 @@ cache_metadata_encode(const struct g_cache_metadata *md, u_char *data)
 	le64enc(data + 44, md->md_provsize);
 }
 
-static __inline void
+static inline void
 cache_metadata_decode(const u_char *data, struct g_cache_metadata *md)
 {
 

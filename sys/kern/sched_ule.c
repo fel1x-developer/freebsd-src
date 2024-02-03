@@ -333,8 +333,8 @@ static struct thread *tdq_choose(struct tdq *);
 static void tdq_setup(struct tdq *, int i);
 static void tdq_load_add(struct tdq *, struct thread *);
 static void tdq_load_rem(struct tdq *, struct thread *);
-static __inline void tdq_runq_add(struct tdq *, struct thread *, int);
-static __inline void tdq_runq_rem(struct tdq *, struct thread *);
+static inline void tdq_runq_add(struct tdq *, struct thread *, int);
+static inline void tdq_runq_rem(struct tdq *, struct thread *);
 static inline int sched_shouldpreempt(int, int, int);
 static void tdq_print(int cpu);
 static void runq_print(struct runq *rq);
@@ -474,7 +474,7 @@ sched_shouldpreempt(int pri, int cpri, int remote)
  * date with what is actually on the run-queue.  Selects the correct
  * queue position for timeshare threads.
  */
-static __inline void
+static inline void
 tdq_runq_add(struct tdq *tdq, struct thread *td, int flags)
 {
 	struct td_sched *ts;
@@ -525,7 +525,7 @@ tdq_runq_add(struct tdq *tdq, struct thread *td, int flags)
  * is selected to run.  Running threads are not on the queue and the
  * transferable count does not reflect them.
  */
-static __inline void
+static inline void
 tdq_runq_rem(struct tdq *tdq, struct thread *td)
 {
 	struct td_sched *ts;

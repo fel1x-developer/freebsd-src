@@ -3628,19 +3628,19 @@ struct mrsas_softc {
     kproc_create(func, farg, proc_ptr, flags, stackpgs, fmtstr, arg)
 #define	mrsas_kproc_exit(arg)   kproc_exit(arg)
 
-static __inline void
+static inline void
 mrsas_clear_bit(int b, volatile void *p)
 {
 	atomic_clear_int(((volatile int *)p) + (b >> 5), 1 << (b & 0x1f));
 }
 
-static __inline void
+static inline void
 mrsas_set_bit(int b, volatile void *p)
 {
 	atomic_set_int(((volatile int *)p) + (b >> 5), 1 << (b & 0x1f));
 }
 
-static __inline int
+static inline int
 mrsas_test_bit(int b, volatile void *p)
 {
 	return ((volatile int *)p)[b >> 5] & (1 << (b & 0x1f));

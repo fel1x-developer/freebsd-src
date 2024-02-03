@@ -814,7 +814,7 @@ fwip_stream_input(struct fw_xferq *xferq)
 		fwip->fd.fc->irx_enable(fwip->fd.fc, fwip->dma_ch);
 }
 
-static __inline void
+static inline void
 fwip_unicast_input_recycle(struct fwip_softc *fwip, struct fw_xfer *xfer)
 {
 	struct mbuf *m;

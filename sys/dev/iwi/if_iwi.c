@@ -244,14 +244,14 @@ DRIVER_MODULE(iwi, pci, iwi_driver, NULL, NULL);
 
 MODULE_VERSION(iwi, 1);
 
-static __inline uint8_t
+static inline uint8_t
 MEM_READ_1(struct iwi_softc *sc, uint32_t addr)
 {
 	CSR_WRITE_4(sc, IWI_CSR_INDIRECT_ADDR, addr);
 	return CSR_READ_1(sc, IWI_CSR_INDIRECT_DATA);
 }
 
-static __inline uint32_t
+static inline uint32_t
 MEM_READ_4(struct iwi_softc *sc, uint32_t addr)
 {
 	CSR_WRITE_4(sc, IWI_CSR_INDIRECT_ADDR, addr);
@@ -2645,7 +2645,7 @@ iwi_config(struct iwi_softc *sc)
 	return iwi_cmd(sc, IWI_CMD_ENABLE, NULL, 0);
 }
 
-static __inline void
+static inline void
 set_scan_type(struct iwi_scan_ext *scan, int ix, int scan_type)
 {
 	uint8_t *st = &scan->scan_type[ix / 2];
@@ -2668,7 +2668,7 @@ scan_type(const struct ieee80211_scan_state *ss,
 	return IWI_SCAN_TYPE_PASSIVE;
 }
 
-static __inline int
+static inline int
 scan_band(const struct ieee80211_channel *c)
 {
 	return IEEE80211_IS_CHAN_5GHZ(c) ?  IWI_CHAN_5GHZ : IWI_CHAN_2GHZ;
@@ -3354,7 +3354,7 @@ iwi_sysctlattach(struct iwi_softc *sc)
  * according to the tx/rx traffic a la the ath driver.
  */
 
-static __inline uint32_t
+static inline uint32_t
 iwi_toggle_event(uint32_t r)
 {
 	return r &~ (IWI_RST_STANDBY | IWI_RST_GATE_ODMA |

@@ -2893,7 +2893,7 @@ pci_get_powerstate_method(device_t dev, device_t child)
  * Some convenience functions for PCI device drivers.
  */
 
-static __inline void
+static inline void
 pci_set_command_bit(device_t dev, device_t child, uint16_t bit)
 {
 	uint16_t	command;
@@ -2903,7 +2903,7 @@ pci_set_command_bit(device_t dev, device_t child, uint16_t bit)
 	PCI_WRITE_CONFIG(dev, child, PCIR_COMMAND, command, 2);
 }
 
-static __inline void
+static inline void
 pci_clear_command_bit(device_t dev, device_t child, uint16_t bit)
 {
 	uint16_t	command;

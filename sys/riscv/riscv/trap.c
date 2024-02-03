@@ -82,7 +82,7 @@ int (*dtrace_invop_jump_addr)(struct trapframe *);
 void do_trap_supervisor(struct trapframe *);
 void do_trap_user(struct trapframe *);
 
-static __inline void
+static inline void
 call_trapsignal(struct thread *td, int sig, int code, void *addr, int trapno)
 {
 	ksiginfo_t ksi;

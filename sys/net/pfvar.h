@@ -2212,14 +2212,14 @@ extern void			 pf_killstates(struct pf_kstate_kill *,
 				    unsigned int *);
 extern unsigned int		 pf_clear_states(const struct pf_kstate_kill *);
 
-static __inline void
+static inline void
 pf_ref_state(struct pf_kstate *s)
 {
 
 	refcount_acquire(&s->refs);
 }
 
-static __inline int
+static inline int
 pf_release_state(struct pf_kstate *s)
 {
 
@@ -2230,7 +2230,7 @@ pf_release_state(struct pf_kstate *s)
 		return (0);
 }
 
-static __inline int
+static inline int
 pf_release_staten(struct pf_kstate *s, u_int n)
 {
 
@@ -2241,7 +2241,7 @@ pf_release_staten(struct pf_kstate *s, u_int n)
 		return (0);
 }
 
-static __inline uint64_t
+static inline uint64_t
 pf_get_uptime(void)
 {
 	struct timeval t;
@@ -2249,7 +2249,7 @@ pf_get_uptime(void)
 	return ((t.tv_sec * 1000) + (t.tv_usec / 1000));
 }
 
-static __inline uint64_t
+static inline uint64_t
 pf_get_time(void)
 {
 	struct timeval t;

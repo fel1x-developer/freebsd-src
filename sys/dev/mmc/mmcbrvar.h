@@ -102,7 +102,7 @@ MMCBR_ACCESSOR(timing, TIMING, int)
 MMCBR_ACCESSOR(max_data, MAX_DATA, int)
 MMCBR_ACCESSOR(max_busy_timeout, MAX_BUSY_TIMEOUT, u_int)
 
-static int __inline
+static int inline
 mmcbr_get_retune_req(device_t dev)
 {
 	uintptr_t v;
@@ -116,35 +116,35 @@ mmcbr_get_retune_req(device_t dev)
 /*
  * Convenience wrappers for the mmcbr interface
  */
-static int __inline
+static int inline
 mmcbr_update_ios(device_t dev)
 {
 
 	return (MMCBR_UPDATE_IOS(device_get_parent(dev), dev));
 }
 
-static int __inline
+static int inline
 mmcbr_tune(device_t dev, bool hs400)
 {
 
 	return (MMCBR_TUNE(device_get_parent(dev), dev, hs400));
 }
 
-static int __inline
+static int inline
 mmcbr_retune(device_t dev, bool reset)
 {
 
 	return (MMCBR_RETUNE(device_get_parent(dev), dev, reset));
 }
 
-static int __inline
+static int inline
 mmcbr_switch_vccq(device_t dev)
 {
 
 	return (MMCBR_SWITCH_VCCQ(device_get_parent(dev), dev));
 }
 
-static int __inline
+static int inline
 mmcbr_get_ro(device_t dev)
 {
 

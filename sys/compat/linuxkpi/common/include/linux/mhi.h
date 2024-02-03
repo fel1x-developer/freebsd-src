@@ -137,14 +137,14 @@ mhi_unregister_controller(struct mhi_controller *mhi_ctrl)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline int
+static inline int
 mhi_device_get_sync(struct mhi_device *mhi_dev)
 {
 	/* XXX TODO */
 	return (-1);
 }
 
-static __inline void
+static inline void
 mhi_device_put(struct mhi_device *mhi_dev)
 {
 	/* XXX TODO */
@@ -152,34 +152,34 @@ mhi_device_put(struct mhi_device *mhi_dev)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline int
+static inline int
 mhi_prepare_for_power_up(struct mhi_controller *mhi_ctrl)
 {
 	/* XXX TODO */
 	return (0);
 }
 
-static __inline int
+static inline int
 mhi_sync_power_up(struct mhi_controller *mhi_ctrl)
 {
 	/* XXX TODO */
 	return (0);
 }
 
-static __inline int
+static inline int
 mhi_async_power_up(struct mhi_controller *mhi_ctrl)
 {
 	/* XXX TODO */
 	return (0);
 }
 
-static __inline void
+static inline void
 mhi_power_down(struct mhi_controller *mhi_ctrl, bool x)
 {
 	/* XXX TODO */
 }
 
-static __inline void
+static inline void
 mhi_unprepare_after_power_down(struct mhi_controller *mhi_ctrl)
 {
 	/* XXX TODO */
@@ -187,21 +187,21 @@ mhi_unprepare_after_power_down(struct mhi_controller *mhi_ctrl)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline int
+static inline int
 mhi_pm_suspend(struct mhi_controller *mhi_ctrl)
 {
 	/* XXX TODO */
 	return (0);
 }
 
-static __inline int
+static inline int
 mhi_pm_resume(struct mhi_controller *mhi_ctrl)
 {
 	/* XXX TODO */
 	return (0);
 }
 
-static __inline int
+static inline int
 mhi_pm_resume_force(struct mhi_controller *mhi_ctrl)
 {
 	/* XXX TODO */
@@ -210,7 +210,7 @@ mhi_pm_resume_force(struct mhi_controller *mhi_ctrl)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline int
+static inline int
 mhi_force_rddm_mode(struct mhi_controller *mhi_ctrl)
 {
 	/* XXX TODO */

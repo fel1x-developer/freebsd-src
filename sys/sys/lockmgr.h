@@ -97,7 +97,7 @@ int	 lockstatus(const struct lock *lk);
  * As far as the ilk can be a static NULL pointer these functions need a
  * strict prototype in order to safely use the lock_object member.
  */
-static __inline int
+static inline int
 _lockmgr_args(struct lock *lk, u_int flags, struct mtx *ilk, const char *wmesg,
     int prio, int timo, const char *file, int line)
 {
@@ -106,7 +106,7 @@ _lockmgr_args(struct lock *lk, u_int flags, struct mtx *ilk, const char *wmesg,
 	    NULL, wmesg, prio, timo, file, line));
 }
 
-static __inline int
+static inline int
 _lockmgr_args_rw(struct lock *lk, u_int flags, struct rwlock *ilk,
     const char *wmesg, int prio, int timo, const char *file, int line)
 {

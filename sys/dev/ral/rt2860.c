@@ -1051,7 +1051,7 @@ rt2860_eeprom_read_2(struct rt2860_softc *sc, uint16_t addr)
 	return val;
 }
 
-static __inline uint16_t
+static inline uint16_t
 rt2860_srom_read(struct rt2860_softc *sc, uint8_t addr)
 {
 	/* either eFUSE ROM or EEPROM */
@@ -1158,7 +1158,7 @@ rt2860_tx_intr(struct rt2860_softc *sc, int qid)
 /*
  * Return the Rx chain with the highest RSSI for a given frame.
  */
-static __inline uint8_t
+static inline uint8_t
 rt2860_maxrssi_chain(struct rt2860_softc *sc, const struct rt2860_rxwi *rxwi)
 {
 	uint8_t rxchain = 0;
@@ -3306,7 +3306,7 @@ rt2860_rssi2dbm(struct rt2860_softc *sc, uint8_t rssi, uint8_t rxchain)
  * Add `delta' (signed) to each 4-bit sub-word of a 32-bit word.
  * Used to adjust per-rate Tx power registers.
  */
-static __inline uint32_t
+static inline uint32_t
 b4inc(uint32_t b32, int8_t delta)
 {
 	int8_t i, b4;

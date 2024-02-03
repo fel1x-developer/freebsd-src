@@ -155,7 +155,7 @@ static const int8_t	bwi_txpower_map_11b[BWI_TSSI_MAX] =
 static const int8_t	bwi_txpower_map_11g[BWI_TSSI_MAX] =
 	{ BWI_TXPOWER_MAP_11G };
 
-static __inline int16_t
+static inline int16_t
 bwi_nrssi_11g(struct bwi_mac *mac)
 {
 	int16_t val;
@@ -170,7 +170,7 @@ bwi_nrssi_11g(struct bwi_mac *mac)
 #undef NRSSI_11G_MASK
 }
 
-static __inline struct bwi_rf_lo *
+static inline struct bwi_rf_lo *
 bwi_get_rf_lo(struct bwi_mac *mac, uint16_t rf_atten, uint16_t bbp_atten)
 {
 	int n;
@@ -181,7 +181,7 @@ bwi_get_rf_lo(struct bwi_mac *mac, uint16_t rf_atten, uint16_t bbp_atten)
 	return &mac->mac_rf.rf_lo[n];
 }
 
-static __inline int
+static inline int
 bwi_rf_lo_isused(struct bwi_mac *mac, const struct bwi_rf_lo *lo)
 {
 	struct bwi_rf *rf = &mac->mac_rf;
@@ -584,7 +584,7 @@ bwi_rf_work_around(struct bwi_mac *mac, u_int chan)
 	CSR_WRITE_2(sc, BWI_RF_CHAN, BWI_RF_2GHZ_CHAN(chan));
 }
 
-static __inline struct bwi_rf_lo *
+static inline struct bwi_rf_lo *
 bwi_rf_lo_find(struct bwi_mac *mac, const struct bwi_tpctl *tpctl)
 {
 	uint16_t rf_atten, bbp_atten;
@@ -659,7 +659,7 @@ bwi_rf_gain_max_reached(struct bwi_mac *mac, int idx)
 }
 
 /* XXX use bitmap array */
-static __inline uint16_t
+static inline uint16_t
 bitswap4(uint16_t val)
 {
 	uint16_t ret;
@@ -671,7 +671,7 @@ bitswap4(uint16_t val)
 	return ret;
 }
 
-static __inline uint16_t
+static inline uint16_t
 bwi_phy812_value(struct bwi_mac *mac, uint16_t lpd)
 {
 	struct bwi_softc *sc = mac->mac_sc;
@@ -1028,7 +1028,7 @@ bwi_rf_calibval(struct bwi_mac *mac)
 	return calib;
 }
 
-static __inline int32_t
+static inline int32_t
 _bwi_adjust_devide(int32_t num, int32_t den)
 {
 	if (num < 0)
@@ -2158,7 +2158,7 @@ bwi_rf_set_nrssi_thr_11b(struct bwi_mac *mac)
 	}
 }
 
-static __inline int32_t
+static inline int32_t
 _nrssi_threshold(const struct bwi_rf *rf, int32_t val)
 {
 	val *= (rf->rf_nrssi[1] - rf->rf_nrssi[0]);

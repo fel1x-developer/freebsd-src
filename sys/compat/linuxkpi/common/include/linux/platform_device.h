@@ -46,7 +46,7 @@ struct platform_driver {
 #define	dev_is_platform(dev)	(false)
 #define	to_platform_device(dev)	(NULL)
 
-static __inline int
+static inline int
 platform_driver_register(struct platform_driver *pdrv)
 {
 
@@ -54,7 +54,7 @@ platform_driver_register(struct platform_driver *pdrv)
 	return (-ENXIO);
 }
 
-static __inline void *
+static inline void *
 dev_get_platdata(struct device *dev)
 {
 
@@ -62,7 +62,7 @@ dev_get_platdata(struct device *dev)
 	return (NULL);
 }
 
-static __inline int
+static inline int
 platform_driver_probe(struct platform_driver *pdrv,
     int(*pd_probe_f)(struct platform_device *))
 {
@@ -71,7 +71,7 @@ platform_driver_probe(struct platform_driver *pdrv,
 	return (-ENODEV);
 }
 
-static __inline void
+static inline void
 platform_driver_unregister(struct platform_driver *pdrv)
 {
 
@@ -79,14 +79,14 @@ platform_driver_unregister(struct platform_driver *pdrv)
 	return;
 }
 
-static __inline int
+static inline int
 platform_device_register(struct platform_device *pdev)
 {
 	pr_debug("%s: TODO\n", __func__);
 	return (0);
 }
 
-static __inline void
+static inline void
 platform_device_unregister(struct platform_device *pdev)
 {
 

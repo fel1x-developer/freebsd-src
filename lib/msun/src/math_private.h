@@ -539,7 +539,7 @@ typedef union {
  */
 
 #ifndef CMPLXF
-static __inline float complex
+static inline float complex
 CMPLXF(float x, float y)
 {
 	float_complex z;
@@ -551,7 +551,7 @@ CMPLXF(float x, float y)
 #endif
 
 #ifndef CMPLX
-static __inline double complex
+static inline double complex
 CMPLX(double x, double y)
 {
 	double_complex z;
@@ -563,7 +563,7 @@ CMPLX(double x, double y)
 #endif
 
 #ifndef CMPLXL
-static __inline long double complex
+static inline long double complex
 CMPLXL(long double x, long double y)
 {
 	long_double_complex z;
@@ -656,7 +656,7 @@ rnintl(long double x)
 #define	i64rint(x)	((int64_t)(x))	/* only needed for ld128 so not opt. */
 
 #if defined(__i386__)
-static __inline int
+static inline int
 irintf(float x)
 {
 	int n;
@@ -665,7 +665,7 @@ irintf(float x)
 	return (n);
 }
 
-static __inline int
+static inline int
 irintd(double x)
 {
 	int n;
@@ -676,7 +676,7 @@ irintd(double x)
 #endif
 
 #if defined(__amd64__) || defined(__i386__)
-static __inline int
+static inline int
 irintl(long double x)
 {
 	int n;

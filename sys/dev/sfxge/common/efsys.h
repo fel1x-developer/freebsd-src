@@ -104,7 +104,7 @@ MALLOC_DECLARE(M_SFXGE);
 
 /* Machine dependend prefetch wrappers */
 #if defined(__i386__) || defined(__amd64__)
-static __inline void
+static inline void
 prefetch_read_many(void *addr)
 {
 
@@ -114,7 +114,7 @@ prefetch_read_many(void *addr)
 	    : "r" (addr));
 }
 
-static __inline void
+static inline void
 prefetch_read_once(void *addr)
 {
 
@@ -124,13 +124,13 @@ prefetch_read_once(void *addr)
 	    : "r" (addr));
 }
 #else
-static __inline void
+static inline void
 prefetch_read_many(void *addr)
 {
 
 }
 
-static __inline void
+static inline void
 prefetch_read_once(void *addr)
 {
 
@@ -141,7 +141,7 @@ prefetch_read_once(void *addr)
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #endif
-static __inline void
+static inline void
 sfxge_map_mbuf_fast(bus_dma_tag_t tag, bus_dmamap_t map,
 		    struct mbuf *m, bus_dma_segment_t *seg)
 {

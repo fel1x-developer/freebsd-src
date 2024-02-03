@@ -533,13 +533,13 @@ sbp_targ_send_lstate_events(struct sbp_targ_softc *sc,
 }
 
 
-static __inline void
+static inline void
 sbp_targ_remove_orb_info_locked(struct sbp_targ_login *login, struct orb_info *orbi)
 {
 	STAILQ_REMOVE(&login->orbs, orbi, orb_info, link);
 }
 
-static __inline void
+static inline void
 sbp_targ_remove_orb_info(struct sbp_targ_login *login, struct orb_info *orbi)
 {
 	SBP_LOCK(orbi->sc);

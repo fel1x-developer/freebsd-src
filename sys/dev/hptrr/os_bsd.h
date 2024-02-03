@@ -200,7 +200,7 @@ VBUS_EXT, *PVBUS_EXT;
 
 #define TASK_ENQUEUE(task)	taskqueue_enqueue(taskqueue_swi,(task));
 
-static	__inline	int hpt_sleep(PVBUS_EXT vbus_ext, void *ident, int priority, const char *wmesg, int timo)
+static	inline	int hpt_sleep(PVBUS_EXT vbus_ext, void *ident, int priority, const char *wmesg, int timo)
 {
 	return	msleep(ident, &vbus_ext->lock, priority, wmesg, timo);
 }

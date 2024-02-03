@@ -877,7 +877,7 @@ END_DEBUG
 }
 #endif
 
-static __inline void
+static inline void
 sbp_xfer_free(struct fw_xfer *xfer)
 {
 	struct sbp_dev *sdev;
@@ -1037,7 +1037,7 @@ END_DEBUG
 	sdev->freeze = 1;
 }
 
-static __inline void
+static inline void
 sbp_scan_dev(struct sbp_dev *sdev)
 {
 	sdev->status = SBP_DEV_PROBE;

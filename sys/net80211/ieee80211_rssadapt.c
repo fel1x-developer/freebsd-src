@@ -217,7 +217,7 @@ rssadapt_node_deinit(struct ieee80211_node *ni)
 	IEEE80211_FREE(ni->ni_rctls, M_80211_RATECTL);
 }
 
-static __inline int
+static inline int
 bucket(int pktlen)
 {
 	int i, top, thridx;

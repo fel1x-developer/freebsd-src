@@ -46,7 +46,7 @@ void assfail3(const char *, uintmax_t, const char *, uintmax_t, const char *,
 #ifndef HAVE_ASSFAIL
 extern int aok;
 
-static __inline int
+static inline int
 __assfail(const char *expr, const char *file, int line)
 {
 
@@ -62,7 +62,7 @@ __assfail(const char *expr, const char *file, int line)
 #ifndef HAVE_ASSFAIL3
 extern int aok;
 
-static __inline void
+static inline void
 __assfail3(const char *expr, uintmax_t lv, const char *op, uintmax_t rv,
     const char *file, int line) {
 

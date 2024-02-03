@@ -1125,14 +1125,14 @@ void linuxkpi_ieee80211_handle_wake_tx_queue(struct ieee80211_hw *,
 
 /* -------------------------------------------------------------------------- */
 
-static __inline void
+static inline void
 _ieee80211_hw_set(struct ieee80211_hw *hw, enum ieee80211_hw_flags flag)
 {
 
 	set_bit(flag, hw->flags);
 }
 
-static __inline bool
+static inline bool
 __ieee80211_hw_check(struct ieee80211_hw *hw, enum ieee80211_hw_flags flag)
 {
 
@@ -1154,7 +1154,7 @@ CTASSERT(sizeof(struct ieee80211_rx_status) <= sizeof(((struct sk_buff *)0)->cb)
 #define	IEEE80211_SKB_RXCB(_skb)					\
 	((struct ieee80211_rx_status *)((_skb)->cb))
 
-static __inline void
+static inline void
 ieee80211_free_hw(struct ieee80211_hw *hw)
 {
 
@@ -1167,14 +1167,14 @@ ieee80211_free_hw(struct ieee80211_hw *hw)
 	IMPROVE();
 }
 
-static __inline struct ieee80211_hw *
+static inline struct ieee80211_hw *
 ieee80211_alloc_hw(size_t priv_len, const struct ieee80211_ops *ops)
 {
 
 	return (linuxkpi_ieee80211_alloc_hw(priv_len, ops));
 }
 
-static __inline void
+static inline void
 SET_IEEE80211_DEV(struct ieee80211_hw *hw, struct device *dev)
 {
 
@@ -1184,7 +1184,7 @@ SET_IEEE80211_DEV(struct ieee80211_hw *hw, struct device *dev)
 	IMPROVE();
 }
 
-static __inline int
+static inline int
 ieee80211_register_hw(struct ieee80211_hw *hw)
 {
 	int error;
@@ -1213,7 +1213,7 @@ ieee80211_unregister_hw(struct ieee80211_hw *hw)
 	linuxkpi_ieee80211_unregister_hw(hw);
 }
 
-static __inline struct ieee80211_hw *
+static inline struct ieee80211_hw *
 wiphy_to_ieee80211_hw(struct wiphy *wiphy)
 {
 
@@ -1260,7 +1260,7 @@ ieee80211_hw_restart_disconnect(struct ieee80211_vif *vif)
 
 /* -------------------------------------------------------------------------- */
 
-static __inline bool
+static inline bool
 ieee80211_is_action(__le16 fc)
 {
 	__le16 v;
@@ -1271,7 +1271,7 @@ ieee80211_is_action(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_probe_resp(__le16 fc)
 {
 	__le16 v;
@@ -1282,7 +1282,7 @@ ieee80211_is_probe_resp(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_auth(__le16 fc)
 {
 	__le16 v;
@@ -1293,7 +1293,7 @@ ieee80211_is_auth(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_assoc_req(__le16 fc)
 {
 	__le16 v;
@@ -1304,7 +1304,7 @@ ieee80211_is_assoc_req(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_assoc_resp(__le16 fc)
 {
 	__le16 v;
@@ -1315,7 +1315,7 @@ ieee80211_is_assoc_resp(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_reassoc_req(__le16 fc)
 {
 	__le16 v;
@@ -1326,7 +1326,7 @@ ieee80211_is_reassoc_req(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_reassoc_resp(__le16 fc)
 {
 	__le16 v;
@@ -1337,7 +1337,7 @@ ieee80211_is_reassoc_resp(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_disassoc(__le16 fc)
 {
 	__le16 v;
@@ -1348,7 +1348,7 @@ ieee80211_is_disassoc(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_data_present(__le16 fc)
 {
 	__le16 v;
@@ -1360,7 +1360,7 @@ ieee80211_is_data_present(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_deauth(__le16 fc)
 {
 	__le16 v;
@@ -1371,7 +1371,7 @@ ieee80211_is_deauth(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_beacon(__le16 fc)
 {
 	__le16 v;
@@ -1388,7 +1388,7 @@ ieee80211_is_beacon(__le16 fc)
 }
 
 
-static __inline bool
+static inline bool
 ieee80211_is_probe_req(__le16 fc)
 {
 	__le16 v;
@@ -1399,14 +1399,14 @@ ieee80211_is_probe_req(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_has_protected(__le16 fc)
 {
 
 	return (fc & htole16(IEEE80211_FC1_PROTECTED << 8));
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_back_req(__le16 fc)
 {
 	__le16 v;
@@ -1417,7 +1417,7 @@ ieee80211_is_back_req(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_bufferable_mmpdu(struct sk_buff *skb)
 {
 	struct ieee80211_mgmt *mgmt;
@@ -1443,7 +1443,7 @@ ieee80211_is_bufferable_mmpdu(struct sk_buff *skb)
 	return (false);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_nullfunc(__le16 fc)
 {
 	__le16 v;
@@ -1454,7 +1454,7 @@ ieee80211_is_nullfunc(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_qos_nullfunc(__le16 fc)
 {
 	__le16 v;
@@ -1465,7 +1465,7 @@ ieee80211_is_qos_nullfunc(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_any_nullfunc(__le16 fc)
 {
 
@@ -1483,56 +1483,56 @@ ieee80211_is_pspoll(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_vif_is_mesh(struct ieee80211_vif *vif)
 {
 	TODO();
 	return (false);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_frag(struct ieee80211_hdr *hdr)
 {
 	TODO();
 	return (false);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_first_frag(__le16 fc)
 {
 	TODO();
 	return (false);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_robust_mgmt_frame(struct sk_buff *skb)
 {
 	TODO();
 	return (false);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_ftm(struct sk_buff *skb)
 {
 	TODO();
 	return (false);
 }
 
-static __inline bool
+static inline bool
 ieee80211_is_timing_measurement(struct sk_buff *skb)
 {
 	TODO();
 	return (false);
 }
 
-static __inline bool
+static inline bool
 ieee80211_has_pm(__le16 fc)
 {
 	TODO();
 	return (false);
 }
 
-static __inline bool
+static inline bool
 ieee80211_has_a4(__le16 fc)
 {
 	__le16 v;
@@ -1543,14 +1543,14 @@ ieee80211_has_a4(__le16 fc)
 	return (fc == v);
 }
 
-static __inline bool
+static inline bool
 ieee80211_has_order(__le16 fc)
 {
 
 	return (fc & htole16(IEEE80211_FC1_ORDER << 8));
 }
 
-static __inline bool
+static inline bool
 ieee80211_has_retry(__le16 fc)
 {
 
@@ -1558,21 +1558,21 @@ ieee80211_has_retry(__le16 fc)
 }
 
 
-static __inline bool
+static inline bool
 ieee80211_has_fromds(__le16 fc)
 {
 
 	return (fc & htole16(IEEE80211_FC1_DIR_FROMDS << 8));
 }
 
-static __inline bool
+static inline bool
 ieee80211_has_tods(__le16 fc)
 {
 
 	return (fc & htole16(IEEE80211_FC1_DIR_TODS << 8));
 }
 
-static __inline uint8_t *
+static inline uint8_t *
 ieee80211_get_SA(struct ieee80211_hdr *hdr)
 {
 
@@ -1583,7 +1583,7 @@ ieee80211_get_SA(struct ieee80211_hdr *hdr)
 	return (hdr->addr2);
 }
 
-static __inline uint8_t *
+static inline uint8_t *
 ieee80211_get_DA(struct ieee80211_hdr *hdr)
 {
 
@@ -1592,7 +1592,7 @@ ieee80211_get_DA(struct ieee80211_hdr *hdr)
 	return (hdr->addr1);
 }
 
-static __inline bool
+static inline bool
 ieee80211_has_morefrags(__le16 fc)
 {
 
@@ -1600,7 +1600,7 @@ ieee80211_has_morefrags(__le16 fc)
 	return (fc != 0);
 }
 
-static __inline u8 *
+static inline u8 *
 ieee80211_get_qos_ctl(struct ieee80211_hdr *hdr)
 {
         if (ieee80211_has_a4(hdr->frame_control))
@@ -1613,7 +1613,7 @@ ieee80211_get_qos_ctl(struct ieee80211_hdr *hdr)
 /* Receive functions (air/driver to mac80211/net80211). */
 
 
-static __inline void
+static inline void
 ieee80211_rx_napi(struct ieee80211_hw *hw, struct ieee80211_sta *sta,
     struct sk_buff *skb, struct napi_struct *napi)
 {
@@ -1621,7 +1621,7 @@ ieee80211_rx_napi(struct ieee80211_hw *hw, struct ieee80211_sta *sta,
 	linuxkpi_ieee80211_rx(hw, skb, sta, napi, NULL);
 }
 
-static __inline void
+static inline void
 ieee80211_rx_list(struct ieee80211_hw *hw, struct ieee80211_sta *sta,
     struct sk_buff *skb, struct list_head *list)
 {
@@ -1629,21 +1629,21 @@ ieee80211_rx_list(struct ieee80211_hw *hw, struct ieee80211_sta *sta,
 	linuxkpi_ieee80211_rx(hw, skb, sta, NULL, list);
 }
 
-static __inline void
+static inline void
 ieee80211_rx_ni(struct ieee80211_hw *hw, struct sk_buff *skb)
 {
 
 	linuxkpi_ieee80211_rx(hw, skb, NULL, NULL, NULL);
 }
 
-static __inline void
+static inline void
 ieee80211_rx_irqsafe(struct ieee80211_hw *hw, struct sk_buff *skb)
 {
 
 	linuxkpi_ieee80211_rx(hw, skb, NULL, NULL, NULL);
 }
 
-static __inline void
+static inline void
 ieee80211_rx(struct ieee80211_hw *hw, struct sk_buff *skb)
 {
 
@@ -1716,14 +1716,14 @@ ieee80211_handle_wake_tx_queue(struct ieee80211_hw *hw,
 
 /* -------------------------------------------------------------------------- */
 
-static __inline uint8_t
+static inline uint8_t
 ieee80211_get_tid(struct ieee80211_hdr *hdr)
 {
 
 	return (linuxkpi_ieee80211_get_tid(hdr, false));
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_beacon_get_tim(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
     uint16_t *tim_offset, uint16_t *tim_len, uint32_t link_id)
 {
@@ -1736,7 +1736,7 @@ ieee80211_beacon_get_tim(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	return (NULL);
 }
 
-static __inline void
+static inline void
 ieee80211_iterate_active_interfaces_atomic(struct ieee80211_hw *hw,
     enum ieee80211_iface_iter flags,
     void(*iterfunc)(void *, uint8_t *, struct ieee80211_vif *),
@@ -1748,7 +1748,7 @@ ieee80211_iterate_active_interfaces_atomic(struct ieee80211_hw *hw,
 	linuxkpi_ieee80211_iterate_interfaces(hw, flags, iterfunc, arg);
 }
 
-static __inline void
+static inline void
 ieee80211_iterate_active_interfaces(struct ieee80211_hw *hw,
     enum ieee80211_iface_iter flags,
     void(*iterfunc)(void *, uint8_t *, struct ieee80211_vif *),
@@ -1759,7 +1759,7 @@ ieee80211_iterate_active_interfaces(struct ieee80211_hw *hw,
 	linuxkpi_ieee80211_iterate_interfaces(hw, flags, iterfunc, arg);
 }
 
-static __inline void
+static inline void
 ieee80211_iterate_active_interfaces_mtx(struct ieee80211_hw *hw,
     enum ieee80211_iface_iter flags,
     void(*iterfunc)(void *, uint8_t *, struct ieee80211_vif *),
@@ -1770,7 +1770,7 @@ ieee80211_iterate_active_interfaces_mtx(struct ieee80211_hw *hw,
 	linuxkpi_ieee80211_iterate_interfaces(hw, flags, iterfunc, arg);
 }
 
-static __inline void
+static inline void
 ieee80211_iterate_interfaces(struct ieee80211_hw *hw,
    enum ieee80211_iface_iter flags,
    void (*iterfunc)(void *, uint8_t *, struct ieee80211_vif *),
@@ -1780,7 +1780,7 @@ ieee80211_iterate_interfaces(struct ieee80211_hw *hw,
 	linuxkpi_ieee80211_iterate_interfaces(hw, flags, iterfunc, arg);
 }
 
-static __inline void
+static inline void
 ieee80211_iter_keys(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
     void(*iterfunc)(struct ieee80211_hw *, struct ieee80211_vif *,
         struct ieee80211_sta *, struct ieee80211_key_conf *, void *),
@@ -1790,7 +1790,7 @@ ieee80211_iter_keys(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	linuxkpi_ieee80211_iterate_keys(hw, vif, iterfunc, arg);
 }
 
-static __inline void
+static inline void
 ieee80211_iter_keys_rcu(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
     void(*iterfunc)(struct ieee80211_hw *, struct ieee80211_vif *,
         struct ieee80211_sta *, struct ieee80211_key_conf *, void *),
@@ -1801,7 +1801,7 @@ ieee80211_iter_keys_rcu(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	linuxkpi_ieee80211_iterate_keys(hw, vif, iterfunc, arg);
 }
 
-static __inline void
+static inline void
 ieee80211_iter_chan_contexts_atomic(struct ieee80211_hw *hw,
     void(*iterfunc)(struct ieee80211_hw *, struct ieee80211_chanctx_conf *, void *),
     void *arg)
@@ -1810,7 +1810,7 @@ ieee80211_iter_chan_contexts_atomic(struct ieee80211_hw *hw,
 	linuxkpi_ieee80211_iterate_chan_contexts(hw, iterfunc, arg);
 }
 
-static __inline void
+static inline void
 ieee80211_iterate_stations_atomic(struct ieee80211_hw *hw,
    void (*iterfunc)(void *, struct ieee80211_sta *), void *arg)
 {
@@ -1818,14 +1818,14 @@ ieee80211_iterate_stations_atomic(struct ieee80211_hw *hw,
 	linuxkpi_ieee80211_iterate_stations_atomic(hw, iterfunc, arg);
 }
 
-static __inline struct wireless_dev *
+static inline struct wireless_dev *
 ieee80211_vif_to_wdev(struct ieee80211_vif *vif)
 {
 
 	return (linuxkpi_ieee80211_vif_to_wdev(vif));
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_beacon_get_template(struct ieee80211_hw *hw,
     struct ieee80211_vif *vif, struct ieee80211_mutable_offsets *offs,
     uint32_t link_id)
@@ -1834,45 +1834,45 @@ ieee80211_beacon_get_template(struct ieee80211_hw *hw,
 	return (NULL);
 }
 
-static __inline void
+static inline void
 ieee80211_beacon_loss(struct ieee80211_vif *vif)
 {
 	linuxkpi_ieee80211_beacon_loss(vif);
 }
 
-static __inline void
+static inline void
 ieee80211_chswitch_done(struct ieee80211_vif *vif, bool t)
 {
 	TODO();
 }
 
-static __inline bool
+static inline bool
 ieee80211_csa_is_complete(struct ieee80211_vif *vif)
 {
 	TODO();
 	return (false);
 }
 
-static __inline void
+static inline void
 ieee80211_csa_set_counter(struct ieee80211_vif *vif, uint8_t counter)
 {
 	TODO();
 }
 
-static __inline int
+static inline int
 ieee80211_csa_update_counter(struct ieee80211_vif *vif)
 {
 	TODO();
 	return (-1);
 }
 
-static __inline void
+static inline void
 ieee80211_csa_finish(struct ieee80211_vif *vif)
 {
 	TODO();
 }
 
-static __inline enum nl80211_iftype
+static inline enum nl80211_iftype
 ieee80211_vif_type_p2p(struct ieee80211_vif *vif)
 {
 
@@ -1892,7 +1892,7 @@ ieee80211_vif_type_p2p(struct ieee80211_vif *vif)
 	return (vif->type);
 }
 
-static __inline unsigned long
+static inline unsigned long
 ieee80211_tu_to_usec(unsigned long tu)
 {
 
@@ -1905,7 +1905,7 @@ ieee80211_tu_to_usec(unsigned long tu)
  */
 CTASSERT((int)IEEE80211_ACTION_SM_TPCREP == (int)IEEE80211_ACTION_RADIO_MEASUREMENT_LMREP);
 
-static __inline bool
+static inline bool
 ieee80211_action_contains_tpc(struct sk_buff *skb)
 {
 	struct ieee80211_mgmt *mgmt;
@@ -1948,21 +1948,21 @@ ieee80211_action_contains_tpc(struct sk_buff *skb)
 	return (true);
 }
 
-static __inline void
+static inline void
 ieee80211_connection_loss(struct ieee80211_vif *vif)
 {
 
 	linuxkpi_ieee80211_connection_loss(vif);
 }
 
-static __inline struct ieee80211_sta *
+static inline struct ieee80211_sta *
 ieee80211_find_sta(struct ieee80211_vif *vif, const u8 *peer)
 {
 
 	return (linuxkpi_ieee80211_find_sta(vif, peer));
 }
 
-static __inline struct ieee80211_sta *
+static inline struct ieee80211_sta *
 ieee80211_find_sta_by_ifaddr(struct ieee80211_hw *hw, const uint8_t *addr,
     const uint8_t *ourvifaddr)
 {
@@ -1971,14 +1971,14 @@ ieee80211_find_sta_by_ifaddr(struct ieee80211_hw *hw, const uint8_t *addr,
 }
 
 
-static __inline void
+static inline void
 ieee80211_get_tkip_p2k(struct ieee80211_key_conf *keyconf,
     struct sk_buff *skb_frag, u8 *key)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_get_tkip_rx_p1k(struct ieee80211_key_conf *keyconf,
     const u8 *addr, uint32_t iv32, u16 *p1k)
 {
@@ -1990,7 +1990,7 @@ ieee80211_get_tkip_rx_p1k(struct ieee80211_key_conf *keyconf,
 	memset(p1k, 0xfa, 5 * sizeof(*p1k));	/* Just initializing. */
 }
 
-static __inline size_t
+static inline size_t
 ieee80211_ie_split(const u8 *ies, size_t ies_len,
     const u8 *ie_ids, size_t ie_ids_len, size_t start)
 {
@@ -2013,7 +2013,7 @@ ieee80211_ie_split(const u8 *ies, size_t ies_len,
 	return (x);
 }
 
-static __inline void
+static inline void
 ieee80211_request_smps(struct ieee80211_vif *vif, u_int link_id,
     enum ieee80211_smps_mode smps)
 {
@@ -2030,7 +2030,7 @@ ieee80211_request_smps(struct ieee80211_vif *vif, u_int link_id,
 		    __func__, __LINE__, smps, smps_mode_name[smps]);
 }
 
-static __inline void
+static inline void
 ieee80211_tdls_oper_request(struct ieee80211_vif *vif, uint8_t *addr,
     enum nl80211_tdls_operation oper, enum ieee80211_reason_code code,
     gfp_t gfp)
@@ -2038,13 +2038,13 @@ ieee80211_tdls_oper_request(struct ieee80211_vif *vif, uint8_t *addr,
 	TODO();
 }
 
-static __inline void
+static inline void
 wiphy_rfkill_set_hw_state(struct wiphy *wiphy, bool state)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_free_txskb(struct ieee80211_hw *hw, struct sk_buff *skb)
 {
 	IMPROVE();
@@ -2057,106 +2057,106 @@ ieee80211_free_txskb(struct ieee80211_hw *hw, struct sk_buff *skb)
 	linuxkpi_ieee80211_free_txskb(hw, skb, 0x455458);
 }
 
-static __inline void
+static inline void
 ieee80211_ready_on_channel(struct ieee80211_hw *hw)
 {
 	TODO();
 /* XXX-BZ We need to see that. */
 }
 
-static __inline void
+static inline void
 ieee80211_remain_on_channel_expired(struct ieee80211_hw *hw)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_cqm_rssi_notify(struct ieee80211_vif *vif,
     enum nl80211_cqm_rssi_threshold_event crte, int sig, gfp_t gfp)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_mark_rx_ba_filtered_frames(struct ieee80211_sta *sta, uint8_t tid,
     uint32_t ssn, uint64_t bitmap, uint16_t received_mpdu)
 {
 	TODO();
 }
 
-static __inline bool
+static inline bool
 ieee80211_sn_less(uint16_t sn1, uint16_t sn2)
 {
 	TODO();
 	return (false);
 }
 
-static __inline uint16_t
+static inline uint16_t
 ieee80211_sn_inc(uint16_t sn)
 {
 	TODO();
 	return (sn + 1);
 }
 
-static __inline uint16_t
+static inline uint16_t
 ieee80211_sn_add(uint16_t sn, uint16_t a)
 {
 	TODO();
 	return (sn + a);
 }
 
-static __inline void
+static inline void
 ieee80211_stop_rx_ba_session(struct ieee80211_vif *vif, uint32_t x, uint8_t *addr)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_rate_set_vht(struct ieee80211_tx_rate *r, uint32_t f1, uint32_t f2)
 {
 	TODO();
 }
 
-static __inline uint8_t
+static inline uint8_t
 ieee80211_rate_get_vht_nss(struct ieee80211_tx_rate *r)
 {
 	TODO();
 	return (0);
 }
 
-static __inline uint8_t
+static inline uint8_t
 ieee80211_rate_get_vht_mcs(struct ieee80211_tx_rate *r)
 {
 	TODO();
 	return (0);
 }
 
-static __inline void
+static inline void
 ieee80211_reserve_tid(struct ieee80211_sta *sta, uint8_t tid)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_unreserve_tid(struct ieee80211_sta *sta, uint8_t tid)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_rx_ba_timer_expired(struct ieee80211_vif *vif, uint8_t *addr,
     uint8_t tid)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_send_eosp_nullfunc(struct ieee80211_sta *sta, uint8_t tid)
 {
 	TODO();
 }
 
-static __inline uint16_t
+static inline uint16_t
 ieee80211_sn_sub(uint16_t sa, uint16_t sb)
 {
 
@@ -2164,38 +2164,38 @@ ieee80211_sn_sub(uint16_t sa, uint16_t sb)
 	    (IEEE80211_SEQ_SEQ_MASK >> IEEE80211_SEQ_SEQ_SHIFT));
 }
 
-static __inline void
+static inline void
 ieee80211_sta_block_awake(struct ieee80211_hw *hw, struct ieee80211_sta *sta,
     bool disable)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_sta_ps_transition(struct ieee80211_sta *sta, bool sleeping)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_sta_pspoll(struct ieee80211_sta *sta)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_sta_recalc_aggregates(struct ieee80211_sta *sta)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_sta_uapsd_trigger(struct ieee80211_sta *sta, int ntids)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_tkip_add_iv(u8 *crypto_hdr, struct ieee80211_key_conf *keyconf,
     uint64_t pn)
 {
@@ -2221,20 +2221,20 @@ ieee80211_tx_dequeue_ni(struct ieee80211_hw *hw, struct ieee80211_txq *txq)
 	return (skb);
 }
 
-static __inline void
+static inline void
 ieee80211_update_mu_groups(struct ieee80211_vif *vif,
     u_int _i, uint8_t *ms, uint8_t *up)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_sta_set_buffered(struct ieee80211_sta *sta, uint8_t tid, bool t)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_get_key_rx_seq(struct ieee80211_key_conf *keyconf, uint8_t tid,
     struct ieee80211_key_seq *seq)
 {
@@ -2261,53 +2261,53 @@ ieee80211_get_key_rx_seq(struct ieee80211_key_conf *keyconf, uint8_t tid,
 	}
 }
 
-static __inline void
+static inline void
 ieee80211_sched_scan_results(struct ieee80211_hw *hw)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_sta_eosp(struct ieee80211_sta *sta)
 {
 	TODO();
 }
 
-static __inline int
+static inline int
 ieee80211_start_tx_ba_session(struct ieee80211_sta *sta, uint8_t tid, int x)
 {
 	TODO("rtw8x");
 	return (-EINVAL);
 }
 
-static __inline int
+static inline int
 ieee80211_stop_tx_ba_session(struct ieee80211_sta *sta, uint8_t tid)
 {
 	TODO("rtw89");
 	return (-EINVAL);
 }
 
-static __inline void
+static inline void
 ieee80211_start_tx_ba_cb_irqsafe(struct ieee80211_vif *vif, uint8_t *addr,
     uint8_t tid)
 {
 	TODO("iwlwifi");
 }
 
-static __inline void
+static inline void
 ieee80211_stop_tx_ba_cb_irqsafe(struct ieee80211_vif *vif, uint8_t *addr,
     uint8_t tid)
 {
 	TODO("iwlwifi/rtw8x/...");
 }
 
-static __inline void
+static inline void
 ieee80211_sched_scan_stopped(struct ieee80211_hw *hw)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_scan_completed(struct ieee80211_hw *hw,
     struct cfg80211_scan_info *info)
 {
@@ -2315,7 +2315,7 @@ ieee80211_scan_completed(struct ieee80211_hw *hw,
 	linuxkpi_ieee80211_scan_completed(hw, info);
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_beacon_get(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
     uint32_t link_id)
 {
@@ -2323,7 +2323,7 @@ ieee80211_beacon_get(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	return (NULL);
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_pspoll_get(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 {
 
@@ -2334,14 +2334,14 @@ ieee80211_pspoll_get(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 	return (linuxkpi_ieee80211_pspoll_get(hw, vif));
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_proberesp_get(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 {
 	TODO();
 	return (NULL);
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_nullfunc_get(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
     int linkid, bool qos)
 {
@@ -2353,7 +2353,7 @@ ieee80211_nullfunc_get(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	return (linuxkpi_ieee80211_nullfunc_get(hw, vif, linkid, qos));
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_probereq_get(struct ieee80211_hw *hw, uint8_t *addr,
     uint8_t *ssid, size_t ssid_len, size_t tailroom)
 {
@@ -2362,7 +2362,7 @@ ieee80211_probereq_get(struct ieee80211_hw *hw, uint8_t *addr,
 	    tailroom));
 }
 
-static __inline void
+static inline void
 ieee80211_queue_delayed_work(struct ieee80211_hw *hw, struct delayed_work *w,
     int delay)
 {
@@ -2370,35 +2370,35 @@ ieee80211_queue_delayed_work(struct ieee80211_hw *hw, struct delayed_work *w,
 	linuxkpi_ieee80211_queue_delayed_work(hw, w, delay);
 }
 
-static __inline void
+static inline void
 ieee80211_queue_work(struct ieee80211_hw *hw, struct work_struct *w)
 {
 
 	linuxkpi_ieee80211_queue_work(hw, w);
 }
 
-static __inline void
+static inline void
 ieee80211_tx_status(struct ieee80211_hw *hw, struct sk_buff *skb)
 {
 
 	linuxkpi_ieee80211_tx_status(hw, skb);
 }
 
-static __inline void
+static inline void
 ieee80211_tx_status_irqsafe(struct ieee80211_hw *hw, struct sk_buff *skb)
 {
 	IMPROVE();
 	ieee80211_tx_status(hw, skb);
 }
 
-static __inline void
+static inline void
 ieee80211_tx_status_ni(struct ieee80211_hw *hw, struct sk_buff *skb)
 {
 	IMPROVE();
 	ieee80211_tx_status(hw, skb);
 }
 
-static __inline void
+static inline void
 ieee80211_tx_status_ext(struct ieee80211_hw *hw,
     struct ieee80211_tx_status *txstat)
 {
@@ -2406,7 +2406,7 @@ ieee80211_tx_status_ext(struct ieee80211_hw *hw,
 	linuxkpi_ieee80211_tx_status_ext(hw, txstat);
 }
 
-static __inline void
+static inline void
 ieee80211_tx_info_clear_status(struct ieee80211_tx_info *info)
 {
 	int i;
@@ -2426,7 +2426,7 @@ ieee80211_tx_info_clear_status(struct ieee80211_tx_info *info)
 	    offsetof(struct ieee80211_tx_info, status.ack_signal));
 }
 
-static __inline void
+static inline void
 ieee80211_txq_get_depth(struct ieee80211_txq *txq, unsigned long *frame_cnt,
     unsigned long *byte_cnt)
 {
@@ -2437,7 +2437,7 @@ ieee80211_txq_get_depth(struct ieee80211_txq *txq, unsigned long *frame_cnt,
 	linuxkpi_ieee80211_txq_get_depth(txq, frame_cnt, byte_cnt);
 }
 
-static __inline int
+static inline int
 rate_lowest_index(struct ieee80211_supported_band *band,
     struct ieee80211_sta *sta)
 {
@@ -2446,74 +2446,74 @@ rate_lowest_index(struct ieee80211_supported_band *band,
 }
 
 
-static __inline void
+static inline void
 SET_IEEE80211_PERM_ADDR	(struct ieee80211_hw *hw, uint8_t *addr)
 {
 
 	ether_addr_copy(hw->wiphy->perm_addr, addr);
 }
 
-static __inline void
+static inline void
 ieee80211_report_low_ack(struct ieee80211_sta *sta, int x)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_start_rx_ba_session_offl(struct ieee80211_vif *vif, uint8_t *addr,
     uint8_t tid)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_stop_rx_ba_session_offl(struct ieee80211_vif *vif, uint8_t *addr,
     uint8_t tid)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_tx_rate_update(struct ieee80211_hw *hw, struct ieee80211_sta *sta,
     struct ieee80211_tx_info *info)
 {
 	TODO();
 }
 
-static __inline bool
+static inline bool
 ieee80211_txq_may_transmit(struct ieee80211_hw *hw, struct ieee80211_txq *txq)
 {
 	TODO();
 	return (false);
 }
 
-static __inline void
+static inline void
 ieee80211_radar_detected(struct ieee80211_hw *hw)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_sta_register_airtime(struct ieee80211_sta *sta,
     uint8_t tid, uint32_t duration, int x)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_beacon_set_cntdwn(struct ieee80211_vif *vif, u8 counter)
 {
 	TODO();
 }
 
-static __inline int
+static inline int
 ieee80211_beacon_update_cntdwn(struct ieee80211_vif *vif)
 {
 	TODO();
 	return (-1);
 }
 
-static __inline int
+static inline int
 ieee80211_get_vht_max_nss(struct ieee80211_vht_cap *vht_cap, uint32_t chanwidth,
     int x, bool t, int nss)
 {
@@ -2521,26 +2521,26 @@ ieee80211_get_vht_max_nss(struct ieee80211_vht_cap *vht_cap, uint32_t chanwidth,
 	return (-1);
 }
 
-static __inline bool
+static inline bool
 ieee80211_beacon_cntdwn_is_complete(struct ieee80211_vif *vif)
 {
 	TODO();
 	return (true);
 }
 
-static __inline void
+static inline void
 ieee80211_disconnect(struct ieee80211_vif *vif, bool _x)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_channel_switch_disconnect(struct ieee80211_vif *vif, bool _x)
 {
 	TODO();
 }
 
-static __inline const struct ieee80211_sta_he_cap *
+static inline const struct ieee80211_sta_he_cap *
 ieee80211_get_he_iftype_cap(const struct ieee80211_supported_band *band,
     enum nl80211_iftype type)
 {
@@ -2548,19 +2548,19 @@ ieee80211_get_he_iftype_cap(const struct ieee80211_supported_band *band,
         return (NULL);
 }
 
-static __inline void
+static inline void
 ieee80211_key_mic_failure(struct ieee80211_key_conf *key)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_key_replay(struct ieee80211_key_conf *key)
 {
 	TODO();
 }
 
-static __inline uint32_t
+static inline uint32_t
 ieee80211_calc_rx_airtime(struct ieee80211_hw *hw,
     struct ieee80211_rx_status *rxstat, int len)
 {
@@ -2568,20 +2568,20 @@ ieee80211_calc_rx_airtime(struct ieee80211_hw *hw,
 	return (0);
 }
 
-static __inline void
+static inline void
 ieee80211_get_tx_rates(struct ieee80211_vif *vif, struct ieee80211_sta *sta,
     struct sk_buff *skb, struct ieee80211_tx_rate *txrate, int nrates)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_color_change_finish(struct ieee80211_vif *vif)
 {
 	TODO();
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_get_fils_discovery_tmpl(struct ieee80211_hw *hw,
     struct ieee80211_vif *vif)
 {
@@ -2589,7 +2589,7 @@ ieee80211_get_fils_discovery_tmpl(struct ieee80211_hw *hw,
 	return (NULL);
 }
 
-static __inline struct sk_buff *
+static inline struct sk_buff *
 ieee80211_get_unsol_bcast_probe_resp_tmpl(struct ieee80211_hw *hw,
     struct ieee80211_vif *vif)
 {
@@ -2597,20 +2597,20 @@ ieee80211_get_unsol_bcast_probe_resp_tmpl(struct ieee80211_hw *hw,
 	return (NULL);
 }
 
-static __inline void
+static inline void
 linuxkpi_ieee80211_send_bar(struct ieee80211_vif *vif, uint8_t *ra, uint16_t tid,
     uint16_t ssn)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_resume_disconnect(struct ieee80211_vif *vif)
 {
         TODO();
 }
 
-static __inline int
+static inline int
 ieee80211_data_to_8023(struct sk_buff *skb, const uint8_t *addr,
      enum nl80211_iftype iftype)
 {
@@ -2618,14 +2618,14 @@ ieee80211_data_to_8023(struct sk_buff *skb, const uint8_t *addr,
         return (-1);
 }
 
-static __inline void
+static inline void
 ieee80211_get_tkip_p1k_iv(struct ieee80211_key_conf *key,
     uint32_t iv32, uint16_t *p1k)
 {
         TODO();
 }
 
-static __inline struct ieee80211_key_conf *
+static inline struct ieee80211_key_conf *
 ieee80211_gtk_rekey_add(struct ieee80211_vif *vif,
     struct ieee80211_key_conf *key)
 {
@@ -2633,48 +2633,48 @@ ieee80211_gtk_rekey_add(struct ieee80211_vif *vif,
         return (NULL);
 }
 
-static __inline void
+static inline void
 ieee80211_gtk_rekey_notify(struct ieee80211_vif *vif, const uint8_t *bssid,
     const uint8_t *replay_ctr, gfp_t gfp)
 {
         TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_remove_key(struct ieee80211_key_conf *key)
 {
         TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_set_key_rx_seq(struct ieee80211_key_conf *key, int tid,
     struct ieee80211_key_seq *seq)
 {
         TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_report_wowlan_wakeup(struct ieee80211_vif *vif,
     struct cfg80211_wowlan_wakeup *wakeup, gfp_t gfp)
 {
         TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_obss_color_collision_notify(struct ieee80211_vif *vif,
     uint64_t obss_color_bitmap, gfp_t gfp)
 {
 	TODO();
 }
 
-static __inline void
+static inline void
 ieee80211_refresh_tx_agg_session_timer(struct ieee80211_sta *sta,
     uint8_t tid)
 {
 	TODO();
 }
 
-static __inline struct ieee80211_ema_beacons *
+static inline struct ieee80211_ema_beacons *
 ieee80211_beacon_get_template_ema_list(struct ieee80211_hw *hw,
     struct ieee80211_vif *vif, uint32_t link_id)
 {
@@ -2682,7 +2682,7 @@ ieee80211_beacon_get_template_ema_list(struct ieee80211_hw *hw,
 	return (NULL);
 }
 
-static __inline void
+static inline void
 ieee80211_beacon_free_ema_list(struct ieee80211_ema_beacons *bcns)
 {
 	TODO();
@@ -2696,7 +2696,7 @@ ieee80211_vif_is_mld(const struct ieee80211_vif *vif)
 	return (vif->valid_links != 0);
 }
 
-static __inline const struct ieee80211_sta_he_cap *
+static inline const struct ieee80211_sta_he_cap *
 ieee80211_get_he_iftype_cap_vif(const struct ieee80211_supported_band *band,
     struct ieee80211_vif *vif)
 {
@@ -2704,7 +2704,7 @@ ieee80211_get_he_iftype_cap_vif(const struct ieee80211_supported_band *band,
 	return (NULL);
 }
 
-static __inline const struct ieee80211_sta_eht_cap *
+static inline const struct ieee80211_sta_eht_cap *
 ieee80211_get_eht_iftype_cap_vif(const struct ieee80211_supported_band *band,
     struct ieee80211_vif *vif)
 {

@@ -193,7 +193,7 @@ mv_spi_detach(device_t dev)
 	return (0);
 }
 
-static __inline void
+static inline void
 mv_spi_rx_byte(struct mv_spi_softc *sc)
 {
 	struct spi_command *cmd;
@@ -210,7 +210,7 @@ mv_spi_rx_byte(struct mv_spi_softc *sc)
 	p[read] = MV_SPI_READ(sc, MV_SPI_DATAIN) & 0xff;
 }
 
-static __inline void
+static inline void
 mv_spi_tx_byte(struct mv_spi_softc *sc)
 {
 	struct spi_command *cmd;

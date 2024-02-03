@@ -100,7 +100,7 @@ typedef struct {
 #define _ENCODING_IS_STATE_DEPENDENT	0
 #define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
 
-static __inline int
+static inline int
 _citrus_EUCTW_cs(unsigned int c)
 {
 
@@ -109,7 +109,7 @@ _citrus_EUCTW_cs(unsigned int c)
 	return ((c & 0x80) ? (c == _SS2 ? 2 : 1) : 0);
 }
 
-static __inline int
+static inline int
 _citrus_EUCTW_count(int cs)
 {
 
@@ -127,7 +127,7 @@ _citrus_EUCTW_count(int cs)
 	return (0);
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_EUCTW_init_state(_EUCTWEncodingInfo * __restrict ei __unused,
     _EUCTWState * __restrict s)
@@ -137,7 +137,7 @@ _citrus_EUCTW_init_state(_EUCTWEncodingInfo * __restrict ei __unused,
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_EUCTW_pack_state(_EUCTWEncodingInfo * __restrict ei __unused,
     void * __restrict pspriv, const _EUCTWState * __restrict s)
@@ -146,7 +146,7 @@ _citrus_EUCTW_pack_state(_EUCTWEncodingInfo * __restrict ei __unused,
 	memcpy(pspriv, (const void *)s, sizeof(*s));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_EUCTW_unpack_state(_EUCTWEncodingInfo * __restrict ei __unused,
     _EUCTWState * __restrict s, const void * __restrict pspriv)
@@ -327,7 +327,7 @@ err:
 	return (ret);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_EUCTW_stdenc_wctocs(_EUCTWEncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
@@ -339,7 +339,7 @@ _citrus_EUCTW_stdenc_wctocs(_EUCTWEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_EUCTW_stdenc_cstowc(_EUCTWEncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -358,7 +358,7 @@ _citrus_EUCTW_stdenc_cstowc(_EUCTWEncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_EUCTW_stdenc_get_state_desc_generic(_EUCTWEncodingInfo * __restrict ei __unused,
     _EUCTWState * __restrict psenc, int * __restrict rstate)

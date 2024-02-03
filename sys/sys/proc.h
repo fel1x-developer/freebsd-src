@@ -1301,7 +1301,7 @@ void	stop_all_proc_unblock(void);
 void	stop_all_proc(void);
 void	resume_all_proc(void);
 
-static __inline int
+static inline int
 curthread_pflags_set(int flags)
 {
 	struct thread *td;
@@ -1313,14 +1313,14 @@ curthread_pflags_set(int flags)
 	return (save);
 }
 
-static __inline void
+static inline void
 curthread_pflags_restore(int save)
 {
 
 	curthread->td_pflags &= save;
 }
 
-static __inline int
+static inline int
 curthread_pflags2_set(int flags)
 {
 	struct thread *td;
@@ -1332,14 +1332,14 @@ curthread_pflags2_set(int flags)
 	return (save);
 }
 
-static __inline void
+static inline void
 curthread_pflags2_restore(int save)
 {
 
 	curthread->td_pflags2 &= save;
 }
 
-static __inline __pure2 struct td_sched *
+static inline __pure2 struct td_sched *
 td_get_sched(struct thread *td)
 {
 

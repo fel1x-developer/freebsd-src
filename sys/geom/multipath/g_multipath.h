@@ -66,13 +66,13 @@ struct g_multipath_metadata {
 	uint8_t		md_active_active; /* Active/Active mode */
 };
 
-static __inline void
+static inline void
 multipath_metadata_encode(const struct g_multipath_metadata *, u_char *);
 
-static __inline void
+static inline void
 multipath_metadata_decode(u_char *, struct g_multipath_metadata *);
 
-static __inline void
+static inline void
 multipath_metadata_encode(const struct g_multipath_metadata *md, u_char *data)
 {
 	bcopy(md->md_magic, data, sizeof(md->md_magic));
@@ -90,7 +90,7 @@ multipath_metadata_encode(const struct g_multipath_metadata *md, u_char *data)
 	*data = md->md_active_active;
 }
 
-static __inline void
+static inline void
 multipath_metadata_decode(u_char *data, struct g_multipath_metadata *md)
 {
 	bcopy(data, md->md_magic, sizeof(md->md_magic));

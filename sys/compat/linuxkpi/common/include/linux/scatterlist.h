@@ -562,7 +562,7 @@ sg_page_iter_page(struct sg_page_iter *piter)
 	return (nth_page(sg_page(piter->sg), piter->sg_pgoffset));
 }
 
-static __inline size_t
+static inline size_t
 sg_pcopy_from_buffer(struct scatterlist *sgl, unsigned int nents,
     const void *buf, size_t buflen, off_t skip)
 {

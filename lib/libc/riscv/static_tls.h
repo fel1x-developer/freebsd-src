@@ -31,7 +31,7 @@
 #ifndef _LIBC_RISCV_STATIC_TLS_H
 #define _LIBC_RISCV_STATIC_TLS_H
 
-static __inline uintptr_t
+static inline uintptr_t
 _libc_get_static_tls_base(size_t offset)
 {
 	uintptr_t tlsbase;

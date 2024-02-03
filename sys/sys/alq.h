@@ -136,7 +136,7 @@ struct ale *alq_get(struct alq *alq, int flags);
  */
 void alq_post_flags(struct alq *alq, struct ale *ale, int flags);
 
-static __inline void
+static inline void
 alq_post(struct alq *alq, struct ale *ale)
 {
 	alq_post_flags(alq, ale, 0);

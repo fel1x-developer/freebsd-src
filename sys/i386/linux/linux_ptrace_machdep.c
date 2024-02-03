@@ -79,7 +79,7 @@
 #define LINUX_DBREG_OFFSET	252
 #define LINUX_DBREG_SIZE	(8*sizeof(l_int))
 
-static __inline int
+static inline int
 map_signum(int signum)
 {
 

@@ -161,7 +161,7 @@ static const struct abort aborts[] = {
 	{abort_fatal,	"Undefined Code (0x40F)"}
 };
 
-static __inline void
+static inline void
 call_trapsignal(struct thread *td, int sig, int code, vm_offset_t addr,
     int trapno)
 {
@@ -206,7 +206,7 @@ call_trapsignal(struct thread *td, int sig, int code, vm_offset_t addr,
  *      FAULT_IS_MINE value or all was called. If all handlers return
  *	FAULT_IS_NOT_MINE value, then the abort is fatal.
  */
-static __inline void
+static inline void
 abort_imprecise(struct trapframe *tf, u_int fsr, u_int prefetch, bool usermode)
 {
 
@@ -238,7 +238,7 @@ out:
  *  FAULT_DEBUG - Debug Event
  *
  */
-static __inline void
+static inline void
 abort_debug(struct trapframe *tf, u_int fsr, u_int prefetch, bool usermode,
     u_int far)
 {

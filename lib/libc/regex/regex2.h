@@ -151,7 +151,7 @@ CHIN1(cset *cs, wint_t ch)
 	return (cs->invert);
 }
 
-static __inline int
+static inline int
 CHIN(cset *cs, wint_t ch)
 {
 

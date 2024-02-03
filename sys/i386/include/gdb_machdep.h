@@ -33,26 +33,26 @@
 #define	GDB_NREGS	16
 #define	GDB_REG_PC	8
 
-static __inline size_t
+static inline size_t
 gdb_cpu_regsz(int regnum __unused)
 {
 	return (sizeof(int));
 }
 
-static __inline int
+static inline int
 gdb_cpu_query(void)
 {
 	return (0);
 }
 
-static __inline void *
+static inline void *
 gdb_begin_write(void)
 {
 
 	return (NULL);
 }
 
-static __inline void
+static inline void
 gdb_end_write(void *arg __unused)
 {
 

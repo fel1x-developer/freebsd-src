@@ -17,7 +17,7 @@
 #ifndef RTWN_USB_REG_H
 #define RTWN_USB_REG_H
 
-static __inline uint16_t
+static inline uint16_t
 rtwn_usb_calc_tx_checksum(void *buf)
 {
 	uint16_t sum = 0;

@@ -113,7 +113,7 @@ static const mbstate_t initial_mbs;
  * failure.
  */
 
-static __inline int
+static inline int
 convert_char(FILE *fp, char * p, int width)
 {
 	int n;
@@ -147,7 +147,7 @@ convert_char(FILE *fp, char * p, int width)
 	}
 }
 
-static __inline int
+static inline int
 convert_wchar(FILE *fp, wchar_t *wcp, int width, locale_t locale)
 {
 	mbstate_t mbs;
@@ -167,7 +167,7 @@ convert_wchar(FILE *fp, wchar_t *wcp, int width, locale_t locale)
 	return (n);
 }
 
-static __inline int
+static inline int
 convert_ccl(FILE *fp, char * p, int width, const char *ccltab)
 {
 	char *p0;
@@ -206,7 +206,7 @@ convert_ccl(FILE *fp, char * p, int width, const char *ccltab)
 	return (n);
 }
 
-static __inline int
+static inline int
 convert_wccl(FILE *fp, wchar_t *wcp, int width, const char *ccltab,
     locale_t locale)
 {
@@ -237,7 +237,7 @@ convert_wccl(FILE *fp, wchar_t *wcp, int width, const char *ccltab,
 	return (n);
 }
 
-static __inline int
+static inline int
 convert_string(FILE *fp, char * p, int width)
 {
 	char *p0;
@@ -268,7 +268,7 @@ convert_string(FILE *fp, char * p, int width)
 	return (n);
 }
 
-static __inline int
+static inline int
 convert_wstring(FILE *fp, wchar_t *wcp, int width, locale_t locale)
 {
 	mbstate_t mbs;
@@ -304,7 +304,7 @@ enum parseint_state {
 	any,
 };
 
-static __inline int
+static inline int
 parseint_fsm(int c, enum parseint_state *state, int *base)
 {
 	switch (c) {
@@ -422,7 +422,7 @@ parseint_fsm(int c, enum parseint_state *state, int *base)
  * Return 0 on a match failure, and the number of characters read
  * otherwise.
  */
-static __inline int
+static inline int
 parseint(FILE *fp, char * __restrict buf, int width, int base)
 {
 	enum parseint_state state = begin;

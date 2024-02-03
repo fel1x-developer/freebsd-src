@@ -36,13 +36,13 @@
 #define	TLS_TCB_ALIGN	8
 #define	TLS_TP_OFFSET	0
 
-static __inline void
+static inline void
 _tcb_set(struct tcb *tcb)
 {
 	sysarch(ARM_SET_TP, tcb);
 }
 
-static __inline struct tcb *
+static inline struct tcb *
 _tcb_get(void)
 {
 	struct tcb *tcb;

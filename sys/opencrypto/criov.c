@@ -241,7 +241,7 @@ cvm_page_copydata(vm_page_t *pages, int off, int len, caddr_t cp)
  * Given a starting page in an m_epg, determine the length of the
  * current physically contiguous segment.
  */
-static __inline size_t
+static inline size_t
 m_epg_pages_extent(struct mbuf *m, int idx, u_int pglen)
 {
 	size_t len;
@@ -284,7 +284,7 @@ m_epg_segment(struct mbuf *m, size_t offset, size_t *len)
 	return (m->m_epg_trail + offset);
 }
 
-static __inline void *
+static inline void *
 m_epg_contiguous_subsegment(struct mbuf *m, size_t skip, size_t len)
 {
 	void *base;

@@ -96,7 +96,7 @@ static int mpr_alloc_replies(struct mpr_softc *sc);
 static int mpr_alloc_requests(struct mpr_softc *sc);
 static int mpr_alloc_nvme_prp_pages(struct mpr_softc *sc);
 static int mpr_attach_log(struct mpr_softc *sc);
-static __inline void mpr_complete_command(struct mpr_softc *sc,
+static inline void mpr_complete_command(struct mpr_softc *sc,
     struct mpr_command *cm);
 static void mpr_dispatch_event(struct mpr_softc *sc, uintptr_t data,
     MPI2_EVENT_NOTIFICATION_REPLY *reply);
@@ -2362,7 +2362,7 @@ mpr_free(struct mpr_softc *sc)
 	return (0);
 }
 
-static __inline void
+static inline void
 mpr_complete_command(struct mpr_softc *sc, struct mpr_command *cm)
 {
 	MPR_FUNCTRACE(sc);

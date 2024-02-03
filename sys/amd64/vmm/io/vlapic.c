@@ -82,7 +82,7 @@ static void vlapic_set_error(struct vlapic *, uint32_t, bool);
 static void vlapic_callout_handler(void *arg);
 static void vlapic_reset(struct vlapic *vlapic);
 
-static __inline uint32_t
+static inline uint32_t
 vlapic_get_id(struct vlapic *vlapic)
 {
 
@@ -310,7 +310,7 @@ vlapic_set_intr_ready(struct vlapic *vlapic, int vector, bool level)
 	return (1);
 }
 
-static __inline uint32_t *
+static inline uint32_t *
 vlapic_get_lvtptr(struct vlapic *vlapic, uint32_t offset)
 {
 	struct LAPIC	*lapic = vlapic->apic_page;
@@ -327,7 +327,7 @@ vlapic_get_lvtptr(struct vlapic *vlapic, uint32_t offset)
 	}
 }
 
-static __inline int
+static inline int
 lvt_off_to_idx(uint32_t offset)
 {
 	int index;
@@ -364,7 +364,7 @@ lvt_off_to_idx(uint32_t offset)
 	return (index);
 }
 
-static __inline uint32_t
+static inline uint32_t
 vlapic_get_lvt(struct vlapic *vlapic, uint32_t offset)
 {
 	int idx;
@@ -598,14 +598,14 @@ vlapic_process_eoi(struct vlapic *vlapic)
 	vmm_stat_incr(vlapic->vcpu, VLAPIC_GRATUITOUS_EOI, 1);
 }
 
-static __inline int
+static inline int
 vlapic_get_lvt_field(uint32_t lvt, uint32_t mask)
 {
 
 	return (lvt & mask);
 }
 
-static __inline int
+static inline int
 vlapic_periodic_timer(struct vlapic *vlapic)
 {
 	uint32_t lvt;

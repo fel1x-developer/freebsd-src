@@ -141,14 +141,14 @@ _UTF8_findlen(wchar_t v)
 	return (-1);	/*out of range*/
 }
 
-static __inline bool
+static inline bool
 _UTF8_surrogate(wchar_t wc)
 {
 
 	return (wc >= 0xd800 && wc <= 0xdfff);
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UTF8_init_state(_UTF8EncodingInfo *ei __unused, _UTF8State *s)
 {
@@ -157,7 +157,7 @@ _citrus_UTF8_init_state(_UTF8EncodingInfo *ei __unused, _UTF8State *s)
 }
 
 #if 0
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UTF8_pack_state(_UTF8EncodingInfo *ei __unused, void *pspriv,
     const _UTF8State *s)
@@ -166,7 +166,7 @@ _citrus_UTF8_pack_state(_UTF8EncodingInfo *ei __unused, void *pspriv,
 	memcpy(pspriv, (const void *)s, sizeof(*s));
 }
 
-static __inline void
+static inline void
 /*ARGSUSED*/
 _citrus_UTF8_unpack_state(_UTF8EncodingInfo *ei __unused, _UTF8State *s,
     const void *pspriv)
@@ -287,7 +287,7 @@ err:
 	return (ret);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_UTF8_stdenc_wctocs(_UTF8EncodingInfo * __restrict ei __unused,
     _csid_t * __restrict csid, _index_t * __restrict idx,
@@ -300,7 +300,7 @@ _citrus_UTF8_stdenc_wctocs(_UTF8EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_UTF8_stdenc_cstowc(_UTF8EncodingInfo * __restrict ei __unused,
     wchar_t * __restrict wc, _csid_t csid, _index_t idx)
@@ -314,7 +314,7 @@ _citrus_UTF8_stdenc_cstowc(_UTF8EncodingInfo * __restrict ei __unused,
 	return (0);
 }
 
-static __inline int
+static inline int
 /*ARGSUSED*/
 _citrus_UTF8_stdenc_get_state_desc_generic(_UTF8EncodingInfo * __restrict ei __unused,
     _UTF8State * __restrict psenc, int * __restrict rstate)

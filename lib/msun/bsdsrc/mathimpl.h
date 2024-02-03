@@ -49,7 +49,7 @@
  */
 #define	TRUNC(d)	(_b_trunc(&(d)))
 
-static __inline void
+static inline void
 _b_trunc(volatile double *_dp)
 {
 	uint32_t _lw;

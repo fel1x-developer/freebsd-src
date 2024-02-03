@@ -173,63 +173,63 @@ void evdev_support_nfingers(struct evdev_dev *, int);
 void evdev_push_nfingers(struct evdev_dev *, int);
 
 /* Event reporting shortcuts: */
-static __inline int
+static inline int
 evdev_sync(struct evdev_dev *evdev)
 {
 
 	return (evdev_push_event(evdev, EV_SYN, SYN_REPORT, 1));
 }
 
-static __inline int
+static inline int
 evdev_mt_sync(struct evdev_dev *evdev)
 {
 
 	return (evdev_push_event(evdev, EV_SYN, SYN_MT_REPORT, 1));
 }
 
-static __inline int
+static inline int
 evdev_push_key(struct evdev_dev *evdev, uint16_t code, int32_t value)
 {
 
 	return (evdev_push_event(evdev, EV_KEY, code, value != 0));
 }
 
-static __inline int
+static inline int
 evdev_push_rel(struct evdev_dev *evdev, uint16_t code, int32_t value)
 {
 
 	return (evdev_push_event(evdev, EV_REL, code, value));
 }
 
-static __inline int
+static inline int
 evdev_push_abs(struct evdev_dev *evdev, uint16_t code, int32_t value)
 {
 
 	return (evdev_push_event(evdev, EV_ABS, code, value));
 }
 
-static __inline int
+static inline int
 evdev_push_msc(struct evdev_dev *evdev, uint16_t code, int32_t value)
 {
 
 	return (evdev_push_event(evdev, EV_MSC, code, value));
 }
 
-static __inline int
+static inline int
 evdev_push_led(struct evdev_dev *evdev, uint16_t code, int32_t value)
 {
 
 	return (evdev_push_event(evdev, EV_LED, code, value != 0));
 }
 
-static __inline int
+static inline int
 evdev_push_snd(struct evdev_dev *evdev, uint16_t code, int32_t value)
 {
 
 	return (evdev_push_event(evdev, EV_SND, code, value));
 }
 
-static __inline int
+static inline int
 evdev_push_sw(struct evdev_dev *evdev, uint16_t code, int32_t value)
 {
 

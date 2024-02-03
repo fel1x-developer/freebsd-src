@@ -264,7 +264,7 @@ extern int	acpi_quirks;
  */
 #define __ACPI_BUS_ACCESSOR(varp, var, ivarp, ivar, type)	\
 								\
-static __inline type varp ## _get_ ## var(device_t dev)		\
+static inline type varp ## _get_ ## var(device_t dev)		\
 {								\
     uintptr_t v = 0;						\
     BUS_READ_IVAR(device_get_parent(dev), dev,			\
@@ -272,7 +272,7 @@ static __inline type varp ## _get_ ## var(device_t dev)		\
     return ((type) v);						\
 }								\
 								\
-static __inline void varp ## _set_ ## var(device_t dev, type t)	\
+static inline void varp ## _set_ ## var(device_t dev, type t)	\
 {								\
     uintptr_t v = (uintptr_t) t;				\
     BUS_WRITE_IVAR(device_get_parent(dev), dev,			\
@@ -284,7 +284,7 @@ __ACPI_BUS_ACCESSOR(acpi, private, ACPI, PRIVATE, void *)
 __ACPI_BUS_ACCESSOR(acpi, flags, ACPI, FLAGS, int)
 
 void acpi_fake_objhandler(ACPI_HANDLE h, void *data);
-static __inline device_t
+static inline device_t
 acpi_get_device(ACPI_HANDLE handle)
 {
     void *dev = NULL;
@@ -292,7 +292,7 @@ acpi_get_device(ACPI_HANDLE handle)
     return ((device_t)dev);
 }
 
-static __inline ACPI_OBJECT_TYPE
+static inline ACPI_OBJECT_TYPE
 acpi_get_type(device_t dev)
 {
     ACPI_HANDLE		h;
@@ -306,7 +306,7 @@ acpi_get_type(device_t dev)
 }
 
 /* Find the difference between two PM tick counts. */
-static __inline uint32_t
+static inline uint32_t
 acpi_TimerDelta(uint32_t end, uint32_t start)
 {
 
@@ -401,7 +401,7 @@ int		acpi_MatchHid(ACPI_HANDLE h, const char *hid);
 #define ACPI_MATCHHID_HID 1
 #define ACPI_MATCHHID_CID 2
 
-static __inline bool
+static inline bool
 acpi_HasProperty(device_t dev, ACPI_STRING propname)
 {
 
@@ -469,7 +469,7 @@ int		acpi_set_powerstate(device_t child, int state);
 void		acpi_apm_init(struct acpi_softc *);
 
 /* Misc. */
-static __inline struct acpi_softc *
+static inline struct acpi_softc *
 acpi_device_get_parent_softc(device_t child)
 {
     device_t	parent;
@@ -480,7 +480,7 @@ acpi_device_get_parent_softc(device_t child)
     return (device_get_softc(parent));
 }
 
-static __inline int
+static inline int
 acpi_get_verbose(struct acpi_softc *sc)
 {
     if (sc)

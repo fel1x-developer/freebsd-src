@@ -329,7 +329,7 @@ extern struct vm_domain vm_dom[MAXMEMDOM];
 #define	vm_domain_pageout_unlock(d)					\
 	    mtx_unlock(vm_domain_pageout_lockptr((d)))
 
-static __inline void
+static inline void
 vm_pagequeue_cnt_add(struct vm_pagequeue *pq, int addend)
 {
 

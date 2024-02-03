@@ -121,7 +121,7 @@ static void	bwi_calibrate(void *);
 
 static int	bwi_calc_rssi(struct bwi_softc *, const struct bwi_rxbuf_hdr *);
 static int	bwi_calc_noise(struct bwi_softc *);
-static __inline uint8_t bwi_plcp2rate(uint32_t, enum ieee80211_phytype);
+static inline uint8_t bwi_plcp2rate(uint32_t, enum ieee80211_phytype);
 static void	bwi_rx_radiotap(struct bwi_softc *, struct mbuf *,
 			struct bwi_rxbuf_hdr *, const void *, int, int, int);
 
@@ -321,7 +321,7 @@ bwi_read_sprom(struct bwi_softc *sc, uint16_t ofs)
 	return CSR_READ_2(sc, ofs + BWI_SPROM_START);
 }
 
-static __inline void
+static inline void
 bwi_setup_desc32(struct bwi_softc *sc, struct bwi_desc32 *desc_array,
 		 int ndesc, int desc_idx, bus_addr_t paddr, int buf_len,
 		 int tx)
@@ -2842,7 +2842,7 @@ bwi_free_tx_ring64(struct bwi_softc *sc, int ring_idx)
 #define IEEE80211_OFDM_PLCP_RATE_MASK	__BITS(3, 0)
 #define IEEE80211_OFDM_PLCP_LEN_MASK	__BITS(16, 5)
 
-static __inline void
+static inline void
 bwi_ofdm_plcp_header(uint32_t *plcp0, int pkt_len, uint8_t rate)
 {
 	uint32_t plcp;
@@ -2853,7 +2853,7 @@ bwi_ofdm_plcp_header(uint32_t *plcp0, int pkt_len, uint8_t rate)
 	*plcp0 = htole32(plcp);
 }
 
-static __inline void
+static inline void
 bwi_ds_plcp_header(struct ieee80211_ds_plcp_hdr *plcp, int pkt_len,
 		   uint8_t rate)
 {
@@ -2881,7 +2881,7 @@ bwi_ds_plcp_header(struct ieee80211_ds_plcp_hdr *plcp, int pkt_len,
 	/* NOTE: do NOT touch i_crc */
 }
 
-static __inline void
+static inline void
 bwi_plcp_header(const struct ieee80211_rate_table *rt,
 	void *plcp, int pkt_len, uint8_t rate)
 {
@@ -3750,7 +3750,7 @@ bwi_calc_noise(struct bwi_softc *sc)
 	return bwi_rf_calc_noise(mac);
 }
 
-static __inline uint8_t
+static inline uint8_t
 bwi_plcp2rate(const uint32_t plcp0, enum ieee80211_phytype type)
 {
 	uint32_t plcp = le32toh(plcp0) & IEEE80211_OFDM_PLCP_RATE_MASK;
@@ -3836,7 +3836,7 @@ bwi_led_attach(struct bwi_softc *sc)
 	callout_init_mtx(&sc->sc_led_blink_ch, &sc->sc_mtx, 0);
 }
 
-static __inline uint16_t
+static inline uint16_t
 bwi_led_onoff(const struct bwi_led *led, uint16_t val, int on)
 {
 	if (led->l_flags & BWI_LED_F_ACTLOW)

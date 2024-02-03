@@ -49,7 +49,7 @@
 #include <sys/types.h>
 #include <machine/armreg.h>
 
-static __inline void
+static inline void
 breakpoint(void)
 {
 	__asm("udf        0xffff");
@@ -107,7 +107,7 @@ void    arm11x6_sleep                   (int);  /* no ref. for errata */
  */
 #define	__ARM_INTR_BITS		(PSR_I | PSR_F | PSR_A)
 
-static __inline uint32_t
+static inline uint32_t
 __set_cpsr(uint32_t bic, uint32_t eor)
 {
 	uint32_t	tmp, ret;
@@ -123,35 +123,35 @@ __set_cpsr(uint32_t bic, uint32_t eor)
 	return ret;
 }
 
-static __inline uint32_t
+static inline uint32_t
 disable_interrupts(uint32_t mask)
 {
 
 	return (__set_cpsr(mask & __ARM_INTR_BITS, mask & __ARM_INTR_BITS));
 }
 
-static __inline uint32_t
+static inline uint32_t
 enable_interrupts(uint32_t mask)
 {
 
 	return (__set_cpsr(mask & __ARM_INTR_BITS, 0));
 }
 
-static __inline uint32_t
+static inline uint32_t
 restore_interrupts(uint32_t old_cpsr)
 {
 
 	return (__set_cpsr(__ARM_INTR_BITS, old_cpsr & __ARM_INTR_BITS));
 }
 
-static __inline register_t
+static inline register_t
 intr_disable(void)
 {
 
 	return (disable_interrupts(PSR_I | PSR_F));
 }
 
-static __inline void
+static inline void
 intr_restore(register_t s)
 {
 
@@ -183,7 +183,7 @@ extern unsigned int	arm_dcache_align_mask;
 
 #else	/* !_KERNEL */
 
-static __inline void
+static inline void
 breakpoint(void)
 {
 

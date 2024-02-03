@@ -39,7 +39,7 @@
 #define	FORREAL		0
 #define	JUSTLOOKING	1
 
-static __inline int
+static inline int
 issig(int why)
 {
 	struct thread *td = curthread;

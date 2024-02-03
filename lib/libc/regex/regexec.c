@@ -55,7 +55,7 @@
 
 static int nope __unused = 0;	/* for use in asserts; shuts lint up */
 
-static __inline size_t
+static inline size_t
 xmbrtowc(wint_t *wi, const char *s, size_t n, mbstate_t *mbs, wint_t dummy)
 {
 	size_t nr;
@@ -75,7 +75,7 @@ xmbrtowc(wint_t *wi, const char *s, size_t n, mbstate_t *mbs, wint_t dummy)
                 return (nr);
 }
 
-static __inline size_t
+static inline size_t
 xmbrtowc_dummy(wint_t *wi,
 		const char *s,
 		size_t n __unused,

@@ -279,7 +279,7 @@ adhoc_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
  * of the less interesting frames that come frequently
  * (e.g. beacons).
  */
-static __inline int
+static inline int
 doprint(struct ieee80211vap *vap, int subtype)
 {
 	switch (subtype) {

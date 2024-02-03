@@ -64,7 +64,7 @@ int gdb_rx_equal(const char *);
 int gdb_rx_mem(unsigned char *, size_t);
 int gdb_rx_varhex(uintmax_t *);
 
-static __inline int
+static inline int
 gdb_rx_char(void)
 {
 	int c;
@@ -86,26 +86,26 @@ int gdb_rx_bindata(unsigned char *data, size_t datalen, size_t *amt);
 int gdb_search_mem(const unsigned char *addr, size_t size,
     const unsigned char *pat, size_t patlen, const unsigned char **found);
 
-static __inline void
+static inline void
 gdb_tx_char(char c)
 {
 	*gdb_txp++ = c;
 }
 
-static __inline int
+static inline int
 gdb_tx_empty(void)
 {
 	gdb_tx_begin('\0');
 	return (gdb_tx_end());
 }
 
-static __inline void
+static inline void
 gdb_tx_hex(uintmax_t n, int sz)
 {
 	gdb_txp += sprintf(gdb_txp, "%0*jx", sz, n);
 }
 
-static __inline int
+static inline int
 gdb_tx_err(int err)
 {
 	gdb_tx_begin('E');
@@ -113,7 +113,7 @@ gdb_tx_err(int err)
 	return (gdb_tx_end());
 }
 
-static __inline int
+static inline int
 gdb_tx_ok(void)
 {
 	gdb_tx_begin('O');
@@ -121,27 +121,27 @@ gdb_tx_ok(void)
 	return (gdb_tx_end());
 }
 
-static __inline void
+static inline void
 gdb_tx_str(const char *s)
 {
 	while (*s)
 		*gdb_txp++ = *s++;
 }
 
-static __inline void
+static inline void
 gdb_tx_varhex(uintmax_t n)
 {
 	gdb_txp += sprintf(gdb_txp, "%jx", n);
 }
 
-static __inline void
+static inline void
 gdb_nack(void)
 {
 	if (gdb_ackmode)
 		gdb_cur->gdb_putc('-');
 }
 
-static __inline void
+static inline void
 gdb_ack(void)
 {
 	if (gdb_ackmode)

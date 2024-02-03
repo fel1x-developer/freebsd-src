@@ -31,34 +31,34 @@
  * building blocks for terminal emulator modules.
  */
 
-static __inline void	sc_term_ins_line(scr_stat *scp, int y, int n, int ch,
+static inline void	sc_term_ins_line(scr_stat *scp, int y, int n, int ch,
 					 int attr, int tail);
-static __inline void	sc_term_del_line(scr_stat *scp, int y, int n, int ch,
+static inline void	sc_term_del_line(scr_stat *scp, int y, int n, int ch,
 					 int attr, int tail);
-static __inline void	sc_term_ins_char(scr_stat *scp, int n, int ch,
+static inline void	sc_term_ins_char(scr_stat *scp, int n, int ch,
 					 int attr);
-static __inline void	sc_term_del_char(scr_stat *scp, int n, int ch,
+static inline void	sc_term_del_char(scr_stat *scp, int n, int ch,
 					 int attr);
-static __inline void	sc_term_col(scr_stat *scp, int n);
-static __inline void	sc_term_row(scr_stat *scp, int n);
-static __inline void	sc_term_up(scr_stat *scp, int n, int head);
-static __inline void	sc_term_down(scr_stat *scp, int n, int tail);
-static __inline void	sc_term_left(scr_stat *scp, int n);
-static __inline void	sc_term_right(scr_stat *scp, int n);
-static __inline void	sc_term_up_scroll(scr_stat *scp, int n, int ch,
+static inline void	sc_term_col(scr_stat *scp, int n);
+static inline void	sc_term_row(scr_stat *scp, int n);
+static inline void	sc_term_up(scr_stat *scp, int n, int head);
+static inline void	sc_term_down(scr_stat *scp, int n, int tail);
+static inline void	sc_term_left(scr_stat *scp, int n);
+static inline void	sc_term_right(scr_stat *scp, int n);
+static inline void	sc_term_up_scroll(scr_stat *scp, int n, int ch,
 					  int attr, int head, int tail);
-static __inline void	sc_term_down_scroll(scr_stat *scp, int n, int ch,
+static inline void	sc_term_down_scroll(scr_stat *scp, int n, int ch,
 					    int attr, int head, int tail);
-static __inline void	sc_term_clr_eos(scr_stat *scp, int n, int ch, int attr);
-static __inline void	sc_term_clr_eol(scr_stat *scp, int n, int ch, int attr);
-static __inline void	sc_term_tab(scr_stat *scp, int n);
-static __inline void	sc_term_backtab(scr_stat *scp, int n);
-static __inline void	sc_term_respond(scr_stat *scp, u_char *s);
-static __inline void	sc_term_gen_print(scr_stat *scp, u_char **buf, int *len,
+static inline void	sc_term_clr_eos(scr_stat *scp, int n, int ch, int attr);
+static inline void	sc_term_clr_eol(scr_stat *scp, int n, int ch, int attr);
+static inline void	sc_term_tab(scr_stat *scp, int n);
+static inline void	sc_term_backtab(scr_stat *scp, int n);
+static inline void	sc_term_respond(scr_stat *scp, u_char *s);
+static inline void	sc_term_gen_print(scr_stat *scp, u_char **buf, int *len,
 					  int attr);
-static __inline void	sc_term_gen_scroll(scr_stat *scp, int ch, int attr);
+static inline void	sc_term_gen_scroll(scr_stat *scp, int ch, int attr);
 
-static __inline void
+static inline void
 sc_term_ins_line(scr_stat *scp, int y, int n, int ch, int attr, int tail)
 {
 	if (tail <= 0)
@@ -72,7 +72,7 @@ sc_term_ins_line(scr_stat *scp, int y, int n, int ch, int attr, int tail)
 	mark_for_update(scp, scp->xsize*tail - 1);
 }
 
-static __inline void
+static inline void
 sc_term_del_line(scr_stat *scp, int y, int n, int ch, int attr, int tail)
 {
 	if (tail <= 0)
@@ -86,7 +86,7 @@ sc_term_del_line(scr_stat *scp, int y, int n, int ch, int attr, int tail)
 	mark_for_update(scp, scp->xsize*tail - 1);
 }
 
-static __inline void
+static inline void
 sc_term_ins_char(scr_stat *scp, int n, int ch, int attr)
 {
 	int count;
@@ -102,7 +102,7 @@ sc_term_ins_char(scr_stat *scp, int n, int ch, int attr)
 	mark_for_update(scp, scp->cursor_pos + n + count - 1);
 }
 
-static __inline void
+static inline void
 sc_term_del_char(scr_stat *scp, int n, int ch, int attr)
 {
 	int count;
@@ -118,7 +118,7 @@ sc_term_del_char(scr_stat *scp, int n, int ch, int attr)
 	mark_for_update(scp, scp->cursor_pos + n + count - 1);
 }
 
-static __inline void
+static inline void
 sc_term_col(scr_stat *scp, int n)
 {
 	if (n < 1)
@@ -126,7 +126,7 @@ sc_term_col(scr_stat *scp, int n)
 	sc_move_cursor(scp, n - 1, scp->ypos);
 }
 
-static __inline void
+static inline void
 sc_term_row(scr_stat *scp, int n)
 {
 	if (n < 1)
@@ -134,7 +134,7 @@ sc_term_row(scr_stat *scp, int n)
 	sc_move_cursor(scp, scp->xpos, n - 1);
 }
 
-static __inline void
+static inline void
 sc_term_up(scr_stat *scp, int n, int head)
 {
 	if (n < 1)
@@ -145,7 +145,7 @@ sc_term_up(scr_stat *scp, int n, int head)
 	sc_move_cursor(scp, scp->xpos, scp->ypos - n);
 }
 
-static __inline void
+static inline void
 sc_term_down(scr_stat *scp, int n, int tail)
 {
 	if (tail <= 0)
@@ -158,7 +158,7 @@ sc_term_down(scr_stat *scp, int n, int tail)
 	sc_move_cursor(scp, scp->xpos, scp->ypos + n);
 }
 
-static __inline void
+static inline void
 sc_term_left(scr_stat *scp, int n)
 {
 	if (n < 1)
@@ -166,7 +166,7 @@ sc_term_left(scr_stat *scp, int n)
 	sc_move_cursor(scp, scp->xpos - n, scp->ypos);
 }
 
-static __inline void
+static inline void
 sc_term_right(scr_stat *scp, int n)
 {
 	if (n < 1)
@@ -174,7 +174,7 @@ sc_term_right(scr_stat *scp, int n)
 	sc_move_cursor(scp, scp->xpos + n, scp->ypos);
 }
 
-static __inline void
+static inline void
 sc_term_up_scroll(scr_stat *scp, int n, int ch, int attr, int head, int tail)
 {
 	if (tail <= 0)
@@ -190,7 +190,7 @@ sc_term_up_scroll(scr_stat *scp, int n, int ch, int attr, int head, int tail)
 	}
 }
 
-static __inline void
+static inline void
 sc_term_down_scroll(scr_stat *scp, int n, int ch, int attr, int head, int tail)
 {
 	if (tail <= 0)
@@ -206,7 +206,7 @@ sc_term_down_scroll(scr_stat *scp, int n, int ch, int attr, int head, int tail)
 	}
 }
 
-static __inline void
+static inline void
 sc_term_clr_eos(scr_stat *scp, int n, int ch, int attr)
 {
 	switch (n) {
@@ -233,7 +233,7 @@ sc_term_clr_eos(scr_stat *scp, int n, int ch, int attr)
 	}
 }
 
-static __inline void
+static inline void
 sc_term_clr_eol(scr_stat *scp, int n, int ch, int attr)
 {
 	switch (n) {
@@ -259,7 +259,7 @@ sc_term_clr_eol(scr_stat *scp, int n, int ch, int attr)
 	}
 }
 
-static __inline void
+static inline void
 sc_term_tab(scr_stat *scp, int n)
 {
 	int i;
@@ -278,7 +278,7 @@ sc_term_tab(scr_stat *scp, int n)
 		sc_move_cursor(scp, i, scp->ypos);
 }
 
-static __inline void
+static inline void
 sc_term_backtab(scr_stat *scp, int n)
 {
 	int i;
@@ -294,13 +294,13 @@ sc_term_backtab(scr_stat *scp, int n)
 	sc_move_cursor(scp, i, scp->ypos);
 }
 
-static __inline void
+static inline void
 sc_term_respond(scr_stat *scp, u_char *s)
 {
 	sc_paste(scp, s, strlen(s));	/* XXX: not correct, don't use rmap */
 }
 
-static __inline void
+static inline void
 sc_term_gen_print(scr_stat *scp, u_char **buf, int *len, int attr)
 {
 	vm_offset_t p;
@@ -410,7 +410,7 @@ sc_term_gen_print(scr_stat *scp, u_char **buf, int *len, int attr)
 	*len = l;
 }
 
-static __inline void
+static inline void
 sc_term_gen_scroll(scr_stat *scp, int ch, int attr)
 {
 	/* do we have to scroll ?? */

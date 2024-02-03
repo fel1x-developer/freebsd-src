@@ -163,7 +163,7 @@ enum g_raid3_zones {
 	G_RAID3_NUM_ZONES
 };
 
-static __inline enum g_raid3_zones
+static inline enum g_raid3_zones
 g_raid3_zone(size_t nbytes) {
 	if (nbytes > 65536)
 		return (G_RAID3_NUM_ZONES);
@@ -268,7 +268,7 @@ struct g_raid3_metadata {
 	uint64_t	md_provsize;	/* Provider's size. */
 	u_char		md_hash[16];	/* MD5 hash. */
 };
-static __inline void
+static inline void
 raid3_metadata_encode(struct g_raid3_metadata *md, u_char *data)
 {
 	MD5_CTX ctx;
@@ -293,7 +293,7 @@ raid3_metadata_encode(struct g_raid3_metadata *md, u_char *data)
 	MD5Final(md->md_hash, &ctx);
 	bcopy(md->md_hash, data + 112, 16);
 }
-static __inline int
+static inline int
 raid3_metadata_decode_v0v1v2(const u_char *data, struct g_raid3_metadata *md)
 {
 	MD5_CTX ctx;
@@ -322,7 +322,7 @@ raid3_metadata_decode_v0v1v2(const u_char *data, struct g_raid3_metadata *md)
 
 	return (0);
 }
-static __inline int
+static inline int
 raid3_metadata_decode_v3(const u_char *data, struct g_raid3_metadata *md)
 {
 	MD5_CTX ctx;
@@ -351,7 +351,7 @@ raid3_metadata_decode_v3(const u_char *data, struct g_raid3_metadata *md)
 
 	return (0);
 }
-static __inline int
+static inline int
 raid3_metadata_decode_v4v5(const u_char *data, struct g_raid3_metadata *md)
 {
 	MD5_CTX ctx;
@@ -377,7 +377,7 @@ raid3_metadata_decode_v4v5(const u_char *data, struct g_raid3_metadata *md)
 		return (EINVAL);
 	return (0);
 }
-static __inline int
+static inline int
 raid3_metadata_decode(const u_char *data, struct g_raid3_metadata *md)
 {
 	int error;
@@ -404,7 +404,7 @@ raid3_metadata_decode(const u_char *data, struct g_raid3_metadata *md)
 	return (error);
 }
 
-static __inline void
+static inline void
 raid3_metadata_dump(const struct g_raid3_metadata *md)
 {
 	static const char hex[] = "0123456789abcdef";

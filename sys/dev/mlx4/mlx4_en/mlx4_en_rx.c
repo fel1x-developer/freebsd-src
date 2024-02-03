@@ -682,7 +682,7 @@ mlx4_en_rx_mb(struct mlx4_en_priv *priv, struct mlx4_en_rx_ring *ring,
 	return (mb);
 }
 
-static __inline int
+static inline int
 mlx4_en_rss_hash(__be16 status, int udp_rss)
 {
 	enum {

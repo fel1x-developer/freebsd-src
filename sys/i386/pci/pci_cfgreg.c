@@ -102,7 +102,7 @@ static void	pciereg_cfgwrite(struct pcie_mcfg_region *region, int bus,
  * apparently undocumented anywhere.  Assume these are completely bogus
  * and map them to 255, which means "none".
  */
-static __inline int 
+static inline int 
 pci_i386_map_intline(int line)
 {
 	if (line == 0 || line >= 128)
@@ -596,7 +596,7 @@ pcie_cfgregopen(uint64_t base, uint16_t domain, uint8_t minbus, uint8_t maxbus)
 	(((func) & 0x7) << 12)		|	\
 	((reg) & 0xfff)))
 
-static __inline vm_offset_t
+static inline vm_offset_t
 pciereg_findaddr(struct pcie_mcfg_region *region, int bus, unsigned slot,
     unsigned func, unsigned reg)
 {

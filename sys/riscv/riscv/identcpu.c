@@ -144,7 +144,7 @@ static const struct {
 #define	ISA_PREFIX		("rv" __XSTRING(__riscv_xlen))
 #define	ISA_PREFIX_LEN		(sizeof(ISA_PREFIX) - 1)
 
-static __inline int
+static inline int
 parse_ext_s(struct cpu_desc *desc, char *isa, int idx, int len)
 {
 #define	CHECK_S_EXT(str, flag)						\
@@ -176,7 +176,7 @@ parse_ext_s(struct cpu_desc *desc, char *isa, int idx, int len)
 	return (idx);
 }
 
-static __inline int
+static inline int
 parse_ext_x(struct cpu_desc *desc __unused, char *isa, int idx, int len)
 {
 	/*
@@ -190,7 +190,7 @@ parse_ext_x(struct cpu_desc *desc __unused, char *isa, int idx, int len)
 	return (idx);
 }
 
-static __inline int
+static inline int
 parse_ext_z(struct cpu_desc *desc __unused, char *isa, int idx, int len)
 {
 	/*
@@ -206,7 +206,7 @@ parse_ext_z(struct cpu_desc *desc __unused, char *isa, int idx, int len)
 	return (idx);
 }
 
-static __inline int
+static inline int
 parse_ext_version(char *isa, int idx, u_int *majorp __unused,
     u_int *minorp __unused)
 {

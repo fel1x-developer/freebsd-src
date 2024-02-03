@@ -473,7 +473,7 @@ sta_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
  * Return non-zero if the frame is an echo of a multicast
  * frame sent by ourself.  The dir is known to be DSTODS.
  */
-static __inline int
+static inline int
 isdstods_mcastecho(struct ieee80211vap *vap, const struct ieee80211_frame *wh)
 {
 #define	QWH4(wh)	((const struct ieee80211_qosframe_addr4 *)wh)
@@ -494,7 +494,7 @@ isdstods_mcastecho(struct ieee80211vap *vap, const struct ieee80211_frame *wh)
  * Return non-zero if the frame is an echo of a multicast
  * frame sent by ourself.  The dir is known to be FROMDS.
  */
-static __inline int
+static inline int
 isfromds_mcastecho(struct ieee80211vap *vap, const struct ieee80211_frame *wh)
 {
 	KASSERT(vap->iv_opmode == IEEE80211_M_STA, ("wrong mode"));
@@ -510,7 +510,7 @@ isfromds_mcastecho(struct ieee80211vap *vap, const struct ieee80211_frame *wh)
  * of the less interesting frames that come frequently
  * (e.g. beacons).
  */
-static __inline int
+static inline int
 doprint(struct ieee80211vap *vap, int subtype)
 {
 	switch (subtype) {
@@ -1335,7 +1335,7 @@ done:
  * change in state will be accompanied by a request to cancel
  * active scans which will otherwise cause this test to fail.
  */
-static __inline int
+static inline int
 contbgscan(struct ieee80211vap *vap)
 {
 	struct ieee80211com *ic = vap->iv_ic;
@@ -1355,7 +1355,7 @@ contbgscan(struct ieee80211vap *vap)
  * o there has not been a scan recently
  * o there has not been any traffic recently (don't check if full-offload scan)
  */
-static __inline int
+static inline int
 startbgscan(struct ieee80211vap *vap)
 {
 	struct ieee80211com *ic = vap->iv_ic;
