@@ -380,7 +380,7 @@ vm_daemon(void)
 		vm_daemon_timeout = hz;
 #endif
 
-	while (TRUE) {
+	for (;;) {
 		mtx_lock(&vm_daemon_mtx);
 		msleep(&vm_daemon_needed, &vm_daemon_mtx, PPAUSE, "psleep",
 		    vm_daemon_timeout);

@@ -2109,7 +2109,7 @@ vm_pageout_worker(void *arg)
 	/*
 	 * The pageout daemon worker is never done, so loop forever.
 	 */
-	while (TRUE) {
+	for (;;) {
 		vm_domain_pageout_lock(vmd);
 
 		/*

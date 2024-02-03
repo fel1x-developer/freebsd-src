@@ -479,7 +479,7 @@ mlx5e_decompress_cqes(struct mlx5e_cq *cq)
 	    cqe_count, cq->wq.sz_m1));
 
 	mlx5e_read_cqe_slot(cq, cq->wq.cc + 1, mini_array);
-	while (true) {
+	for (;;) {
 		mlx5e_decompress_cqe(cq, &title,
 		    &mini_array[i % MLX5E_MINI_ARRAY_SZ],
 		    title_wqe_counter, i);

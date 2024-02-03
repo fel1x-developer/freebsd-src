@@ -280,7 +280,7 @@ ar40xx_hw_wait_bit(struct ar40xx_softc *sc, int reg, uint32_t mask,
 	int timeout = 20;
 	uint32_t t;
 
-	while (true) {
+	for (;;) {
 		AR40XX_REG_BARRIER_READ(sc);
 		t = AR40XX_REG_READ(sc, reg);
 		if ((t & mask) == val)

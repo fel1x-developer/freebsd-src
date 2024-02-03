@@ -253,7 +253,7 @@ parse_hex(const struct poly1305_kat *kat, const char *hexstr, void *voutput,
 
 	it = hexstr;
 	count = 0;
-	while (true) {
+	for (;;) {
 		sep = strpbrk(it, " :");
 		if (sep == NULL)
 			sym_len = strlen(it);

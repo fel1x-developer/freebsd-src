@@ -162,7 +162,7 @@ netgdb_dbg_getc(void)
 {
 	int c;
 
-	while (true) {
+	for (;;) {
 		/* Pull bytes off any currently cached packet first. */
 		if (netgdb_rx_off < sbuf_len(&netgdb_rxsb)) {
 			c = netgdb_rxsb.s_buf[netgdb_rx_off];

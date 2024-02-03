@@ -496,7 +496,7 @@ ccp_intr_handle_error(struct ccp_queue *qp, const struct ccp_desc *desc)
 	 * Zlib Decompress status may be interesting.
 	 */
 
-	while (true) {
+	for (;;) {
 		/* Keep unused descriptors zero for next use. */
 		memset(&qp->desc_ring[idx], 0, sizeof(qp->desc_ring[idx]));
 

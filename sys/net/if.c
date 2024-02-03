@@ -4554,7 +4554,7 @@ if_foreach_sleep(if_foreach_match_t match_cb, void *match_arg, if_foreach_cb_t c
 
 	MPASS(cb);
 
-	while (true) {
+	for (;;) {
 		struct ifnet **new_array;
 		int new_size = array_size;
 		struct epoch_tracker et;

@@ -251,7 +251,7 @@ vmci_hashtable_get_entry_locked(struct vmci_hashtable *table,
 	idx = VMCI_HASHTABLE_HASH(handle, table->size);
 
 	cur = table->entries[idx];
-	while (true) {
+	for (;;) {
 		if (cur == NULL)
 			break;
 
@@ -515,7 +515,7 @@ hashtable_unlink_entry(struct vmci_hashtable *table,
 
 	prev = NULL;
 	cur = table->entries[idx];
-	while (true) {
+	for (;;) {
 		if (cur == NULL) {
 			result = VMCI_ERROR_NOT_FOUND;
 			break;

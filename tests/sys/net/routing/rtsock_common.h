@@ -697,7 +697,7 @@ rtsock_read_rtm_reply(int fd, char *buffer, size_t buflen, int seq)
 	struct rt_msghdr *rtm;
 	int found = 0;
 
-	while (true) {
+	for (;;) {
 		rtm = rtsock_read_rtm(fd, buffer, buflen);
 		if (rtm->rtm_pid == getpid() && rtm->rtm_seq == seq)
 			found = 1;

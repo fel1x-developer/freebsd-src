@@ -671,7 +671,7 @@ hvs_trans_soreceive(struct socket *so, struct sockaddr **paddr,
 		goto out;
 	}
 
-	while (true) {
+	for (;;) {
 		while (uio->uio_resid > 0 &&
 		    (canread = hvsock_canread_check(pcb)) > 0) {
 			to_read = MIN(canread, uio->uio_resid);

@@ -70,7 +70,7 @@ addrinfo_compare(struct addrinfo *ai0, struct addrinfo *ai1)
 
 	at0 = ai0;
 	at1 = ai1;
-	while (true) {
+	for (;;) {
 		if ((at0->ai_flags == at1->ai_flags) &&
 		    (at0->ai_family == at1->ai_family) &&
 		    (at0->ai_socktype == at1->ai_socktype) &&

@@ -704,7 +704,7 @@ oce_intr(void *arg, int pending)
 		RING_GET(eq->ring, 1);
 		num_eqes++;
 
-	} while (TRUE);
+	} while (1);
 
 	if (!num_eqes)
 		goto eq_arm; /* Spurious */
@@ -1367,7 +1367,7 @@ oce_start(if_t ifp)
 	if (!sc->link_status)
 		return;
 
-	while (true) {
+	for (;;) {
 		m = if_dequeue(sc->ifp);
 		if (m == NULL)
 			break;
@@ -2500,7 +2500,7 @@ oce_tx_compl_clean(POCE_SOFTC sc)
 			break;
 
 		DELAY(1000);
-	} while (TRUE);
+	} while (1);
 
 	for_all_wq_queues(sc, wq, i) {
 		while(wq->ring->num_used) {

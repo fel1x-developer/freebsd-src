@@ -715,7 +715,7 @@ exclude_efi_memreserve(vm_offset_t efi_systbl_phys)
 		 */
 		mr = (struct linux_efi_memreserve *)PHYS_TO_DMAP(
 			(vm_offset_t)cfgtbl->ct_data);
-		while (true) {
+		for (;;) {
 			for (int j = 0; j < mr->mr_count; j++) {
 				struct linux_efi_memreserve_entry *mre;
 

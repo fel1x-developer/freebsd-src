@@ -43,7 +43,7 @@ int mlx5_vsc_lock(struct mlx5_core_dev *mdev)
 		return EINVAL;
 	}
 
-	while (true) {
+	for (;;) {
 		if (retries > MLX5_VSC_MAX_RETRIES)
 			return EBUSY;
 
@@ -91,7 +91,7 @@ mlx5_vsc_wait_on_flag(struct mlx5_core_dev *mdev, u32 expected)
 	int retries = 0;
 	u32 flag;
 
-	while (true) {
+	for (;;) {
 		if (retries > MLX5_VSC_MAX_RETRIES)
 			return EBUSY;
 

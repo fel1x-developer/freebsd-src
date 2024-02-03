@@ -654,7 +654,7 @@ ccp_queue_reserve_space(struct ccp_queue *qp, unsigned n, int mflags)
 	if (n < 1 || n >= (1 << sc->ring_size_order))
 		return (EINVAL);
 
-	while (true) {
+	for (;;) {
 		if (ccp_queue_get_ring_space(qp) >= n)
 			return (0);
 		if ((mflags & M_WAITOK) == 0)

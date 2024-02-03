@@ -3081,7 +3081,7 @@ dpaa2_ni_consume_frames(struct dpaa2_channel *chan, struct dpaa2_ni_fq **src,
 		} else {
 			panic("%s: should not reach here: rc=%d", __func__, rc);
 		}
-	} while (true);
+	} for (;;);
 
 	KASSERT(chan->store_idx < chan->store_sz, ("%s: store_idx(%d) >= "
 	    "store_sz(%d)", __func__, chan->store_idx, chan->store_sz));

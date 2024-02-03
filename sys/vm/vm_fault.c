@@ -1629,7 +1629,7 @@ RetryFault:
 		}
 	}
 
-	while (TRUE) {
+	for (;;) {
 		KASSERT(fs.m == NULL,
 		    ("page still set %p at loop start", fs.m));
 

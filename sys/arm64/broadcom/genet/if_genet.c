@@ -1020,7 +1020,7 @@ gen_start_locked(struct gen_softc *sc)
 	    IFF_DRV_RUNNING)
 		return;
 
-	while (true) {
+	for (;;) {
 		m = if_dequeue(ifp);
 		if (m == NULL)
 			break;

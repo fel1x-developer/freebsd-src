@@ -189,7 +189,7 @@ fxrng_rng_reseed_internal(struct fxrng_basic_rng *rng, bool seeded,
 	fxrng_hash_update(&mix, src, sz);
 
 	va_start(ap, sz);
-	while (true) {
+	for (;;) {
 		src = va_arg(ap, const void *);
 		if (src == NULL)
 			break;

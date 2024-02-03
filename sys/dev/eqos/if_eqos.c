@@ -582,7 +582,7 @@ eqos_start_locked(if_t ifp)
 	    IFF_DRV_RUNNING)
 		return;
 
-	while (true) {
+	for (;;) {
 		if (TX_QUEUED(sc->tx.head, sc->tx.tail) >=
 		    TX_DESC_COUNT - TX_MAX_SEGS) {
 			if_setdrvflagbits(ifp, IFF_DRV_OACTIVE, 0);
@@ -681,7 +681,7 @@ eqos_rxintr(struct eqos_softc *sc)
 	uint32_t rdes3;
 	int error, length;
 
-	while (true) {
+	for (;;) {
 		rdes3 = le32toh(sc->rx.desc_ring[sc->rx.head].des3);
 		if ((rdes3 & EQOS_RDES3_OWN))
 			break;

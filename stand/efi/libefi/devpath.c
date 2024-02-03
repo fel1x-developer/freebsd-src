@@ -654,7 +654,7 @@ _efi_devpath_match(EFI_DEVICE_PATH *devpath1, EFI_DEVICE_PATH *devpath2,
 	if (devpath1 == NULL || devpath2 == NULL)
 		return (false);
 
-	while (true) {
+	for (;;) {
 		if (ignore_media &&
 		    IsDevicePathType(devpath1, MEDIA_DEVICE_PATH) &&
 		    IsDevicePathType(devpath2, MEDIA_DEVICE_PATH))

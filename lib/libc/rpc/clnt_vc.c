@@ -391,7 +391,7 @@ call_again:
 	 * Keep receiving until we get a valid transaction id
 	 */
 	xdrs->x_op = XDR_DECODE;
-	while (TRUE) {
+	for (;;) {
 		reply_msg.acpted_rply.ar_verf = _null_auth;
 		reply_msg.acpted_rply.ar_results.where = NULL;
 		reply_msg.acpted_rply.ar_results.proc = (xdrproc_t)xdr_void;

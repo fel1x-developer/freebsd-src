@@ -834,7 +834,7 @@ check_table_space(struct ip_fw_chain *ch, struct tableop_state *ts,
 	 * operation on algorithm which implements shrinking along with
 	 * growing.
 	 */
-	while (true) {
+	for (;;) {
 		pflags = 0;
 		if (ta->need_modify(tc->astate, ti, count, &pflags) == 0) {
 			error = 0;

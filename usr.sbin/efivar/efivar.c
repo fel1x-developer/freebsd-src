@@ -118,7 +118,7 @@ breakdown_name(char *name, efi_guid_t *guid, char **vname)
 	char *cp, *ocp;
 
 	ocp = NULL;
-	while (true) {
+	for (;;) {
 		cp = strrchr(name, '-');
 		if (cp == NULL) {
 			if (ocp != NULL)

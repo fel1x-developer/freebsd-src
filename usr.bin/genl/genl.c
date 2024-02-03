@@ -236,7 +236,7 @@ monitor_mcast(int argc __unused, char **argv)
 	memset(&pfd, 0, sizeof(pfd));
 	pfd.fd = ss.fd;
 	pfd.events = POLLIN | POLLERR;
-	while (true) {
+	for (;;) {
 		pfd.revents = 0;
 		if (poll(&pfd, 1, -1) == -1) {
 			if (errno == EINTR)

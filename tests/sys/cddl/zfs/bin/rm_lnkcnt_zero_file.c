@@ -58,7 +58,7 @@ mover(void *a)
 	char buf[256];
 	int idx, ret;
 
-	while (TRUE) {
+	for (;;) {
 		idx = pickidx();
 		(void) sprintf(buf, "%s.%03d", filebase, idx);
 		ret = rename(filebase, buf);
@@ -76,7 +76,7 @@ cleaner(void *a)
 	char buf[256];
 	int idx, ret;
 
-	while (TRUE) {
+	for (;;) {
 		idx = pickidx();
 		(void) sprintf(buf, "%s.%03d", filebase, idx);
 		ret = remove(buf);
@@ -92,7 +92,7 @@ writer(void *a)
 {
 	int *fd = (int *)a;
 
-	while (TRUE) {
+	for (;;) {
 		(void) close (*fd);
 		*fd = open(filebase, O_APPEND | O_RDWR | O_CREAT, 0644);
 		if (*fd < 0)
@@ -129,7 +129,7 @@ main(int argc, char **argv)
 	(void) pthread_create(&tid, NULL, cleaner, NULL);
 	(void) pthread_create(&tid, NULL, writer, (void *) &fd);
 
-	while (TRUE) {
+	for (;;) {
 		int ret;
 		struct stat st;
 

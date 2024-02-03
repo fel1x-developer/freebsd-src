@@ -86,7 +86,7 @@ g_mirror_find_launched_device(struct g_class *mp, const char *name, int flags)
 	    ("%s: Invalid flags %x\n", __func__, (unsigned)flags));
 #undef	GMFL_VALID_FLAGS
 
-	while (true) {
+	for (;;) {
 		sc = g_mirror_find_device(mp, name);
 		if (sc == NULL)
 			return (NULL);

@@ -1078,7 +1078,7 @@ ATF_TC_BODY(rtm_add_v6_gu_ifa_hostroute_success, tc)
 	 * RTM_ADD without llinfo.
 	 */
 
-	while (true) {
+	for (;;) {
 		rtm = rtsock_read_rtm(c->rtsock_fd, buffer, sizeof(buffer));
 		if ((rtm->rtm_type == RTM_ADD) && ((rtm->rtm_flags & RTF_LLINFO) == 0))
 			break;
@@ -1117,7 +1117,7 @@ ATF_TC_BODY(rtm_add_v6_gu_ifa_prefixroute_success, tc)
 	 * 3) prefix route
 	 */
 
-	while (true) {
+	for (;;) {
 		rtm = rtsock_read_rtm(c->rtsock_fd, buffer, sizeof(buffer));
 		/* Find RTM_ADD with netmask - this should skip both host route and LLADDR */
 		if ((rtm->rtm_type == RTM_ADD) && (rtsock_find_rtm_sa(rtm, RTA_NETMASK)))
@@ -1208,7 +1208,7 @@ ATF_TC_BODY(rtm_del_v6_gu_ifa_hostroute_success, tc)
 
 	ret = iface_delete_addr(c->ifname, c->addr6_str);
 
-	while (true) {
+	for (;;) {
 		rtm = rtsock_read_rtm(c->rtsock_fd, buffer, sizeof(buffer));
 		if ((rtm->rtm_type == RTM_DELETE) &&
 		    ((rtm->rtm_flags & RTF_LLINFO) == 0) &&
@@ -1246,7 +1246,7 @@ ATF_TC_BODY(rtm_del_v6_gu_ifa_prefixroute_success, tc)
 
 	ret = iface_delete_addr(c->ifname, c->addr6_str);
 
-	while (true) {
+	for (;;) {
 		rtm = rtsock_read_rtm(c->rtsock_fd, buffer, sizeof(buffer));
 		/* Find RTM_DELETE with netmask - this should skip both host route and LLADDR */
 		if ((rtm->rtm_type == RTM_DELETE) && (rtsock_find_rtm_sa(rtm, RTA_NETMASK)))
@@ -1283,7 +1283,7 @@ ATF_TC_BODY(rtm_add_v4_gu_ifa_prefixroute_success, tc)
 	 * 3) prefix route
 	 */
 
-	while (true) {
+	for (;;) {
 		rtm = rtsock_read_rtm(c->rtsock_fd, buffer, sizeof(buffer));
 		/* Find RTM_ADD with netmask - this should skip both host route and LLADDR */
 		if ((rtm->rtm_type == RTM_ADD) && (rtsock_find_rtm_sa(rtm, RTA_NETMASK)))
@@ -1368,7 +1368,7 @@ ATF_TC_BODY(rtm_del_v4_gu_ifa_prefixroute_success, tc)
 
 	ret = iface_delete_addr(c->ifname, c->addr4_str);
 
-	while (true) {
+	for (;;) {
 		rtm = rtsock_read_rtm(c->rtsock_fd, buffer, sizeof(buffer));
 		/* Find RTM_ADD with netmask - this should skip both host route and LLADDR */
 		if ((rtm->rtm_type == RTM_DELETE) && (rtsock_find_rtm_sa(rtm, RTA_NETMASK)))

@@ -144,7 +144,7 @@ main(int argc, char *argv[])
 	cron_sync(secres1);
 	run_reboot_jobs(&database);
 	runnum = 0;
-	while (TRUE) {
+	for (;;) {
 # if DEBUGGING
 	    /* if (!(DebugFlags & DTEST)) */
 # endif /*DEBUGGING*/

@@ -1010,7 +1010,7 @@ oce_drain_eq(struct oce_eq *eq)
 		num_eqe++;
 		RING_GET(eq->ring, 1);
 
-	} while (TRUE);
+	} while (1);
 
 	oce_arm_eq(sc, eq->eq_id, num_eqe, FALSE, TRUE);
 
@@ -1037,7 +1037,7 @@ oce_drain_wq_cq(struct oce_wq *wq)
 		RING_GET(cq->ring, 1);
 		num_cqes++;
 
-	} while (TRUE);
+	} while (1);
 
 	oce_arm_cq(sc, cq->cq_id, num_cqes, FALSE);
 

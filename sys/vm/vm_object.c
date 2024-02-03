@@ -1908,7 +1908,7 @@ vm_object_collapse(vm_object_t object)
 
 	VM_OBJECT_ASSERT_WLOCKED(object);
 
-	while (TRUE) {
+	for (;;) {
 		KASSERT((object->flags & (OBJ_DEAD | OBJ_ANON)) == OBJ_ANON,
 		    ("collapsing invalid object"));
 

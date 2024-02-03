@@ -298,7 +298,7 @@ parse_indexes(xz_file_info *xfi, int src_fd)
 
 		// Locate the Stream Footer. There may be Stream Padding which
 		// we must skip when reading backwards.
-		while (true) {
+		for (;;) {
 			if (pos < LZMA_STREAM_HEADER_SIZE) {
 				goto error;
 			}

@@ -296,7 +296,7 @@ ATF_TC_BODY(path_coredump, tc)
 	child = fork();
 	ATF_REQUIRE_MSG(child != -1, FMT_ERR("fork"));
 	if (child == 0) {
-		while (true)
+		for (;;)
 			(void)sleep(1);
 	}
 

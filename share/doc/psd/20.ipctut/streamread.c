@@ -30,7 +30,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdio.h>
-#define TRUE 1
 
 /*
  * This program creates a socket and then begins an infinite loop. Each time
@@ -87,7 +86,7 @@ main()
 				printf("-->%s\en", buf);
 		} while (rval != 0);
 		close(msgsock);
-	} while (TRUE);
+	} while (1);
 	/*
 	 * Since this program has an infinite loop, the socket "sock" is
 	 * never explicitly closed.  However, all sockets will be closed

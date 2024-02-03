@@ -296,7 +296,7 @@ populate_avail_from_iomem(void)
 		goto out;	/* Nothing to do ???? */
 	init_avail();
 	chop(buf);
-	while (true) {
+	for (;;) {
 		/*
 		 * Look for top level items we understand.  Skip anything that's
 		 * a continuation, since we don't care here. If we care, we'll

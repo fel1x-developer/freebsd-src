@@ -31,7 +31,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdio.h>
-#define TRUE 1
 
 /*
  * This program uses select() to check that someone is trying to connect
@@ -96,5 +95,5 @@ main()
 			close(msgsock);
 		} else
 			printf("Do something else\en");
-	} while (TRUE);
+	} while (1);
 }

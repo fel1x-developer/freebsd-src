@@ -1742,7 +1742,7 @@ irdma_uk_clean_cq(void *q, struct irdma_cq_uk *cq)
 		cq_head = (cq_head + 1) % cq->cq_ring.size;
 		if (!cq_head)
 			temp ^= 1;
-	} while (true);
+	} for (;;);
 	return 0;
 }
 

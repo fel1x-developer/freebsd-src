@@ -368,7 +368,7 @@ readtab(int force)
 
 	nhosts = 0;
 	nentries = 0;
-	while (TRUE) {
+	for (;;) {
 		buflen = sizeof(buffer);
 		read_entry(fp, buffer, &buflen);
 		if (buflen == 0) {		/* More entries? */
@@ -503,7 +503,7 @@ read_entry(FILE *fp, char *buffer, unsigned *bufsiz)
 		goto top;				/* Skip over whitespace */
 	}
 	if (c == '#') {
-		while (TRUE) {			/* Eat comments after # */
+		for (;;) {			/* Eat comments after # */
 			c = fgetc(fp);
 			if (c < 0) {
 				goto done;		/* Exit if end-of-file */
@@ -546,7 +546,7 @@ read_entry(FILE *fp, char *buffer, unsigned *bufsiz)
 		if (length >= *bufsiz - 1) {
 			goto done;
 		}
-		while (TRUE) {			/* Special quote processing loop */
+		for (;;) {			/* Special quote processing loop */
 			c = fgetc(fp);
 			switch (c) {
 			case EOF:
@@ -641,7 +641,7 @@ process_entry(struct host *host, char *src)
 #endif
 	current_hostname = host->hostname->string;
 	adjust(&src);
-	while (TRUE) {
+	for (;;) {
 		retval = eval_symbol(&src, host);
 		if (retval == SUCCESS) {
 			adjust(&src);
