@@ -590,6 +590,9 @@ void _gone_in_dev(device_t dev, int major, const char *msg);
 #define	__witness_used	__unused
 #endif
 
+#define static_assert(x, ...)		__static_assert(x, ##__VA_ARGS__, #x)
+#define __static_assert(x, msg, ...)	_Static_assert(x, msg)
+
 #endif /* _KERNEL */
 
 __NULLABILITY_PRAGMA_POP

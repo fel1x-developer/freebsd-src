@@ -59,7 +59,4 @@
 #define	BUILD_BUG_ON_INVALID(expr)	while (0) { (void)(expr); }
 #define	BUILD_BUG_ON_ZERO(x)	((int)sizeof(struct { int:-((x) != 0); }))
 
-#define static_assert(x, ...)		__static_assert(x, ##__VA_ARGS__, #x)
-#define __static_assert(x, msg, ...)	_Static_assert(x, msg)
-
 #endif
