@@ -93,6 +93,13 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   }
   .dynamic        : { *(.dynamic) } :kernel :dynamic
+  /* lld will put .data.rel.ro here if ldscript doesn't specify it, but then
+     .data.rel.ro will inherit PT_DYNAMIC from .dynamic section */
+  .data.rel.ro :
+  {
+    *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*)
+    *(.data.rel.ro* .gnu.linkonce.d.rel.ro.*)
+  } :kernel
   /* Put .ctors and .dtors next to the .got2 section, so that the pointers
      get relocated with -mrelocatable. Also put in the .fixup pointers.
      The current compiler no longer needs this, but keep it around for 2.7.2  */
